@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 2002-2022. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 -module(ms_transform).
@@ -78,24 +78,24 @@ format_error({?WARN_SHADOW_VAR,Name}) ->
       io_lib:format("variable ~p shadowed in ms_transform fun head",
 		    [Name]));
 
-format_error(?ERR_NOFUN) ->	    
+format_error(?ERR_NOFUN) ->
     "Parameter of ets/dbg:fun2ms/1 is not a literal fun";
-format_error(?ERR_ETS_HEAD) ->	    
+format_error(?ERR_ETS_HEAD) ->
     "ets:fun2ms requires fun with single variable or tuple parameter";
-format_error(?ERR_DBG_HEAD) ->	    
+format_error(?ERR_DBG_HEAD) ->
     "dbg:fun2ms requires fun with single variable or list parameter";
-format_error(?ERR_HEADMATCH) ->	    
+format_error(?ERR_HEADMATCH) ->
     "in fun head, only matching (=) on toplevel can be translated into match_spec";
-format_error(?ERR_SEMI_GUARD) ->	    
+format_error(?ERR_SEMI_GUARD) ->
     "fun with semicolon (;) in guard cannot be translated into match_spec";
-format_error(?ERR_GUARDMATCH) ->	    
+format_error(?ERR_GUARDMATCH) ->
     "fun with guard matching ('=' in guard) is illegal as match_spec as well";
-format_error({?ERR_GUARDLOCALCALL, Name, Arithy}) ->	    
+format_error({?ERR_GUARDLOCALCALL, Name, Arithy}) ->
     lists:flatten(io_lib:format("fun containing the local function call "
 				"'~tw/~w' (called in guard) "
 				"cannot be translated into match_spec",
 				[Name, Arithy]));
-format_error({?ERR_GUARDREMOTECALL, Module, Name, Arithy}) ->	    
+format_error({?ERR_GUARDREMOTECALL, Module, Name, Arithy}) ->
     lists:flatten(io_lib:format("fun containing the remote function call "
 				"'~w:~tw/~w' (called in guard) "
 				"cannot be translated into match_spec",
@@ -114,14 +114,14 @@ format_error({?ERR_GUARDDISALLOWEDOP, Operator}) ->
     %% not in guards.
     lists:flatten(
       io_lib:format("the operator ~w is not allowed in guards", [Operator]));
-format_error(?ERR_BODYMATCH) ->	    
+format_error(?ERR_BODYMATCH) ->
     "fun with body matching ('=' in body) is illegal as match_spec";
-format_error({?ERR_BODYLOCALCALL, Name, Arithy}) ->	    
+format_error({?ERR_BODYLOCALCALL, Name, Arithy}) ->
     lists:flatten(io_lib:format("fun containing the local function "
 				"call '~tw/~w' (called in body) "
 				"cannot be translated into match_spec",
 				[Name,Arithy]));
-format_error({?ERR_BODYREMOTECALL, Module, Name, Arithy}) ->	    
+format_error({?ERR_BODYREMOTECALL, Module, Name, Arithy}) ->
     lists:flatten(io_lib:format("fun containing the remote function call "
 				"'~w:~tw/~w' (called in body) "
 				"cannot be translated into match_spec",
@@ -135,55 +135,55 @@ format_error({?ERR_BODYBINCONSTRUCT, Var}) ->
       io_lib:format("bit syntax construction with variable ~w (in body) "
 		    "cannot be translated "
 		    "into match_spec", [Var]));
-format_error({?ERR_BODYDISALLOWEDOP, Operator}) -> 
-    %% This will probably never happen, Are there op's that are allowed in 
+format_error({?ERR_BODYDISALLOWEDOP, Operator}) ->
+    %% This will probably never happen, Are there op's that are allowed in
     %% guards but not in bodies? Not at time of writing anyway...
     lists:flatten(
-      io_lib:format("the operator ~w is not allowed in function bodies", 
+      io_lib:format("the operator ~w is not allowed in function bodies",
 		    [Operator]));
 
 format_error({?ERR_UNBOUND_VARIABLE, Str}) ->
     lists:flatten(
       io_lib:format("the variable ~s is unbound, cannot translate "
 		    "into match_spec", [Str]));
-format_error({?ERR_HEADBADREC,Name}) ->	    
+format_error({?ERR_HEADBADREC,Name}) ->
     lists:flatten(
       io_lib:format("fun head contains unknown record type ~tw",[Name]));
-format_error({?ERR_HEADBADFIELD,RName,FName}) ->	    
+format_error({?ERR_HEADBADFIELD,RName,FName}) ->
     lists:flatten(
       io_lib:format("fun head contains reference to unknown field ~tw in "
 		    "record type ~tw",[FName, RName]));
-format_error({?ERR_HEADMULTIFIELD,RName,FName}) ->	    
+format_error({?ERR_HEADMULTIFIELD,RName,FName}) ->
     lists:flatten(
       io_lib:format("fun head contains already defined field ~tw in "
 		    "record type ~tw",[FName, RName]));
-format_error({?ERR_HEADDOLLARATOM,Atom}) ->	    
+format_error({?ERR_HEADDOLLARATOM,Atom}) ->
     lists:flatten(
       io_lib:format("fun head contains atom ~w, which conflics with reserved "
 		    "atoms in match_spec heads",[Atom]));
-format_error({?ERR_HEADBINMATCH,Atom}) ->	    
+format_error({?ERR_HEADBINMATCH,Atom}) ->
     lists:flatten(
       io_lib:format("fun head contains bit syntax matching of variable ~w, "
 		    "which cannot be translated into match_spec", [Atom]));
-format_error({?ERR_GUARDBADREC,Name}) ->	    
+format_error({?ERR_GUARDBADREC,Name}) ->
     lists:flatten(
       io_lib:format("fun guard contains unknown record type ~tw",[Name]));
-format_error({?ERR_GUARDBADFIELD,RName,FName}) ->	    
+format_error({?ERR_GUARDBADFIELD,RName,FName}) ->
     lists:flatten(
       io_lib:format("fun guard contains reference to unknown field ~tw in "
 		    "record type ~tw",[FName, RName]));
-format_error({?ERR_GUARDMULTIFIELD,RName,FName}) ->	    
+format_error({?ERR_GUARDMULTIFIELD,RName,FName}) ->
     lists:flatten(
       io_lib:format("fun guard contains already defined field ~tw in "
 		    "record type ~tw",[FName, RName]));
-format_error({?ERR_BODYBADREC,Name}) ->	    
+format_error({?ERR_BODYBADREC,Name}) ->
     lists:flatten(
       io_lib:format("fun body contains unknown record type ~tw",[Name]));
-format_error({?ERR_BODYBADFIELD,RName,FName}) ->	    
+format_error({?ERR_BODYBADFIELD,RName,FName}) ->
     lists:flatten(
       io_lib:format("fun body contains reference to unknown field ~tw in "
 		    "record type ~tw",[FName, RName]));
-format_error({?ERR_BODYMULTIFIELD,RName,FName}) ->	    
+format_error({?ERR_BODYMULTIFIELD,RName,FName}) ->
     lists:flatten(
       io_lib:format("fun body contains already defined field ~tw in "
 		    "record type ~tw",[FName, RName]));
@@ -206,7 +206,7 @@ parse_transform_info() ->
 
 transform_from_shell(Dialect, Clauses, BoundEnvironment) ->
     SaveFilename = setup_filename(),
-    case catch ms_clause_list(1,Clauses,Dialect,gb_sets:new()) of
+    case catch optimise_ms(ms_clause_list(1,Clauses,Dialect,gb_sets:new())) of
 	{'EXIT',Reason} ->
 	    cleanup_filename(SaveFilename),
 	    exit(Reason);
@@ -224,7 +224,7 @@ transform_from_shell(Dialect, Clauses, BoundEnvironment) ->
 		    Ret
             end
     end.
-    
+
 
 %%
 %% Called when translating during compiling
@@ -367,7 +367,7 @@ forms(Forms0) ->
 form({attribute,_,file,{Filename,_}}=Form) ->
     put_filename(Filename),
     Form;
-form({attribute,_,record,Definition}=Form) -> 
+form({attribute,_,record,Definition}=Form) ->
     add_record_definition(Definition),
     Form;
 form({function,Anno,Name0,Arity0,Clauses0}) ->
@@ -450,9 +450,356 @@ copy_list([],Bound) ->
     {[],Bound}.
 
 transform_call(Type,_Anno,[{'fun',Anno2,{clauses, ClauseList}}],Bound) ->
-    ms_clause_list(Anno2, ClauseList,Type,Bound);
+    Ms = ms_clause_list(Anno2, ClauseList,Type,Bound),
+    optimise_ms(Ms);
 transform_call(_Type,Anno,_NoAbstractFun,_) ->
     throw({error,Anno,?ERR_NOFUN}).
+
+% Multiple semicolon-separated clauses in the function given to ets:fun2ms
+% results in an ETS head-guard-body-triple match spec per clause. We iterate
+% through those clauses here.
+optimise_ms({cons, _Anno1, Tuple, _Tail}) ->
+  % One clause may be expanded to many clauses as part of the optimisation
+  optimise_ms_clause(Tuple);
+  % TODO
+  %Clauses = optimise_ms_clause(Tuple),
+  %lists:foldr(fun (Clause, Acc) -> {cons, Anno1, Clause, Acc} end, optimise_ms(Tail), Clauses);
+optimise_ms({nil, _}=Nil) ->
+  Nil.
+
+% For all variable elements in the pattern affected by exactly one `=:=`
+% guard, where we compare the variable to a literal, we can promote that
+% literal into the pattern, to allow indexing by that value
+% and so on, which is much faster.
+optimise_ms_clause({tuple, Anno, [MSHead, MSGuards, MSBody]}=Unoptimised) ->
+  % TODO Bail on unsupported operators for now
+  % TODO Handle 'or', 'orelse' and other operators which require introducting new match functions
+  % TODO Gracefully handle (X =:= 1) and (X =:= 2) - first substitution should make the second reduce to false?
+  try find_substitutable_columns_list(MSGuards) of
+    {ColumnsToSubstitute,NewGuards} ->
+      NewGuards2 = substitute_promotions_in_guards(ColumnsToSubstitute, NewGuards),
+      % TODO Also remove constant false match functions
+      NewGuards3 = remove_const_true_guards(NewGuards2),
+      NewHead = substitute_columns(ColumnsToSubstitute, MSHead),
+      NewBody = substitute_columns(ColumnsToSubstitute, MSBody),
+      {tuple, Anno, [NewHead,NewGuards3,NewBody]}
+  catch throw:{unoptimisable_operation, _Operation} ->
+    Unoptimised
+  end.
+
+remove_const_true_guards({nil, _}=Nil) ->
+  Nil;
+remove_const_true_guards({cons, _, {atom,_,true}, Tail}) ->
+  remove_const_true_guards(Tail);
+remove_const_true_guards({cons, Anno, Head, Tail}) ->
+  {cons, Anno, Head, remove_const_true_guards(Tail)}.
+
+substitute_columns([{{atom,_,Key},Value}|_], {atom,_,Key}) ->
+    Value;
+substitute_columns([{{atom,_,_},_}|MorePromotions], {atom,_,_}=Guard) ->
+    substitute_columns(MorePromotions, Guard) ;
+substitute_columns(Promotions, {cons, Anno, Guard, MoreGuards}) ->
+    {cons, Anno, substitute_columns(Promotions, Guard), substitute_columns(Promotions, MoreGuards)};
+substitute_columns(Promotions, {tuple,Anno,Elems}) ->
+    {tuple, Anno, [substitute_columns(Promotions, Elem) || Elem <- Elems]};
+substitute_columns(Promotions, {map, Anno, Assocs}) ->
+    {map, Anno, [substitute_columns(Promotions, Assoc) || Assoc <- Assocs]};
+substitute_columns(Promotions, {map_field_assoc,Anno,NField,NValue}) ->
+    {map_field_assoc,Anno,substitute_columns(Promotions, NField),substitute_columns(Promotions, NValue)};
+substitute_columns(_, Other) ->
+    Other.
+
+-define(ATOM_LIT_EQ_KV_VK_CANDIDATE, {tuple, _Anno2, [{atom, _Anno3, '=:='}, {atom,_,_}=Value,    {atom,_,_}=Key]}).
+-define(CHAR_LIT_EQ_KV_CANDIDATE,    {tuple, _Anno2, [{atom, _Anno3, '=:='}, {char,_,_}=Value,    {atom,_,_}=Key]}).
+-define(INTEGER_LIT_EQ_KV_CANDIDATE, {tuple, _Anno2, [{atom, _Anno3, '=:='}, {integer,_,_}=Value, {atom,_,_}=Key]}).
+-define(NIL_LIT_EQ_KV_CANDIDATE,     {tuple, _Anno2, [{atom, _Anno3, '=:='}, {nil, _}=Value,      {atom,_,_}=Key]}).
+-define(STRING_LIT_EQ_KV_CANDIDATE,  {tuple, _Anno2, [{atom, _Anno3, '=:='}, {string,_,_}=Value,  {atom,_,_}=Key]}).
+-define(CHAR_LIT_EQ_VK_CANDIDATE,    {tuple, _Anno2, [{atom, _Anno3, '=:='}, {atom,_,_}=Key,      {char,_,_}=Value]}).
+-define(INTEGER_LIT_EQ_VK_CANDIDATE, {tuple, _Anno2, [{atom, _Anno3, '=:='}, {atom,_,_}=Key,      {integer,_,_}=Value]}).
+-define(NIL_LIT_EQ_VK_CANDIDATE,     {tuple, _Anno2, [{atom, _Anno3, '=:='}, {atom,_,_}=Key,      {nil, _}=Value]}).
+-define(STRING_LIT_EQ_VK_CANDIDATE,  {tuple, _Anno2, [{atom, _Anno3, '=:='}, {atom,_,_}=Key,      {string,_,_}=Value]}).
+
+-define(ATOM_LIT_EQ_KV_CONST_CANDIDATE,    {tuple, _Anno2, [{atom, _Anno3, '=:='}, {tuple, _Anno4, [{atom, _, const}, {atom,_,_}=Value]},    {atom,_,_}=Key]}).
+-define(CHAR_LIT_EQ_KV_CONST_CANDIDATE,    {tuple, _Anno2, [{atom, _Anno3, '=:='}, {tuple, _Anno4, [{atom, _, const}, {char,_,_}=Value]},    {atom,_,_}=Key]}).
+-define(INTEGER_LIT_EQ_KV_CONST_CANDIDATE, {tuple, _Anno2, [{atom, _Anno3, '=:='}, {tuple, _Anno4, [{atom, _, const}, {integer,_,_}=Value]}, {atom,_,_}=Key]}).
+-define(NIL_LIT_EQ_KV_CONST_CANDIDATE,     {tuple, _Anno2, [{atom, _Anno3, '=:='}, {tuple, _Anno4, [{atom, _, const}, {nil, _}=Value]},      {atom,_,_}=Key]}).
+-define(STRING_LIT_EQ_KV_CONST_CANDIDATE,  {tuple, _Anno2, [{atom, _Anno3, '=:='}, {tuple, _Anno4, [{atom, _, const}, {string,_,_}=Value]},  {atom,_,_}=Key]}).
+-define(ATOM_LIT_EQ_VK_CONST_CANDIDATE,    {tuple, _Anno2, [{atom, _Anno3, '=:='}, {atom,_,_}=Key, {tuple, _Anno4, [{atom, _, const}, {atom,_,_}=Value]}]}).
+-define(CHAR_LIT_EQ_VK_CONST_CANDIDATE,    {tuple, _Anno2, [{atom, _Anno3, '=:='}, {atom,_,_}=Key, {tuple, _Anno4, [{atom, _, const}, {char,_,_}=Value]}]}).
+-define(INTEGER_LIT_EQ_VK_CONST_CANDIDATE, {tuple, _Anno2, [{atom, _Anno3, '=:='}, {atom,_,_}=Key, {tuple, _Anno4, [{atom, _, const}, {integer,_,_}=Value]}]}).
+-define(NIL_LIT_EQ_VK_CONST_CANDIDATE,     {tuple, _Anno2, [{atom, _Anno3, '=:='}, {atom,_,_}=Key, {tuple, _Anno4, [{atom, _, const}, {nil, _}=Value]}]}).
+-define(STRING_LIT_EQ_VK_CONST_CANDIDATE,  {tuple, _Anno2, [{atom, _Anno3, '=:='}, {atom,_,_}=Key, {tuple, _Anno4, [{atom, _, const}, {string,_,_}=Value]}]}).
+
+-define(VAR_EQ_KV, {tuple, _Anno2, [{atom, _Anno3, '=:='}, {atom,_,_}=Key, {var,_,_}=Value]}).
+-define(VAR_EQ_VK, {tuple, _Anno2, [{atom, _Anno3, '=:='}, {var,_,_}=Value,{atom,_,_}=Key]}).
+-define(VAR_EQ_KV_CONST, {tuple, _Anno2, [{atom, _Anno3, '=:='}, {atom,_,_}=Key, {tuple,_Anno4,[{atom, _Anno5, const}, {var,_,_}=Value]}]}).
+-define(VAR_EQ_VK_CONST, {tuple, _Anno2, [{atom, _Anno3, '=:='}, {tuple,_Anno4,[{atom, _Anno5, const}, {var,_,_}=Value]},{atom,_,_}=Key]}).
+
+% Special atoms of the form `$<number>` refer to columns we are to match against
+% rather than normal atom values
+is_column_ref({atom,_,Key}) ->
+  case atom_to_list(Key) of
+    [$$|MaybeIndex] ->
+      case string:to_integer(MaybeIndex) of
+        {_ColIndex, ""} -> true;
+        _ -> false
+      end;
+    _ -> false
+  end.
+
+extract_literal_column_guard(Key, Value, OriginalGuard, MoreGuards) ->
+  case is_column_ref(Key) of
+    true ->
+      {Promotable, Remaining} = find_substitutable_columns(MoreGuards),
+      {[{Key,Value}| Promotable], Remaining};
+    false ->
+      {Promotable, Remaining} = find_substitutable_columns(MoreGuards),
+      {Promotable, {cons, unknown, OriginalGuard, Remaining}}
+  end.
+
+
+% Applicable when there's a `=:=` guard that could be promoted to a pattern
+find_substitutable_columns({cons, _Anno, (?VAR_EQ_KV)=Guard, MoreGuards}) ->
+  extract_variable_column_guard(Key, Value, Guard, MoreGuards);
+find_substitutable_columns({cons, _Anno, (?VAR_EQ_VK)=Guard, MoreGuards}) ->
+  extract_variable_column_guard(Key, Value, Guard, MoreGuards);
+find_substitutable_columns({cons, _Anno, (?VAR_EQ_KV_CONST)=Guard, MoreGuards}) ->
+  extract_variable_column_guard(Key, Value, Guard, MoreGuards);
+find_substitutable_columns({cons, _Anno, (?VAR_EQ_VK_CONST)=Guard, MoreGuards}) ->
+  extract_variable_column_guard(Key, Value, Guard, MoreGuards);
+find_substitutable_columns({cons, _Anno, (?ATOM_LIT_EQ_KV_VK_CANDIDATE)=Guard, MoreGuards}) ->
+  case is_column_ref(Key) of
+    true -> extract_literal_column_guard(Key, Value, Guard, MoreGuards);
+    false -> extract_literal_column_guard(Value, Key, Guard, MoreGuards)
+  end;
+find_substitutable_columns({cons, _Anno, (?CHAR_LIT_EQ_KV_CANDIDATE)=Guard, MoreGuards}) ->
+  extract_literal_column_guard(Key, Value, Guard, MoreGuards);
+find_substitutable_columns({cons, _Anno, (?INTEGER_LIT_EQ_KV_CANDIDATE)=Guard, MoreGuards}) ->
+  extract_literal_column_guard(Key, Value, Guard, MoreGuards);
+find_substitutable_columns({cons, _Anno, (?NIL_LIT_EQ_KV_CANDIDATE)=Guard, MoreGuards}) ->
+  extract_literal_column_guard(Key, Value, Guard, MoreGuards);
+find_substitutable_columns({cons, _Anno, (?STRING_LIT_EQ_KV_CANDIDATE)=Guard, MoreGuards}) ->
+  extract_literal_column_guard(Key, Value, Guard, MoreGuards);
+find_substitutable_columns({cons, _Anno, (?CHAR_LIT_EQ_VK_CANDIDATE)=Guard, MoreGuards}) ->
+  extract_literal_column_guard(Key, Value, Guard, MoreGuards);
+find_substitutable_columns({cons, _Anno, (?INTEGER_LIT_EQ_VK_CANDIDATE)=Guard, MoreGuards}) ->
+  extract_literal_column_guard(Key, Value, Guard, MoreGuards);
+find_substitutable_columns({cons, _Anno, (?NIL_LIT_EQ_VK_CANDIDATE)=Guard, MoreGuards}) ->
+  extract_literal_column_guard(Key, Value, Guard, MoreGuards);
+find_substitutable_columns({cons, _Anno, (?STRING_LIT_EQ_VK_CANDIDATE)=Guard, MoreGuards}) ->
+  extract_literal_column_guard(Key, Value, Guard, MoreGuards);
+find_substitutable_columns({cons, _Anno, (?ATOM_LIT_EQ_KV_CONST_CANDIDATE)=Guard, MoreGuards}) ->
+  extract_literal_column_guard(Key, Value, Guard, MoreGuards);
+find_substitutable_columns({cons, _Anno, (?CHAR_LIT_EQ_KV_CONST_CANDIDATE)=Guard, MoreGuards}) ->
+  extract_literal_column_guard(Key, Value, Guard, MoreGuards);
+find_substitutable_columns({cons, _Anno, (?INTEGER_LIT_EQ_KV_CONST_CANDIDATE)=Guard, MoreGuards}) ->
+  extract_literal_column_guard(Key, Value, Guard, MoreGuards);
+find_substitutable_columns({cons, _Anno, (?NIL_LIT_EQ_KV_CONST_CANDIDATE)=Guard, MoreGuards}) ->
+  extract_literal_column_guard(Key, Value, Guard, MoreGuards);
+find_substitutable_columns({cons, _Anno, (?STRING_LIT_EQ_KV_CONST_CANDIDATE)=Guard, MoreGuards}) ->
+  extract_literal_column_guard(Key, Value, Guard, MoreGuards);
+find_substitutable_columns({cons, _Anno, (?ATOM_LIT_EQ_VK_CONST_CANDIDATE)=Guard, MoreGuards}) ->
+  extract_literal_column_guard(Key, Value, Guard, MoreGuards);
+find_substitutable_columns({cons, _Anno, (?CHAR_LIT_EQ_VK_CONST_CANDIDATE)=Guard, MoreGuards}) ->
+  extract_literal_column_guard(Key, Value, Guard, MoreGuards);
+find_substitutable_columns({cons, _Anno, (?INTEGER_LIT_EQ_VK_CONST_CANDIDATE)=Guard, MoreGuards}) ->
+  extract_literal_column_guard(Key, Value, Guard, MoreGuards);
+find_substitutable_columns({cons, _Anno, (?NIL_LIT_EQ_VK_CONST_CANDIDATE)=Guard, MoreGuards}) ->
+  extract_literal_column_guard(Key, Value, Guard, MoreGuards);
+find_substitutable_columns({cons, _Anno, (?STRING_LIT_EQ_VK_CONST_CANDIDATE)=Guard, MoreGuards}) ->
+  extract_literal_column_guard(Key, Value, Guard, MoreGuards);
+find_substitutable_columns({cons, Anno, {tuple, _Anno2, [{atom, _Anno3, 'andalso'}, _Left, _Right]}=Op, MoreGuards}) ->
+  {PromotableOp, RemainingOp} = find_substitutable_columns_expr(Op),
+  {PromotableMore, RemainingMore} = find_substitutable_columns(MoreGuards),
+  Promotable = PromotableOp ++ PromotableMore,
+  Remaining =
+    case RemainingOp of
+      {atom,_,true} -> RemainingMore;
+      {tuple, _,[{atom, _, const}, {atom, _, true}]} -> RemainingMore;
+      _ -> {cons, Anno, RemainingOp, RemainingMore}
+    end,
+  {Promotable, Remaining};
+find_substitutable_columns({cons, Anno, {tuple, _Anno2, [{atom, _Anno3, 'and'}, _Left, _Right]}=Op, MoreGuards}) ->
+  {PromotableOp, RemainingOp} = find_substitutable_columns_expr(Op),
+  {PromotableMore, RemainingMore} = find_substitutable_columns(MoreGuards),
+  Promotable = PromotableOp ++ PromotableMore,
+  Remaining =
+    case RemainingOp of
+      {atom,_,true} -> RemainingMore;
+      {tuple, _,[{atom, _, const}, {atom, _, true}]} -> RemainingMore;
+      _ -> {cons, Anno, RemainingOp, RemainingMore}
+    end,
+  {Promotable, Remaining};
+find_substitutable_columns({cons, _Anno, {tuple, _Anno2, [{atom, _Anno3, 'or'}, _Operand1, _Operand2]}=Op, _MoreGuards}) ->
+  throw({unoptimisable_operation, Op});
+find_substitutable_columns({cons, _Anno, {tuple, _Anno2, [{atom, _Anno3, 'orelse'}, _Operand1, _Operand2]}=Op, _MoreGuards}) ->
+  throw({unoptimisable_operation, Op});
+find_substitutable_columns({cons, _Anno, {tuple, _Anno2, [{atom, _Anno3, 'xor'}, _Operand1, _Operand2]}=Op, _MoreGuards}) ->
+  throw({unoptimisable_operation, Op});
+find_substitutable_columns({cons, _Anno, {tuple, _Anno2, [{atom, _Anno3, 'not'}, _Operand]}=Op, _MoreGuards}) ->
+  throw({unoptimisable_operation, Op}).
+
+
+find_substitutable_columns_list({cons, Anno, Guard, MoreGuards}) ->
+  {Promotable, Remaining} = find_substitutable_columns(Guard),
+  {PromotableMore, RemainingMore} = find_substitutable_columns_list(MoreGuards),
+  {Promotable ++ PromotableMore, {cons, Anno, Remaining, RemainingMore}};
+find_substitutable_columns_list({nil, _Anno}=Nil) ->
+  {[], Nil}.
+
+% If we inline guards such as `X =:= 1` into the pattern `$1` to get the 
+% pattern `1`, then `$1` will not be bound elsewhere in the guards. Typically,
+% this doesn't occur, since equality constraints such as `X =:= 1` are
+% already as specific as a guard can be, so subsequent guards that reference
+% `X` tend to be redundant (e.g. `X > 0`), or a contradiction (e.g. `X =:= 2`).
+% Here, we substitute in the value for the variable we have, then partially
+% evaluate the result to simplify it.
+substitute_promotions_in_guards(Promotions, {cons, Anno, Guard, MoreGuards}) ->
+  SubstitutedGuard = substitute_promotions_in_guards_expr(Promotions, Guard),
+  SubstitutedMore = substitute_promotions_in_guards(Promotions, MoreGuards),
+  {cons, Anno, SubstitutedGuard, SubstitutedMore};
+substitute_promotions_in_guards(_Promotions, {nil, _Anno}=Nil) ->
+  Nil.
+
+% e.g. is_record/3
+substitute_promotions_in_guards_expr(Promotions, {tuple, Anno2, [{atom, Anno3, Operator}, Operand1, Operand2, Operand3]}) ->
+  RemainingOperand1 = substitute_promotions_in_guards_expr(Promotions, Operand1),
+  RemainingOperand2 = substitute_promotions_in_guards_expr(Promotions, Operand2),
+  RemainingOperand3 = substitute_promotions_in_guards_expr(Promotions, Operand3),
+  erl_eval:partial_eval({tuple, Anno2, [{atom, Anno3, Operator}, RemainingOperand1, RemainingOperand2, RemainingOperand3]});
+% e.g. is_function/2, '>', etc.
+substitute_promotions_in_guards_expr(Promotions, {tuple, Anno2, [{atom, Anno3, Operator}, Operand1, Operand2]}) ->
+  RemainingOperand1 = substitute_promotions_in_guards_expr(Promotions, Operand1),
+  RemainingOperand2 = substitute_promotions_in_guards_expr(Promotions, Operand2),
+  erl_eval:partial_eval(Promotions, {tuple, Anno2, [{atom, Anno3, Operator}, RemainingOperand1, RemainingOperand2]});
+% e.g. not/1, is_integer/1, etc.
+substitute_promotions_in_guards_expr(Promotions, {tuple, Anno2, [{atom, Anno3, Operator}, Operand]}) ->
+  RemainingOperand = substitute_promotions_in_guards_expr(Promotions, Operand),
+  erl_eval:partial_eval(Promotions, {tuple, Anno2, [{atom, Anno3, Operator}, RemainingOperand]});
+% e.g. '$1'
+substitute_promotions_in_guards_expr(Promotions, {atom,_,_Atom}=Expr) ->
+  case is_column_ref(Expr) of
+    true ->
+      Search =
+        lists:search(fun ({PromotionColumn,_PromotionValue}) ->
+          PromotionColumn =:= Expr
+        end,
+        Promotions),
+      case Search of
+        {value, {_ColumnKey, SubstitutedValue}} -> SubstitutedValue;
+        false -> Expr
+      end;
+    false -> Expr
+  end;
+substitute_promotions_in_guards_expr(_Promotions, Other) ->
+  Other.
+
+extract_column_guard_expr(Key, Value, OriginalGuard) ->
+  case is_column_ref(Key) of
+    true ->
+      {[{Key,Value}], {atom, unknown, true}};
+    false ->
+      {[], OriginalGuard}
+  end.
+
+extract_variable_column_guard(Key, Value, Guard, MoreGuards) ->
+  case is_column_ref(Key) of
+    true ->
+      {PromotableMore, RemainingMore} = find_substitutable_columns(MoreGuards),
+      Remaining = {cons, unknown, {atom,unknown,true}, RemainingMore},
+      {[{Key,Value}| PromotableMore], Remaining};
+    false ->
+      {Promotable, Remaining} = find_substitutable_columns(MoreGuards),
+      {Promotable, {cons, unknown, Guard, Remaining}}
+  end.
+
+extract_variable_column_guard_expr(Key, Value, OriginalGuard) ->
+  case is_column_ref(Key) of
+    true ->
+      NewGuard = {atom,unknown,true},
+      {[{Key,Value}], NewGuard};
+    false ->
+      {[], OriginalGuard}
+  end.
+
+% In the case of conjugations, such as `X andalso Y`, we can continue
+% searching for usages of `=:=`, simplifying the remaining expression as we go
+find_substitutable_columns_expr((?VAR_EQ_KV)=Guard) ->
+  extract_variable_column_guard_expr(Key, Value, Guard);
+find_substitutable_columns_expr((?VAR_EQ_VK)=Guard) ->
+  extract_variable_column_guard_expr(Key, Value, Guard);
+find_substitutable_columns_expr((?ATOM_LIT_EQ_KV_VK_CANDIDATE)=Guard) ->
+  case is_column_ref(Key) of
+    true -> extract_column_guard_expr(Key, Value, Guard);
+    false -> extract_column_guard_expr(Value, Key, Guard)
+  end;
+find_substitutable_columns_expr((?CHAR_LIT_EQ_KV_CANDIDATE)=Guard) ->
+  extract_column_guard_expr(Key, Value, Guard);
+find_substitutable_columns_expr((?INTEGER_LIT_EQ_KV_CANDIDATE)=Guard) ->
+  extract_column_guard_expr(Key, Value, Guard);
+find_substitutable_columns_expr((?NIL_LIT_EQ_KV_CANDIDATE)=Guard) ->
+  extract_column_guard_expr(Key, Value, Guard);
+find_substitutable_columns_expr((?STRING_LIT_EQ_KV_CANDIDATE)=Guard) ->
+  extract_column_guard_expr(Key, Value, Guard);
+find_substitutable_columns_expr((?CHAR_LIT_EQ_VK_CANDIDATE)=Guard) ->
+  extract_column_guard_expr(Key, Value, Guard);
+find_substitutable_columns_expr((?INTEGER_LIT_EQ_VK_CANDIDATE)=Guard) ->
+  extract_column_guard_expr(Key, Value, Guard);
+find_substitutable_columns_expr((?NIL_LIT_EQ_VK_CANDIDATE)=Guard) ->
+  extract_column_guard_expr(Key, Value, Guard);
+find_substitutable_columns_expr((?STRING_LIT_EQ_VK_CANDIDATE)=Guard) ->
+  extract_column_guard_expr(Key, Value, Guard);
+find_substitutable_columns_expr((?ATOM_LIT_EQ_KV_CONST_CANDIDATE)=Guard) ->
+  extract_column_guard_expr(Key, Value, Guard);
+find_substitutable_columns_expr((?CHAR_LIT_EQ_KV_CONST_CANDIDATE)=Guard) ->
+  extract_column_guard_expr(Key, Value, Guard);
+find_substitutable_columns_expr((?INTEGER_LIT_EQ_KV_CONST_CANDIDATE)=Guard) ->
+  extract_column_guard_expr(Key, Value, Guard);
+find_substitutable_columns_expr((?NIL_LIT_EQ_KV_CONST_CANDIDATE)=Guard) ->
+  extract_column_guard_expr(Key, Value, Guard);
+find_substitutable_columns_expr((?STRING_LIT_EQ_KV_CONST_CANDIDATE)=Guard) ->
+  extract_column_guard_expr(Key, Value, Guard);
+find_substitutable_columns_expr((?ATOM_LIT_EQ_VK_CONST_CANDIDATE)=Guard) ->
+  extract_column_guard_expr(Key, Value, Guard);
+find_substitutable_columns_expr((?CHAR_LIT_EQ_VK_CONST_CANDIDATE)=Guard) ->
+  extract_column_guard_expr(Key, Value, Guard);
+find_substitutable_columns_expr((?INTEGER_LIT_EQ_VK_CONST_CANDIDATE)=Guard) ->
+  extract_column_guard_expr(Key, Value, Guard);
+find_substitutable_columns_expr((?NIL_LIT_EQ_VK_CONST_CANDIDATE)=Guard) ->
+  extract_column_guard_expr(Key, Value, Guard);
+find_substitutable_columns_expr((?STRING_LIT_EQ_VK_CONST_CANDIDATE)=Guard) ->
+  extract_column_guard_expr(Key, Value, Guard);
+find_substitutable_columns_expr({tuple, Anno2, [{atom, Anno3, 'andalso'}, Left, Right]}) ->
+  {PromotableLeft, RemainingLeft} = find_substitutable_columns_expr(Left),
+  {PromotableRight, RemainingRight} = find_substitutable_columns_expr(Right),
+  Promotable = PromotableLeft ++ PromotableRight,
+  Remaining =
+    case {RemainingLeft, RemainingRight} of
+      {{atom, _, true},R} -> R;
+      {{tuple, _,[{atom, _, const}, {atom, _, true}]},R} -> R;
+      {L,{atom, _, true}} -> L;
+      {L,{tuple, _,[{atom, _, const}, {atom, _, true}]}} -> L;
+      _ ->
+         {tuple, Anno2, [{atom, Anno3, 'andalso'}, RemainingLeft, RemainingRight]}
+    end,
+  {Promotable, Remaining};
+find_substitutable_columns_expr({tuple, Anno2, [{atom, Anno3, 'and'}, Left, Right]}) ->
+  {PromotableLeft, RemainingLeft} = find_substitutable_columns_expr(Left),
+  {PromotableRight, RemainingRight} = find_substitutable_columns_expr(Right),
+  Remaining =
+    case {RemainingLeft, RemainingRight} of
+      {{atom, _, true},R} -> R;
+      {{tuple, _,[{atom, _, const}, {atom, _, true}]},R} -> R;
+      {L,{atom, _, true}} -> L;
+      {L,{tuple, _,[{atom, _, const}, {atom, _, true}]}} -> L;
+      _ ->
+         {tuple, Anno2, [{atom, Anno3, 'and'}, RemainingLeft, RemainingRight]}
+    end,
+  Promotable = PromotableLeft ++ PromotableRight,
+  {Promotable, Remaining};
+find_substitutable_columns_expr(Other) ->
+  {[], Other}.
+
 
 % Fixup semicolons in guards
 ms_clause_expand({clause, Anno, Parameters, Guard = [_,_|_], Body}) ->
@@ -477,7 +824,6 @@ ms_clause({clause, Anno, Parameters, Guards, Body},Type,Bound) ->
     MSBody = transform_body(Anno,Body,Bindings),
     {tuple, Anno, [MSHead,MSGuards,MSBody]}.
 
-
 check_type(_,[{var,_,_}],_) ->
     ok;
 check_type(_,[{tuple,_,_}],ets) ->
@@ -497,7 +843,7 @@ check_type(Anno,_Type,ets) ->
 check_type(Anno,_,dbg) ->
     throw({error,Anno,?ERR_DBG_HEAD}).
 
--record(tgd,{ b, %Bindings 
+-record(tgd,{ b, %Bindings
 	      p, %Part of spec
 	      eb %Error code base, 0 for guards, 100 for bodies
 	     }).
@@ -509,11 +855,11 @@ transform_guards(Anno,[G],Bindings) ->
     tg0(Anno,G,B);
 transform_guards(Anno,_,_) ->
     throw({error,Anno,?ERR_SEMI_GUARD}).
-    
+
 transform_body(Anno,Body,Bindings) ->
     B = #tgd{b = Bindings, p = body, eb = ?ERROR_BASE_BODY},
     tg0(Anno,Body,B).
-    
+
 
 guard_top_trans({call,Anno0,{atom,Anno1,OldTest},Params}) ->
     case old_bool_test(OldTest,length(Params)) of
@@ -532,7 +878,7 @@ tg0(Anno,[H0|T],B) when B#tgd.p =:= guard ->
     {cons,Anno, tg(H,B), tg0(Anno,T,B)};
 tg0(Anno,[H|T],B) ->
     {cons,Anno, tg(H,B), tg0(Anno,T,B)}.
-    
+
 
 tg({match,Anno,_,_},B) ->
     throw({error,Anno,?ERR_GENMATCH+B#tgd.eb});
@@ -570,7 +916,7 @@ tg({call, Anno, {atom, Anno2, FunName},ParaList},B) ->
 			   lists:map(fun(X) -> tg(X,B) end, ParaList)]};
 	_ ->
 	    throw({error,Anno,{?ERR_GENLOCALCALL+B#tgd.eb,
-			       FunName,length(ParaList)}}) 
+			       FunName,length(ParaList)}})
     end;
 tg({call, Anno, {remote,_,{atom,_,erlang},{atom, Anno2, FunName}},ParaList},
    B) ->
@@ -585,7 +931,7 @@ tg({call, Anno, {remote,_,{atom,_,erlang},{atom, Anno2, FunName}},ParaList},
 		end;
 	_ ->
 	    throw({error,Anno,{?ERR_GENREMOTECALL+B#tgd.eb,erlang,
-			       FunName,length(ParaList)}}) 
+			       FunName,length(ParaList)}})
     end;
 tg({call, Anno, {remote,_,{atom,_,ModuleName},
 		 {atom, _, FunName}},ParaList},B) ->
@@ -671,7 +1017,7 @@ tg({record,Anno,RName,RFields},B) ->
 					    {value, {FN, X0}} ->
 						X0;
 					    _ ->
-						case DefValue of 
+						case DefValue of
 						    {true,Overridden} ->
 							Overridden;
 						    false ->
@@ -748,7 +1094,7 @@ tg({bin_element,_Anno0,{var, Anno, A},_,_} = Whole,B) ->
 	    Whole; % exists in environment hopefully
 	_AtomName ->
 	    throw({error,Anno,{?ERR_GENBINCONSTRUCT+B#tgd.eb,A}})
-    end;    
+    end;
 tg(default,_B) ->
     default;
 tg({bin_element,Anno,X,Y,Z},B) ->
@@ -766,7 +1112,7 @@ tg(T,B) when is_tuple(T), tuple_size(T) >= 2 ->
     Element = element(1,T),
     Anno = element(2,T),
     throw({error,Anno,{?ERR_GENELEMENT+B#tgd.eb,
-		       translate_language_element(Element)}}); 
+		       translate_language_element(Element)}});
 tg(Other,B) ->
     Element = io_lib:format("unknown element ~tw", [Other]),
     throw({error,erl_anno:new(0),{?ERR_GENELEMENT+B#tgd.eb,Element}}).
@@ -1077,7 +1423,7 @@ cmp_operator('==',2) ->
     true;
 cmp_operator('=:=',2) ->
     true;
-cmp_operator('/=',2) -> 
+cmp_operator('/=',2) ->
     true;
 cmp_operator('=/=',2) ->
     true;
@@ -1097,14 +1443,14 @@ is_ms_function(X,A,body) ->
 is_ms_function(X,A,guard) ->
     guard_function(X,A) or bool_test(X,A).
 
-fixup_environment(L,B) when is_list(L) ->    
+fixup_environment(L,B) when is_list(L) ->
     lists:map(fun(X) ->
-		      fixup_environment(X,B) 
+		      fixup_environment(X,B)
 	      end,
 	      L);
 fixup_environment({var,Anno,Name},B) ->
     case lists:keysearch(Name,1,B) of
-	{value,{Name,Value}} -> 
+	{value,{Name,Value}} ->
 	    freeze(Anno,Value);
 	_ ->
 	    throw({error,Anno,{?ERR_UNBOUND_VARIABLE,atom_to_list(Name)}})
@@ -1112,12 +1458,12 @@ fixup_environment({var,Anno,Name},B) ->
 fixup_environment(T,B) when is_tuple(T) ->
     list_to_tuple(
       lists:map(fun(X) ->
-			fixup_environment(X,B) 
+			fixup_environment(X,B)
 		end,
 		tuple_to_list(T)));
 fixup_environment(Other,_B) ->
     Other.
-    
+
 freeze(Anno,Term) ->
     {frozen,Anno,Term}.
 
@@ -1155,7 +1501,22 @@ normalise({op,_,'+',{integer,_,I}}) -> I;
 normalise({op,_,'+',{float,_,F}}) -> F;
 normalise({op,_,'-',{char,_,I}}) -> -I;		% Weird, but compatible!
 normalise({op,_,'-',{integer,_,I}}) -> -I;
-normalise({op,_,'-',{float,_,F}}) -> -F.
+normalise({op,_,'-',{float,_,F}}) -> -F;
+normalise(
+  {'case',_,Value,
+    [{clause,_,
+        [{atom,_,'_'}],
+        [[{call,_,{atom,_,is_float},[Value]}]],
+        [FloatCase]},
+     {clause,_,
+        [{atom,_,'_'}],
+         [],
+         [NonFloatCase]}]}) ->
+  case normalise(Value) of
+    F when is_float(F) -> normalise(FloatCase);
+    _ -> normalise(NonFloatCase)
+  end.
+
 
 normalise_list([H|T]) ->
     [normalise(H)|normalise_list(T)];

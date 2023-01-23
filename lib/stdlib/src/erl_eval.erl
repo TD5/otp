@@ -1625,6 +1625,7 @@ ev_expr({tuple,_,Es}) ->
     list_to_tuple([ev_expr(X) || X <- Es]);
 ev_expr({nil,_}) -> [];
 ev_expr({cons,_,H,T}) -> [ev_expr(H) | ev_expr(T)].
+
 %%ev_expr({call,Anno,{atom,_,F},As}) ->
 %%    true = erl_internal:guard_bif(F, length(As)),
 %%    apply(erlang, F, [ev_expr(X) || X <- As]);
