@@ -316,7 +316,6 @@ jobs:
     name: Build Erlang/OTP (Types and Flavors)
     runs-on: ubuntu-latest
     needs: pack
-    if: contains(needs.pack.outputs.changes, 'emulator')
 
     steps:
       - uses: actions/checkout@v3
@@ -523,12 +522,9 @@ jobs:
     name: Test Erlang/OTP
     runs-on: ubuntu-latest
     needs: pack
-    if: needs.pack.outputs.changes != '[]'
     strategy:
       matrix:
-        # type: ${{ fromJson(needs.pack.outputs.all) }}
-        type: ${{ fromJson(needs.pack.outputs.changes) }}
-        # type: ["os_mon","sasl"]
+        type: ${{ fromJson(needs.pack.outputs.all) }}
       fail-fast: false
     steps:
       - uses: actions/checkout@v3

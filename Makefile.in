@@ -1012,6 +1012,8 @@ test: all release release_tests
 
 ifeq ($(TYPE),)
 dialyzer: all
+	ls $(ERL_TOP)
+	ls $(ERL_TOP)/scripts
 	$(ERL_TOP)/scripts/run-dialyzer
 endif
 
