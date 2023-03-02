@@ -28,6 +28,7 @@ if [ ! -f configure ]; then
     git commit --no-verify -m 'Add generated configure files'
     AUTOCONF=1
 fi
+ls -laH
 git archive --prefix otp/ -o "$TARGET" HEAD
 
 if [ "$AUTOCONF" = 1 ]; then

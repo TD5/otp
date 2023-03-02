@@ -35,6 +35,10 @@ jobs:
         all: ${{ steps.apps.outputs.all }}
     steps:
       - uses: actions/checkout@v3
+      - name: Show checkout root
+        id: show-checkout
+        run: |
+          ls -laH
       - name: Get applications
         id: apps
         run: |

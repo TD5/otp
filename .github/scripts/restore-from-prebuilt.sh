@@ -27,6 +27,8 @@ mkdir "${ARCHIVE_DIR}"
 echo "::group::{Restore cached files}"
 tar -C "${CACHE_DIR}/" -xzf "${CACHE_SOURCE_DIR}/otp_src.tar.gz"
 
+ls -laH "${CACHE_DIR}/otp"
+
 ## If configure scripts have NOT changed, we can restore configure and other C/java programs
 if [ -z "${CONFIGURE}" ] || [ "${CONFIGURE}" = "false" ]; then
     tar -C "${CACHE_DIR}/" -xzf "${CACHE_SOURCE_DIR}/otp_cache.tar.gz"

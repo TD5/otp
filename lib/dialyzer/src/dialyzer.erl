@@ -93,8 +93,8 @@ plain_cl() ->
       cl_error(Msg)
   end.
 
-cl_check_init(#options{analysis_type = AnalType} = Opts) ->
-  case AnalType of
+cl_check_init(#options{analysis_type = AnalysisType} = Opts) ->
+  case AnalysisType of
     plt_build ->  {ok, ?RET_NOTHING_SUSPICIOUS};
     plt_add ->    {ok, ?RET_NOTHING_SUSPICIOUS};
     plt_remove -> {ok, ?RET_NOTHING_SUSPICIOUS};
