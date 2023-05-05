@@ -18,7 +18,6 @@ env:
     BASE_BRANCH: ${{ inputs.base-branch }}
 
 jobs:
-
   build:
     name: Build Erlang/OTP (64-bit) for subsequent stages
     runs-on: ubuntu-latest
