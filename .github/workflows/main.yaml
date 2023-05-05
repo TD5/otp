@@ -12,6 +12,7 @@
 ## However as things are now we use docker directly to make things
 ## work due to historical reasons.
 ##
+#
 
 name: Build and check Erlang/OTP
 
