@@ -13,6 +13,8 @@
 ## work due to historical reasons.
 ##
 
+## foobar
+
 name: Build and check Erlang/OTP
 
 on:
