@@ -28,7 +28,7 @@ jobs:
               body: 'Running fuzzer as requested'
             })
 
-  pack:
+  build-otp:
     if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-fuzzer')}}
     outputs:
         changes: ${{ needs.build.outputs.changes }}
@@ -41,7 +41,7 @@ jobs:
     name: Fuzz test Erlang/OTP
     if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-fuzzer')}}
     runs-on: ubuntu-latest
-    needs: pack
+    needs: build-otp
     steps:
       - uses: actions/checkout@v3
       - name: Cache BASE image
