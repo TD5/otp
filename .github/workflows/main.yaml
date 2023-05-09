@@ -26,6 +26,7 @@ env:
 jobs:
 
   pack:
+    # General purpose build for using OTP in CI
     name: Build Erlang/OTP (64-bit)
     runs-on: ubuntu-latest
     outputs:
