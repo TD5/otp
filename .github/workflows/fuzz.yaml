@@ -13,7 +13,6 @@ permissions:
   contents: read
   issues: read
   packages: read
-  pull-requests: read
 
 env:
     BASE_BRANCH: ${{ github.base_ref }}
