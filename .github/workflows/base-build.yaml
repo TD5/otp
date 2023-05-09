@@ -11,8 +11,12 @@ on:
         required: true
         type: string
     outputs:
-        changes: ${{ jobs.pack.outputs.changes }}
-        all: ${{ jobs.pack.outputs.all }}
+        changes:
+          description: "What apps were changed"
+          value: ${{ jobs.pack.outputs.changes }}
+        all:
+          description: "All apps that exist"
+          value: ${{ jobs.pack.outputs.all }}
 
 env:
     BASE_BRANCH: ${{ inputs.base-branch }}
