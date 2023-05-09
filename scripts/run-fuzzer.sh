@@ -23,7 +23,8 @@ mkdir -p out
 mkdir -p interesting
 mkdir -p minimized
 
-N=100000
+#N=100000
+N=5 # TODO Remove after testing
 
 echo "Fuzzing erl"
 echo "Using seed: ${SEED}"
