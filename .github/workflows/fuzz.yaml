@@ -13,7 +13,7 @@ env:
 jobs:
 
   starting-fuzzer:
-    name: Notify user
+    name: Notify user of fuzzing
     if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-fuzzer') }}
     runs-on: ubuntu-latest
     steps:
@@ -25,12 +25,12 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: 'Running fuzzer as requested'
+              body: "Running fuzzer as requested by ${{ github.actor }}"
             })
 
   # TODO: Remove
   not-starting-fuzzer:
-    name: Notify user
+    name: Notify user of no fuzzing
     if: ${{ !(github.event.issue.pull_request && contains(github.event.comment.body, '/run-fuzzer')) }}
     runs-on: ubuntu-latest
     steps:
@@ -42,14 +42,11 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: 'I saw a comment, but I am not running the fuzzer since I did not recognise a command to run it'
+              body: "I saw a comment, but I am not running the fuzzer since I did not recognise a command to run it"
             })
 
   build-otp:
     if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-fuzzer')}}
-    outputs:
-        changes: ${{ needs.build.outputs.changes }}
-        all: ${{ needs.build.outputs.all }}
     uses: ./.github/workflows/base-build.yaml
     with:
       base-branch: ${{ github.ref_name }}
