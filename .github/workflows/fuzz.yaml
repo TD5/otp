@@ -4,7 +4,7 @@ on:
   # Allow manual runs via special PR comments
   issue_comment:
     types: [created, edited]
-  # Allow manual runs via GitHub web interface, CLI etc.
+  # Allow manual runs via GitHub web interface, CLI, etc.
   workflow_dispatch:
 
 env:
