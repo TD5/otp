@@ -32,7 +32,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: "Running fuzzer as requested by ${{ github.actor }}"
+              body: "🤖 Running erlfuzz as requested by ${{ github.actor }}"
             })
 
   # TODO: Remove
@@ -49,7 +49,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: "I saw a comment, but I am not running the fuzzer since I did not recognise a command to run it"
+              body: "🤖 I saw a comment, but I am not running erlfuzz since I did not recognise a command to run it"
             })
 
   build-otp:
@@ -99,4 +99,13 @@ jobs:
         id: run-erlfuzz
         run: docker run -v $PWD:/github --entrypoint "" otp \
                bash -c 'scripts/run-fuzzer.sh'
-        # TODO Upload fuzz results?
+      - name: Collect erlfuzz results
+        if: always()
+        run: |
+          tar czf minimized-erlfuzz-results.tar.gz minimized
+      - name: Upload erlfuzz results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: minimized-erlfuzz-results
+          path: minimized-erlfuzz-results.tar.gz
