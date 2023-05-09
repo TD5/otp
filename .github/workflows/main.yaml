@@ -26,6 +26,8 @@ env:
 jobs:
 
   pack:
+    ## Make sure the base-line build is complete for later stages to use as
+    ## their version of OTP
     uses: ./.github/workflows/base-build.yaml
     with:
       base-branch: ${{ github.event_name == 'pull_request' && github.base_ref || github.ref_name }}
