@@ -92,3 +92,20 @@ jobs:
         with:
           name: minimized-erlfuzz-results
           path: minimized-erlfuzz-results.tar.gz
+
+  report:
+    name: Report results of erlfuzz
+    if: ${{ always() }}
+    needs: fuzz
+    steps:
+      - uses: actions/github-script@v5
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          ## TODO Render results nicely
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "🤖 A run of `erlfuzz` requested by **${{ github.actor }}** is complete\n\nYou can see the results of the job here:\n👉 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} 👈"
+            })
