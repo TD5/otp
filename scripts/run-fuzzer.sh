@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 COMMIT_TIME="$(git log --pretty=format:'%at' -n 1)"
 
