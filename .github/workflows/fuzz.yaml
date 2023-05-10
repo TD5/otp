@@ -32,7 +32,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: "🤖 Running `erlfuzz` as requested by **${{ github.actor }}**\n\nYou can follow the progress of the job here:\n👉 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} 👈"
+              body: "🤖 Running `erlfuzz` as requested by **${{ github.actor }}** [here]( ${{ github.event.comment.html_url }} ).\n\nYou can follow the progress of the job using the following link:\n👉 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} 👈"
             })
 
   build-otp:
@@ -107,5 +107,5 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: "🤖 A run of `erlfuzz` requested by **${{ github.actor }}** is complete\n\nYou can see the results of the job here:\n👉 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} 👈"
+              body: "🤖 A run of `erlfuzz` requested by **${{ github.actor }}** [here]( ${{ github.event.comment.html_url }} ) is complete.\n\nYou can see the results of the job using the following link:\n👉 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} 👈"
             })
