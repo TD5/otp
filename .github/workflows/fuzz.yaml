@@ -96,6 +96,7 @@ jobs:
   report:
     name: Report results of erlfuzz
     if: ${{ always() }}
+    runs-on: ubuntu-latest
     needs: fuzz
     steps:
       - uses: actions/github-script@v5
