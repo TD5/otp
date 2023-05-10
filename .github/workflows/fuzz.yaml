@@ -1,12 +1,11 @@
 name: Run fuzz tester
 
 on:
-  # Allow manual runs via special PR comments
+  # Allow manual runs via special PR comment '/run-fuzzer'
   issue_comment:
     types: [created, edited]
   # Allow manual runs via GitHub web interface, CLI etc.
   workflow_dispatch:
-
 
 # Allow responding to user by writing a comment on the PR
 permissions:
@@ -34,23 +33,6 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: "🤖 Running `erlfuzz` as requested by **${{ github.actor }}**\n\nYou can follow the progress of the job here:\n👉 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} 👈"
-            })
-
-  # TODO: Remove
-  not-starting-fuzzer:
-    name: Notify user of no fuzzing
-    if: ${{ !(github.event.issue.pull_request && contains(github.event.comment.body, '/run-fuzzer')) }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/github-script@v5
-        with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: "🤖 I saw a comment, but I am not running `erlfuzz` since I did not recognise a command to run it"
             })
 
   build-otp:
