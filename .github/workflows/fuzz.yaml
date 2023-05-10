@@ -32,7 +32,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: "🤖 Running `erlfuzz` as requested by **${{ github.actor }}**.\n\nYou can follow the progress of the job using the following link:\n👉 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} 👈"
+              body: "🤖 Running `erlfuzz` as requested by **${{ github.actor }}** ⏱️\n\nYou can follow the progress of the job using the following link:\n👉 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} 👈"
             })
 
   build-otp:
