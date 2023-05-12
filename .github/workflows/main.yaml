@@ -420,8 +420,8 @@ jobs:
     strategy:
       matrix:
         # type: ${{ fromJson(needs.pack.outputs.all) }}
-        type: ${{ fromJson(needs.pack.outputs.changes) }}
-        # type: ["os_mon","sasl"]
+        # type: ${{ fromJson(needs.pack.outputs.changes) }}
+        type: ["dialyzer"]
       fail-fast: false
     steps:
       - uses: actions/checkout@v3
@@ -476,6 +476,7 @@ jobs:
             -e TEST_NEEDS_RELEASE=true -e "RELEASE_ROOT=/buildroot/otp/Erlang ∅⊤℞" \
             -e EXTRA_ARGS="-ct_hooks cth_surefire [{path,\"/buildroot/otp/$DIR/make_test_dir/${{ matrix.type }}_junit.xml\"}]" \
             -v "$PWD/make_test_dir:/buildroot/otp/$DIR/make_test_dir" \
+            -v "$PWD/scripts:/buildroot/otp/scripts" \
             otp "make TYPE=${TYPE} && make ${APP}_test TYPE=${TYPE}"
           ## Rename os_mon to debug for debug build
           if [ "$APP" != "${{ matrix.type }}" ]; then

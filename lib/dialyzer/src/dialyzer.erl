@@ -341,7 +341,7 @@ cl_halt({ok, R = ?RET_NOTHING_SUSPICIOUS}, #options{}) ->
   io:put_chars("done (passed successfully)\n"),
   halt(R);
 cl_halt({ok, R = ?RET_DISCREPANCIES}, #options{output_file = Output}) ->
-  io:put_chars("done (warnings were emitted)\n"),
+  io:put_chars("done (warnings were emitted) CHANGE TO FORCE TESTS TO RUN\n"),
   cl_check_log(Output),
   halt(R);
 cl_halt({error, Msg1}, #options{output_file = Output}) ->
