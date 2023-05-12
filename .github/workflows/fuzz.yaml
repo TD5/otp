@@ -80,7 +80,8 @@ jobs:
             .github/
       - name: Run erlfuzz
         id: run-erlfuzz
-        run: docker run -v $PWD:/github --entrypoint "" otp /bin/bash -c './scripts/run-fuzzer.sh'
+        run: |
+          docker run -v $PWD:/github --entrypoint "" otp /bin/bash -c 'scripts/run-fuzzer.sh'
       - name: Collect erlfuzz results
         if: always()
         run: |
