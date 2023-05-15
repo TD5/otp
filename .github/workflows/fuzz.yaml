@@ -83,7 +83,7 @@ jobs:
         id: debug-erlfuzz
         run: |
           docker run -v $PWD:/github --entrypoint "" otp /bin/bash -c 'ls -laH /github/' ;
-          docker run -v $PWD:/github --entrypoint "" otp /bin/bash -c 'echo ${PWD}'
+          docker run -v $PWD:/github --entrypoint "" otp /bin/bash -c 'echo "pwd: ${PWD}"' ;
           docker run -v $PWD:/github --entrypoint "" otp /bin/bash -c 'ls -laH .'
       - name: Run erlfuzz
         id: run-erlfuzz
