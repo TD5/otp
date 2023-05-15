@@ -10,13 +10,16 @@ set -euxo pipefail
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain beta
 
 PATH=~/.cargo/bin:$PATH
+source "~/.cargo/env"
 
 mkdir "../${FUZZER_DIR}"
 cd "../${FUZZER_DIR}"
 git clone https://github.com/WhatsApp/erlfuzz.git
 cd erlfuzz
 
-cargo build --release
+# Be permissive when building erlfuzz - we don't need it to we warning-free for
+# erlfuzz to be useful
+RUSTFLAGS=-Awarnings cargo build --release
 
 mkdir -p out
 mkdir -p interesting
