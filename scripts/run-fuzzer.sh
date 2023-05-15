@@ -9,6 +9,8 @@ set -euxo pipefail
 # Install Rust non-interactively
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
+PATH=~/.cargo/bin:$PATH
+
 mkdir "../${FUZZER_DIR}"
 cd "../${FUZZER_DIR}"
 git clone https://github.com/WhatsApp/erlfuzz.git
