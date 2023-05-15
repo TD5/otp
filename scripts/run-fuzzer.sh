@@ -6,8 +6,8 @@ OTP_DIR=${2}
 
 set -euxo pipefail
 
-# Install Rust
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+# Install Rust non-interactively
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
 mkdir "../${FUZZER_DIR}"
 cd "../${FUZZER_DIR}"
