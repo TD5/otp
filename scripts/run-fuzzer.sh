@@ -9,8 +9,7 @@ set -euxo pipefail
 # Install Rust non-interactively
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain beta
 
-PATH=~/.cargo/bin:$PATH
-source "~/.cargo/env"
+PATH=$HOME/.cargo/bin:$PATH
 
 mkdir "../${FUZZER_DIR}"
 cd "../${FUZZER_DIR}"
@@ -19,7 +18,7 @@ cd erlfuzz
 
 # Be permissive when building erlfuzz - we don't need it to we warning-free for
 # erlfuzz to be useful
-RUSTFLAGS=-Awarnings cargo build --release
+RUSTFLAGS=-Awarnings $HOME/.cargo/bin/cargo build --release
 
 mkdir -p out
 mkdir -p interesting
