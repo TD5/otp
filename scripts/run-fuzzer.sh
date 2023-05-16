@@ -9,7 +9,7 @@ set -euxo pipefail
 # Install Rust non-interactively
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
 PATH=$HOME/.cargo/bin:$PATH
-apt install parallel
+sudo apt-get install parallel
 
 mkdir "../${FUZZER_DIR}"
 cd "../${FUZZER_DIR}"
