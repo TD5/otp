@@ -30,6 +30,6 @@ N=5 # TODO Remove after testing
 echo "Fuzzing erl"
 echo "Generating ${N} test cases"
 
-seq ${N} | parallel --line-buffer "./target/release/erlfuzz fuzz -c ./run_erl_once.sh --tmp-directory out --interesting-directory interesting --minimized-directory minimized test{}"
+seq ${N} | parallel --line-buffer "./target/release/erlfuzz fuzz-and-reduce -c ./run_erl_once.sh --tmp-directory out --interesting-directory interesting --minimized-directory minimized test{}"
 
 echo "Fuzzing complete"
