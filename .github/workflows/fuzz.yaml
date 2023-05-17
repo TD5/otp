@@ -81,11 +81,11 @@ jobs:
       - name: Run erlfuzz
         id: run-erlfuzz
         run: |
-          docker run -v $PWD:/github --entrypoint "" otp /bin/bash -c '/github/scripts/run-fuzzer.sh fuzzer/ /github/'
+          docker run -v $PWD:/github --entrypoint "" otp /bin/bash -c '/github/.github/scripts/run-fuzzer.sh fuzzer/ /github/'
       - name: Collect erlfuzz results
         if: always()
         run: |
-          tar czf erlfuzz/minimized-erlfuzz-results.tar.gz minimized
+          tar czf minimized-erlfuzz-results.tar.gz erlfuzz/minimized
       - name: Upload erlfuzz results
         uses: actions/upload-artifact@v3
         if: always()
