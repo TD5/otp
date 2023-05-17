@@ -85,7 +85,7 @@ jobs:
       - name: Collect erlfuzz results
         if: always()
         run: |
-          tar czf minimized-erlfuzz-results.tar.gz minimized
+          tar czf erlfuzz/minimized-erlfuzz-results.tar.gz minimized
       - name: Upload erlfuzz results
         uses: actions/upload-artifact@v3
         if: always()
