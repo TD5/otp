@@ -82,7 +82,9 @@ jobs:
         id: run-erlfuzz
         run: |
           pwd
+          ls -laH
           docker run -v $PWD:/github --entrypoint "" otp /bin/bash -c '/github/.github/scripts/run-fuzzer.sh fuzzer/ /github/'
+          ls -laH
       - name: Collect erlfuzz results
         if: always()
         run: |
