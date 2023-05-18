@@ -32,4 +32,7 @@ echo "Generating ${N} test cases"
 
 seq ${N} | parallel --line-buffer "./target/release/erlfuzz fuzz-and-reduce -c ./run_erl_once.sh --tmp-directory out --interesting-directory interesting --minimized-directory ../minimized test{}"
 
+ls -laH
+ls -laH ../
+
 echo "Fuzzing complete"
