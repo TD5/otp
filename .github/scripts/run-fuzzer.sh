@@ -6,6 +6,8 @@ OTP_DIR=${2}
 
 set -euxo pipefail
 
+OUT=$(pwd)
+
 # Install Rust non-interactively
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
 PATH=$HOME/.cargo/bin:$PATH
@@ -22,7 +24,7 @@ RUSTFLAGS=-Awarnings $HOME/.cargo/bin/cargo build --release
 
 mkdir -p out
 mkdir -p interesting
-mkdir -p ../otp/minimized
+mkdir -p minimized
 
 #N=100000
 N=5 # TODO Remove after testing
@@ -30,6 +32,10 @@ N=5 # TODO Remove after testing
 echo "Fuzzing erl"
 echo "Generating ${N} test cases"
 
-seq ${N} | parallel --line-buffer "./target/release/erlfuzz fuzz-and-reduce -c ./run_erl_once.sh --tmp-directory out --interesting-directory interesting --minimized-directory ../otp/minimized test{}"
+seq ${N} | parallel --line-buffer "./target/release/erlfuzz fuzz-and-reduce -c ./run_erl_once.sh --tmp-directory out --interesting-directory interesting --minimized-directory minimized test{}"
 
 echo "Fuzzing complete"
+
+mv minimized "${OUT}"/minimized
+
+echo "Results written to: ${OUT}/minimized"
