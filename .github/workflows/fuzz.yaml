@@ -91,8 +91,10 @@ jobs:
           pwd
           ls -laH
           ls -laH ../
+          ls -laH ../../
+          ls -laH ../../fuzzer
           ls -laH erlfuzz
-          tar czf minimized-erlfuzz-results.tar.gz erlfuzz/minimized
+          tar czf minimized-erlfuzz-results.tar.gz otp/minimized
       - name: Upload erlfuzz results
         uses: actions/upload-artifact@v3
         if: always()
