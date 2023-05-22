@@ -6,7 +6,8 @@ OTP_DIR=${2}
 
 set -euxo pipefail
 
-OUT=$(pwd)
+# Docker host mount the OTP dir here
+OUT=/github/
 
 # Install Rust non-interactively
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
@@ -37,12 +38,5 @@ seq ${N} | parallel --line-buffer "./target/release/erlfuzz fuzz-and-reduce -c .
 echo "Fuzzing complete"
 
 mv minimized "${OUT}"/minimized
-
-echo "ls ${OUT}/minimized): $(ls ${OUT}/minimized)" # TODO REMOVE
-echo "ls ${OUT}/otp_build: $(ls ${OUT}/otp_build)" # TODO REMOVE
-echo "ls /github/: $(ls /github/)" # TODO REMOVE
-echo "ls ${OUT}: $(ls ${OUT})" # TODO REMOVE
-
-touch /github/flag_here
 
 echo "Results written to: ${OUT}/minimized"

@@ -88,10 +88,8 @@ jobs:
       - name: Collect erlfuzz results
         if: always()
         run: |
-          pwd
           ls -laH
-          ls -laH ../
-          tar czf minimized-erlfuzz-results.tar.gz otp/minimized
+          tar czf minimized-erlfuzz-results.tar.gz minimized
       - name: Upload erlfuzz results
         uses: actions/upload-artifact@v3
         if: always()
