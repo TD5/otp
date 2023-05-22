@@ -38,7 +38,11 @@ echo "Fuzzing complete"
 
 mv minimized "${OUT}"/minimized
 
-ls ${OUT}/minimized # TODO REMOVE
-ls ${OUT} # TODO REMOVE
+echo "ls ${OUT}/minimized): $(ls ${OUT}/minimized)" # TODO REMOVE
+echo "ls ${OUT}/otp_build: $(ls ${OUT}/otp_build)" # TODO REMOVE
+echo "ls /github/: $(ls /github/)" # TODO REMOVE
+echo "ls ${OUT}: $(ls ${OUT})" # TODO REMOVE
+
+touch /github/flag_here
 
 echo "Results written to: ${OUT}/minimized"
