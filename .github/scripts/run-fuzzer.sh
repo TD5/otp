@@ -39,3 +39,5 @@ echo "Fuzzing complete"
 mv minimized "${OUT}"/minimized
 
 echo "Results written to: ${OUT}/minimized"
+
+ls ${OUT}/minimized # TODO REMOVE
