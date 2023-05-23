@@ -39,11 +39,15 @@ N=5 # TODO Remove after testing
 echo "Fuzzing erl"
 echo "Generating ${N} test cases"
 
-seq ${N} | parallel --line-buffer "./target/release/erlfuzz --deterministic fuzz-and-reduce -c ./run_erl_once.sh --tmp-directory out-erl --interesting-directory interesting-erl --minimized-directory minimized-erl test{}"
-seq ${N} | parallel --line-buffer "./target/release/erlfuzz --deterministic fuzz-and-reduce -c ./verify_erlc_opts.sh --tmp-directory out-erlc-opts --interesting-directory interesting-erlc-opts --minimized-directory minimized-erlc-opts test{}"
-seq ${N} | parallel --line-buffer "./target/release/erlfuzz --deterministic fuzz-and-reduce -c ./verify_erl_jit.sh --tmp-directory out-jit --interesting-directory interesting-jit --minimized-directory minimized-jit test{}"
+seq ${N} | parallel --line-buffer "./target/release/erlfuzz --deterministic --wrapper printing --disable-map-comprehensions --disable-maybe --disable-shadowing fuzz-and-reduce -c ./run_erl_once.sh --tmp-directory out-erl --interesting-directory interesting-erl --minimized-directory minimized-erl test{}"
+seq ${N} | parallel --line-buffer "./target/release/erlfuzz --deterministic --wrapper printing --disable-map-comprehensions --disable-maybe --disable-shadowing fuzz-and-reduce -c ./verify_erlc_opts.sh --tmp-directory out-erlc-opts --interesting-directory interesting-erlc-opts --minimized-directory minimized-erlc-opts test{}"
+seq ${N} | parallel --line-buffer "./target/release/erlfuzz --deterministic --wrapper printing --disable-map-comprehensions --disable-maybe --disable-shadowing fuzz-and-reduce -c ./verify_erl_jit.sh --tmp-directory out-jit --interesting-directory interesting-jit --minimized-directory minimized-jit test{}"
 
-echo "Fuzzing complete"
+echo "Fuzzing complete. Collating results."
+
+echo "NUM_ERL_ISSUES_FOUND=$(ls -1q minimized-erl/*.erl | wc -l)" >> $GITHUB_ENV
+echo "NUM_ERLC_OPTS_ISSUES_FOUND=$(ls -1q minimized-erlc-opts/*.erl | wc -l)" >> $GITHUB_ENV
+echo "NUM_JIT_ISSUES_FOUND=$(ls -1q minimized-jit/*.erl | wc -l)" >> $GITHUB_ENV
 
 mv minimized-erl "${OUT}"/minimized-erl
 mv minimized-erlc-opts "${OUT}"/minimized-erlc-opts

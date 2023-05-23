@@ -81,10 +81,7 @@ jobs:
       - name: Run erlfuzz
         id: run-erlfuzz
         run: |
-          pwd
-          ls -laH
           docker run --mount type=bind,source=$PWD,target=/github --entrypoint "" otp /bin/bash -c '/github/.github/scripts/run-fuzzer.sh fuzzer/ /github/'
-          ls -laH
       - name: Collect erlfuzz results
         if: always()
         run: |
@@ -126,5 +123,14 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: "🤖 A run of `erlfuzz` requested by **${{ github.actor }}** is complete ✔️\n\nYou can see the results of the job using the following link:\n👉 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} 👈"
+              body: |
+                "🤖 A run of `erlfuzz` requested by **${{ github.actor }}** is complete ✔️
+                
+                Number of issues with erl found: $NUM_ERL_ISSUES_FOUND
+                Number of issues with erlc opts found: $NUM_ERLC_OPT_ISSUES_FOUND
+                Number of issues with the jit found: $NUM_JIT_ISSUES_FOUND
+
+                You can see the results of the job using the following link, and looking
+                for the archived files containing the affected source files:
+                👉 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} 👈"
             })
