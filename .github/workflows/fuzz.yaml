@@ -120,17 +120,16 @@ jobs:
           pwd
           ls -laH
           ls -laH minimized-erl-results
-          tar -xvzf minimized-erl-results.tar.gz
-          tar -xvzf minimized-erlc-opts-results.tar.gz
-          tar -xvzf minimized-jit-results.tar.gz
-          echo "NUM_ERL_ISSUES_FOUND=$(ls -1q minimized-erl-results/*.erl | wc -l)" >> "${GITHUB_ENV}"
-          echo "NUM_ERLC_OPTS_ISSUES_FOUND=$(ls -1q minimized-erlc-opts-results/*.erl | wc -l)" >> "${GITHUB_ENV}"
-          echo "NUM_JIT_ISSUES_FOUND=$(ls -1q minimized-jit-results/*.erl | wc -l)" >> "${GITHUB_ENV}"
+          tar -xvzf minimized-erl-results/minimized-erl-results.tar.gz -C minimized-erl
+          tar -xvzf minimized-erl-results/minimized-erlc-opts-results.tar.gz -C minimized-erlc-opts
+          tar -xvzf minimized-jit-results/minimized-jit-results.tar.gz -C minimized-jit
+          echo "NUM_ERL_ISSUES_FOUND=$(ls -1q minimized-erl/*.erl | wc -l)" >> "${GITHUB_ENV}"
+          echo "NUM_ERLC_OPTS_ISSUES_FOUND=$(ls -1q minimized-erlc-opts/*.erl | wc -l)" >> "${GITHUB_ENV}"
+          echo "NUM_JIT_ISSUES_FOUND=$(ls -1q minimized-jit/*.erl | wc -l)" >> "${GITHUB_ENV}"
       - name: Comment on pull request with results
         uses: actions/github-script@v6.4.1
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
-          ## TODO Render results nicely
           script: |
             github.rest.issues.createComment({
               issue_number: context.issue.number,
