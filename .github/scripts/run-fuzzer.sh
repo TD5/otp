@@ -23,9 +23,15 @@ cd erlfuzz
 # erlfuzz to be useful
 RUSTFLAGS=-Awarnings $HOME/.cargo/bin/cargo build --release
 
-mkdir -p out
-mkdir -p interesting
-mkdir -p minimized
+mkdir -p out-erl
+mkdir -p out-erlc-opts
+mkdir -p out-jit
+mkdir -p interesting-erl
+mkdir -p interesting-erlc-opts
+mkdir -p interesting-jit
+mkdir -p minimized-erl
+mkdir -p minimized-erlc-opts
+mkdir -p minimized-jit
 
 #N=100000
 N=5 # TODO Remove after testing
@@ -33,10 +39,14 @@ N=5 # TODO Remove after testing
 echo "Fuzzing erl"
 echo "Generating ${N} test cases"
 
-seq ${N} | parallel --line-buffer "./target/release/erlfuzz fuzz-and-reduce -c ./run_erl_once.sh --tmp-directory out --interesting-directory interesting --minimized-directory minimized test{}"
+seq ${N} | parallel --line-buffer "./target/release/erlfuzz --deterministic fuzz-and-reduce -c ./run_erl_once.sh --tmp-directory out-erl --interesting-directory interesting-erl --minimized-directory minimized-erl test{}"
+seq ${N} | parallel --line-buffer "./target/release/erlfuzz --deterministic fuzz-and-reduce -c ./verify_erlc_opts.sh --tmp-directory out-erlc-opts --interesting-directory interesting-erlc-opts --minimized-directory minimized-erlc-opts test{}"
+seq ${N} | parallel --line-buffer "./target/release/erlfuzz --deterministic fuzz-and-reduce -c ./verify_erl_jit.sh --tmp-directory out-jit --interesting-directory interesting-jit --minimized-directory minimized-jit test{}"
 
 echo "Fuzzing complete"
 
-mv minimized "${OUT}"/minimized
+mv minimized-erl "${OUT}"/minimized-erl
+mv minimized-erlc-opts "${OUT}"/minimized-erlc-opts
+mv minimized-jit "${OUT}"/minimized-jit
 
-echo "Results written to: ${OUT}/minimized"
+echo "Results written to: ${OUT}/minimized-erl, "${OUT}"/minimized-erlc-opts and "${OUT}"/minimized-jit"
