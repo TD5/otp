@@ -2,6 +2,7 @@
 
 FUZZER_DIR=${1}
 OTP_DIR=${2}
+GITHUB_ENV=${3}
 
 
 set -exo pipefail

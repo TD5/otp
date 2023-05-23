@@ -81,9 +81,7 @@ jobs:
       - name: Run erlfuzz
         id: run-erlfuzz
         run: |
-          echo "GITHUB_ENV=${GITHUB_ENV}" # TODO REMOVE
-          echo "TEST=SUCCESS" >> $GITHUB_ENV # TODO REMOVE
-          docker run --mount type=bind,source=$PWD,target=/github --entrypoint "" otp /bin/bash -c '/github/.github/scripts/run-fuzzer.sh fuzzer/ /github/'
+          docker run --mount type=bind,source=$PWD,target=/github --entrypoint "" otp /bin/bash -c "/github/.github/scripts/run-fuzzer.sh fuzzer/ /github/ ${GITHUB_ENV}"
       - name: Collect erlfuzz results
         if: always()
         run: |
