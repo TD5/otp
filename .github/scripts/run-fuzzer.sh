@@ -4,7 +4,7 @@ FUZZER_DIR=${1}
 OTP_DIR=${2}
 
 
-set -euxo pipefail
+set -exo pipefail
 
 # Docker host mount the OTP dir here
 OUT=/github/
@@ -45,9 +45,9 @@ seq ${N} | parallel --line-buffer "./target/release/erlfuzz --deterministic --wr
 
 echo "Fuzzing complete. Collating results."
 
-echo "NUM_ERL_ISSUES_FOUND=$(ls -1q minimized-erl/*.erl | wc -l)" >> $GITHUB_ENV
-echo "NUM_ERLC_OPTS_ISSUES_FOUND=$(ls -1q minimized-erlc-opts/*.erl | wc -l)" >> $GITHUB_ENV
-echo "NUM_JIT_ISSUES_FOUND=$(ls -1q minimized-jit/*.erl | wc -l)" >> $GITHUB_ENV
+echo "NUM_ERL_ISSUES_FOUND=$(ls -1q minimized-erl/*.erl | wc -l)" >> "${GITHUB_ENV}"
+echo "NUM_ERLC_OPTS_ISSUES_FOUND=$(ls -1q minimized-erlc-opts/*.erl | wc -l)" >> "${GITHUB_ENV}"
+echo "NUM_JIT_ISSUES_FOUND=$(ls -1q minimized-jit/*.erl | wc -l)" >> "${GITHUB_ENV}"
 
 mv minimized-erl "${OUT}"/minimized-erl
 mv minimized-erlc-opts "${OUT}"/minimized-erlc-opts
