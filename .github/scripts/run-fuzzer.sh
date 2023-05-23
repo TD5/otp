@@ -2,7 +2,6 @@
 
 FUZZER_DIR=${1}
 OTP_DIR=${2}
-GITHUB_ENV=${3}
 
 
 set -exo pipefail
@@ -45,10 +44,6 @@ seq ${N} | parallel --line-buffer "./target/release/erlfuzz --deterministic --wr
 seq ${N} | parallel --line-buffer "./target/release/erlfuzz --deterministic --wrapper printing --disable-map-comprehensions --disable-maybe --disable-shadowing fuzz-and-reduce -c ./verify_erl_jit.sh --tmp-directory out-jit --interesting-directory interesting-jit --minimized-directory minimized-jit test{}"
 
 echo "Fuzzing complete. Collating results."
-
-echo "NUM_ERL_ISSUES_FOUND=$(ls -1q minimized-erl/*.erl | wc -l)" >> "${GITHUB_ENV}"
-echo "NUM_ERLC_OPTS_ISSUES_FOUND=$(ls -1q minimized-erlc-opts/*.erl | wc -l)" >> "${GITHUB_ENV}"
-echo "NUM_JIT_ISSUES_FOUND=$(ls -1q minimized-jit/*.erl | wc -l)" >> "${GITHUB_ENV}"
 
 mv minimized-erl "${OUT}"/minimized-erl
 mv minimized-erlc-opts "${OUT}"/minimized-erlc-opts
