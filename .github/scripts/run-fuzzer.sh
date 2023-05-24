@@ -9,6 +9,9 @@ set -exo pipefail
 # Docker host mount the OTP dir here
 OUT=/github/
 
+# To update erlfuzz, update this to a later commit hash, branch or tag
+ERLFUZZ_VERSION=c9364609b8944c71c8e6184abd8793477772862b
+
 # Install Rust non-interactively
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
 PATH=$HOME/.cargo/bin:$PATH
@@ -18,6 +21,7 @@ mkdir "../${FUZZER_DIR}"
 cd "../${FUZZER_DIR}"
 git clone https://github.com/WhatsApp/erlfuzz.git
 cd erlfuzz
+git checkout ${ERLFUZZ_VERSION}
 
 # Be permissive when building erlfuzz - we don't need it to we warning-free for
 # erlfuzz to be useful
