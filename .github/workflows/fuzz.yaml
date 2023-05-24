@@ -127,11 +127,11 @@ jobs:
           echo "NUM_ERLC_OPTS_ISSUES_FOUND=$(ls -1q minimized-erlc-opts/*.erl | wc -l)" >> "${GITHUB_ENV}"
           echo "NUM_JIT_ISSUES_FOUND=$(ls -1q minimized-jit/*.erl | wc -l)" >> "${GITHUB_ENV}"
       - name: Comment on pull request with results
-        uses: actions/github-script@v6.4.1
         env:
           NUM_ERL_ISSUES_FOUND: ${{ env.NUM_ERL_ISSUES_FOUND }}
-          NUM_ERLC_OPT_ISSUES_FOUND: ${{ env.NUM_ERLC_OPT_ISSUES_FOUND }}
+          NUM_ERLC_OPTS_ISSUES_FOUND: ${{ env.NUM_ERLC_OPTS_ISSUES_FOUND }}
           NUM_JIT_ISSUES_FOUND: ${{ env.NUM_JIT_ISSUES_FOUND }}
+        uses: actions/github-script@v6.4.1
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
@@ -144,10 +144,11 @@ jobs:
                 "🤖 A run of `erlfuzz` requested by **${{ github.actor }}** is complete ✔️
 
                 Number of issues with erl found: " ++ NUM_ERL_ISSUES_FOUND ++ "
-                Number of issues with erlc opts found: " ++ NUM_ERLC_OPT_ISSUES_FOUND ++ "
+                Number of issues with erlc opts found: " ++ NUM_ERLC_OPTS_ISSUES_FOUND ++ "
                 Number of issues with the jit found: " ++ NUM_JIT_ISSUES_FOUND ++ "
 
                 You can see the results of the job using the following link, and looking
                 for the archived files containing the affected source files:
                 👉 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} 👈"
             })
+
