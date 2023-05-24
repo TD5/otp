@@ -117,6 +117,9 @@ jobs:
         uses: actions/download-artifact@v3
       - name: Analyse results
         run: |
+          mkdir minimized-erl
+          mkdir minimized-erlc-opts
+          mkdir minimized-jit
           tar -xvzf minimized-erl-results/minimized-erl-results.tar.gz -C minimized-erl
           tar -xvzf minimized-erl-results/minimized-erlc-opts-results.tar.gz -C minimized-erlc-opts
           tar -xvzf minimized-jit-results/minimized-jit-results.tar.gz -C minimized-jit
