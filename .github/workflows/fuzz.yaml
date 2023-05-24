@@ -135,7 +135,7 @@ jobs:
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
-            const { NUM_ERL_ISSUES_FOUND, NUM_ERLC_OPT_ISSUES_FOUND, NUM_JIT_ISSUES_FOUND } = process.env
+            const { NUM_ERL_ISSUES_FOUND, NUM_ERLC_OPTS_ISSUES_FOUND, NUM_JIT_ISSUES_FOUND } = process.env
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
