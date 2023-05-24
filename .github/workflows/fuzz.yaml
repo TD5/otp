@@ -120,12 +120,18 @@ jobs:
           mkdir minimized-erl
           mkdir minimized-erlc-opts
           mkdir minimized-jit
+          echo "::group::Decompressing results"
           tar -xvzf minimized-erl-results/minimized-erl-results.tar.gz -C minimized-erl
           tar -xvzf minimized-erlc-opts-results/minimized-erlc-opts-results.tar.gz -C minimized-erlc-opts
           tar -xvzf minimized-jit-results/minimized-jit-results.tar.gz -C minimized-jit
+          echo "::endgroup::"
+          ls -laH .
+          ls -laH minimized-erl
+          echo "::group::Counting the number of issues found"
           echo "NUM_ERL_ISSUES_FOUND=$(ls -1q minimized-erl/*.erl | wc -l)" >> "${GITHUB_ENV}"
           echo "NUM_ERLC_OPTS_ISSUES_FOUND=$(ls -1q minimized-erlc-opts/*.erl | wc -l)" >> "${GITHUB_ENV}"
           echo "NUM_JIT_ISSUES_FOUND=$(ls -1q minimized-jit/*.erl | wc -l)" >> "${GITHUB_ENV}"
+          echo "::endgroup::"
       - name: Comment on pull request with results
         env:
           NUM_ERL_ISSUES_FOUND: ${{ env.NUM_ERL_ISSUES_FOUND }}
