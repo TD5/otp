@@ -129,9 +129,9 @@ jobs:
       - name: Comment on pull request with results
         uses: actions/github-script@v6.4.1
         env:
-          NUM_ERL_ISSUES_FOUND: ${{NUM_ERL_ISSUES_FOUND}}
-          NUM_ERLC_OPT_ISSUES_FOUND: ${{NUM_ERLC_OPT_ISSUES_FOUND}}
-          NUM_JIT_ISSUES_FOUND: ${{NUM_JIT_ISSUES_FOUND}}
+          NUM_ERL_ISSUES_FOUND: ${{ env.NUM_ERL_ISSUES_FOUND }}
+          NUM_ERLC_OPT_ISSUES_FOUND: ${{ env.NUM_ERLC_OPT_ISSUES_FOUND }}
+          NUM_JIT_ISSUES_FOUND: ${{ env.NUM_JIT_ISSUES_FOUND }}
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
