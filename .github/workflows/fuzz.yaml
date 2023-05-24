@@ -121,7 +121,7 @@ jobs:
           mkdir minimized-erlc-opts
           mkdir minimized-jit
           tar -xvzf minimized-erl-results/minimized-erl-results.tar.gz -C minimized-erl
-          tar -xvzf minimized-erl-results/minimized-erlc-opts-results.tar.gz -C minimized-erlc-opts
+          tar -xvzf minimized-erlc-opts-results/minimized-erlc-opts-results.tar.gz -C minimized-erlc-opts
           tar -xvzf minimized-jit-results/minimized-jit-results.tar.gz -C minimized-jit
           echo "NUM_ERL_ISSUES_FOUND=$(ls -1q minimized-erl/*.erl | wc -l)" >> "${GITHUB_ENV}"
           echo "NUM_ERLC_OPTS_ISSUES_FOUND=$(ls -1q minimized-erlc-opts/*.erl | wc -l)" >> "${GITHUB_ENV}"
