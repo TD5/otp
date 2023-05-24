@@ -140,7 +140,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: |
+              body:
                 "🤖 A run of `erlfuzz` requested by **${{ github.actor }}** is complete ✔️
 
                 Number of issues with erl found: " ++ NUM_ERL_ISSUES_FOUND ++ "
