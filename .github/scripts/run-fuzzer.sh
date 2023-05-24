@@ -2,6 +2,7 @@
 
 FUZZER_DIR=${1}
 OTP_DIR=${2}
+OUT=${3}
 
 
 set -exo pipefail
