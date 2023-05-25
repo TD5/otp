@@ -117,13 +117,10 @@ jobs:
         uses: actions/download-artifact@v3
       - name: Analyse results
         run: |
-          mkdir minimized-erl
-          mkdir minimized-erlc-opts
-          mkdir minimized-jit
           echo "::group::Decompressing results"
-          tar -xvzf minimized-erl-results/minimized-erl-results.tar.gz -C minimized-erl
-          tar -xvzf minimized-erlc-opts-results/minimized-erlc-opts-results.tar.gz -C minimized-erlc-opts
-          tar -xvzf minimized-jit-results/minimized-jit-results.tar.gz -C minimized-jit
+          tar -xvzf minimized-erl-results/minimized-erl-results.tar.gz
+          tar -xvzf minimized-erlc-opts-results/minimized-erlc-opts-results.tar.gz
+          tar -xvzf minimized-jit-results/minimized-jit-results.tar.gz
           echo "::endgroup::"
           ls -laH .
           ls -laH minimized-erl
@@ -147,14 +144,14 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               body:
-                "🤖 A run of `erlfuzz` requested by **${{ github.actor }}** is complete ✔️
-
-                Number of issues with erl found: " ++ NUM_ERL_ISSUES_FOUND ++ "
-                Number of issues with erlc opts found: " ++ NUM_ERLC_OPTS_ISSUES_FOUND ++ "
-                Number of issues with the jit found: " ++ NUM_JIT_ISSUES_FOUND ++ "
-
-                You can see the results of the job using the following link, and looking
-                for the archived files containing the affected source files:
+                "🤖 A run of `erlfuzz` requested by **${{ github.actor }}** is complete ✔️\n\
+\n\
+                Number of issues with erl found: " + NUM_ERL_ISSUES_FOUND + "\n\
+                Number of issues with erlc opts found: " + NUM_ERLC_OPTS_ISSUES_FOUND + "\n\
+                Number of issues with the jit found: " + NUM_JIT_ISSUES_FOUND + "\n\
+\n\
+                You can see the results of the job using the following link, and looking\n\
+                for the archived files containing the affected source files:\n\
                 👉 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} 👈"
             })
 
