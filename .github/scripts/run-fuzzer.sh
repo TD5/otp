@@ -3,6 +3,7 @@
 FUZZER_DIR=${1}
 OTP_DIR=${2}
 OUT=${3}
+N=${4}
 
 
 set -exo pipefail
@@ -37,9 +38,6 @@ mkdir -p interesting-jit
 mkdir -p minimized-erl
 mkdir -p minimized-erlc-opts
 mkdir -p minimized-jit
-
-#N=100000
-N=5 # TODO Remove after testing
 
 echo "Fuzzing erl"
 echo "Generating ${N} test cases"
