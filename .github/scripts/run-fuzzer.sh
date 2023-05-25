@@ -8,9 +8,6 @@ N=${4}
 
 set -exo pipefail
 
-# Docker host mount the OTP dir here
-OUT=/github/
-
 # To update erlfuzz, update this to a later commit hash, branch or tag
 ERLFUZZ_VERSION=c9364609b8944c71c8e6184abd8793477772862b
 
