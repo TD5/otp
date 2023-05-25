@@ -42,9 +42,9 @@ mkdir -p minimized-jit
 echo "Fuzzing erl"
 echo "Generating ${N} test cases"
 
-seq ${N} | parallel --line-buffer "./target/release/erlfuzz --deterministic --wrapper printing --disable-map-comprehensions --disable-maybe --disable-shadowing fuzz-and-reduce -c ./run_erl_once.sh --tmp-directory out-erl --interesting-directory interesting-erl --minimized-directory minimized-erl test{}"
-seq ${N} | parallel --line-buffer "./target/release/erlfuzz --deterministic --wrapper printing --disable-map-comprehensions --disable-maybe --disable-shadowing fuzz-and-reduce -c ./verify_erlc_opts.sh --tmp-directory out-erlc-opts --interesting-directory interesting-erlc-opts --minimized-directory minimized-erlc-opts test{}"
-seq ${N} | parallel --line-buffer "./target/release/erlfuzz --deterministic --wrapper printing --disable-map-comprehensions --disable-maybe --disable-shadowing fuzz-and-reduce -c ./verify_erl_jit.sh --tmp-directory out-jit --interesting-directory interesting-jit --minimized-directory minimized-jit test{}"
+seq ${N} | parallel --line-buffer "./target/release/erlfuzz fuzz-and-reduce -c ./run_erl_once.sh --tmp-directory out-erl --interesting-directory interesting-erl --minimized-directory minimized-erl test{}"
+seq ${N} | parallel --line-buffer "./target/release/erlfuzz --deterministic --wrapper printing fuzz-and-reduce -c ./verify_erlc_opts.sh --tmp-directory out-erlc-opts --interesting-directory interesting-erlc-opts --minimized-directory minimized-erlc-opts test{}"
+seq ${N} | parallel --line-buffer "./target/release/erlfuzz --deterministic --wrapper printing fuzz-and-reduce -c ./verify_erl_jit.sh --tmp-directory out-jit --interesting-directory interesting-jit --minimized-directory minimized-jit test{}"
 
 echo "Fuzzing complete. Collating results."
 
