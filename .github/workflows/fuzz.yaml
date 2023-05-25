@@ -144,12 +144,12 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               body:
-                "🤖 A run of `erlfuzz` requested by **${{ github.actor }}** is complete ✔️\n\n\
-                Number of issues with erl found: " + NUM_ERL_ISSUES_FOUND + "\n\
-                Number of issues with erlc opts found: " + NUM_ERLC_OPTS_ISSUES_FOUND + "\n\
-                Number of issues with the jit found: " + NUM_JIT_ISSUES_FOUND + "\n\n\
-                You can see the results of the job using the following link, and looking\n\
-                for the archived files containing the affected source files:\n\
-                👉 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} 👈"
+                "🤖 A run of `erlfuzz` requested by **${{ github.actor }}** is complete ✔️\n\n" +
+                "Number of issues with erl found: " + NUM_ERL_ISSUES_FOUND + "\n" +
+                "Number of issues with erlc opts found: " + NUM_ERLC_OPTS_ISSUES_FOUND + "\n" +
+                "Number of issues with the jit found: " + NUM_JIT_ISSUES_FOUND + "\n\n" +
+                "You can see the results of the job using the following link, and looking\n" +
+                "for the archived files containing the affected source files in the artifacts section at the bottom:\n" +
+                "👉 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} 👈"
             })
 
