@@ -8,6 +8,13 @@ N=${4}
 
 set -exo pipefail
 
+# Ensure the various flavours are built, so that we can fuzz them
+./configure
+make -j
+make -j FLAVOR=emu
+make -j TYPE=asan
+make -j TYPE=debug
+
 # To update erlfuzz, update this to a later commit hash, branch or tag
 ERLFUZZ_VERSION=c9364609b8944c71c8e6184abd8793477772862b
 
@@ -25,13 +32,6 @@ git checkout ${ERLFUZZ_VERSION}
 # Be permissive when building erlfuzz - we don't need it to we warning-free for
 # erlfuzz to be useful
 RUSTFLAGS=-Awarnings $HOME/.cargo/bin/cargo build --release
-
-# Ensure the various flavours are built, so that we can fuzz them
-./configure
-make -j
-make -j FLAVOR=emu
-make -j TYPE=asan
-make -j TYPE=debug
 
 mkdir -p out-erl
 mkdir -p out-erlc-opts
