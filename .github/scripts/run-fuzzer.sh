@@ -38,6 +38,13 @@ mkdir -p minimized-jit
 
 export OTP_TOP="${OTP_DIR}"
 
+# TODO REMOVE
+ls -laH
+which cerl
+which erlc
+cerl -noshell +V
+erlc --version
+
 echo "Fuzzing erl"
 echo "Generating ${N} test cases"
 
