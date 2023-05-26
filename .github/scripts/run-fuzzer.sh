@@ -36,6 +36,8 @@ mkdir -p minimized-erl
 mkdir -p minimized-erlc-opts
 mkdir -p minimized-jit
 
+export OTP_TOP="${OTP_DIR}"
+
 echo "Fuzzing erl"
 echo "Generating ${N} test cases"
 
