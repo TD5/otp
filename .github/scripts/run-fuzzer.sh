@@ -26,6 +26,12 @@ git checkout ${ERLFUZZ_VERSION}
 # erlfuzz to be useful
 RUSTFLAGS=-Awarnings $HOME/.cargo/bin/cargo build --release
 
+# Ensure the various flavours are built, so that we can fuzz them
+./configure
+make -j
+make -j FLAVOR=emu
+make -j TYPE=debug
+
 mkdir -p out-erl
 mkdir -p out-erlc-opts
 mkdir -p out-jit
@@ -35,8 +41,6 @@ mkdir -p interesting-jit
 mkdir -p minimized-erl
 mkdir -p minimized-erlc-opts
 mkdir -p minimized-jit
-
-export OTP_TOP="${OTP_DIR}"
 
 # TODO REMOVE
 ls -laH
@@ -65,7 +69,13 @@ find interesting-jit -type f -name *.stderr -exec echo {} \; -exec cat {} \;
 echo "Fuzzing complete. Collating results."
 
 mv minimized-erl "${OUT}"/minimized-erl
+mv interesting-erl/*.stdout "${OUT}"/minimized-erl
+mv interesting-erl/*.stderr "${OUT}"/minimized-erl
 mv minimized-erlc-opts "${OUT}"/minimized-erlc-opts
+mv interesting-erlc-opts/*.stdout "${OUT}"/minimized-erlc-opts
+mv interesting-erlc-opts/*.stderr "${OUT}"/minimized-erlc-opts
 mv minimized-jit "${OUT}"/minimized-jit
+mv interesting-jit/*.stdout "${OUT}"/minimized-jit
+mv interesting-jit/*.stderr "${OUT}"/minimized-jit
 
 echo "Results written to: ${OUT}/minimized-erl, "${OUT}"/minimized-erlc-opts and "${OUT}"/minimized-jit"
