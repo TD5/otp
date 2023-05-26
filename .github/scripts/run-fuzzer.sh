@@ -30,6 +30,7 @@ RUSTFLAGS=-Awarnings $HOME/.cargo/bin/cargo build --release
 ./configure
 make -j
 make -j FLAVOR=emu
+make -j TYPE=asan
 make -j TYPE=debug
 
 mkdir -p out-erl
