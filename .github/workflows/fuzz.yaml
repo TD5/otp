@@ -42,12 +42,11 @@ jobs:
       base-branch: ${{ github.ref_name }}
 
   build-otp-flavors:
-    name: Notify user of fuzzing
+    name: Build all the various Erlang/OTP flavors and types
     if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-fuzzer') }}
     needs: build-otp-base
     runs-on: ubuntu-latest
     steps:
-      - name: Build all the various Erlang/OTP flavors and types
         run: |
             TYPES="opt debug lcnt asan"
             FLAVORS="emu jit"
