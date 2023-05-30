@@ -42,21 +42,27 @@ jobs:
       base-branch: ${{ github.ref_name }}
 
   build-otp-flavors:
-    name: Build all the various Erlang/OTP flavors and types
+    name: Build flavors and types
     if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-fuzzer') }}
     needs: build-otp-base
     runs-on: ubuntu-latest
     steps:
-        run: |
-            TYPES="opt debug lcnt asan"
-            FLAVORS="emu jit"
-            for TYPE in ${TYPES}; do
-              for FLAVOR in ${FLAVORS}; do
-                echo "::group::{TYPE=$TYPE FLAVOR=$FLAVOR}"
-                docker run otp "make TYPE=$TYPE FLAVOR=$FLAVOR"
-                echo "::endgroup::"
-              done
+      - name: Docker login
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: |
+          TYPES="opt debug lcnt asan"
+          FLAVORS="emu jit"
+          for TYPE in ${TYPES}; do
+            for FLAVOR in ${FLAVORS}; do
+              echo "::group::{TYPE=$TYPE FLAVOR=$FLAVOR}"
+              docker run otp "make TYPE=$TYPE FLAVOR=$FLAVOR"
+              echo "::endgroup::"
             done
+          done
 
   fuzz:
     name: Fuzz test Erlang/OTP
