@@ -12,7 +12,7 @@ on:
         type: string
     outputs:
       changes:
-        description: "What apps were changed"
+        description: "Which apps were changed"
         value: ${{ jobs.pack.outputs.changes }}
       all:
         description: "All apps that exist"

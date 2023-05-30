@@ -35,17 +35,35 @@ jobs:
               body: "🤖 Running `erlfuzz` as requested by **${{ github.actor }}** ⏱️\n\nYou can follow the progress of the job using the following link:\n👉 ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} 👈"
             })
 
-  build-otp:
+  build-otp-base:
     if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-fuzzer')}}
     uses: ./.github/workflows/base-build.yaml
     with:
       base-branch: ${{ github.ref_name }}
 
+  build-otp-flavors:
+    name: Notify user of fuzzing
+    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-fuzzer') }}
+    needs: build-otp-base
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build all the various Erlang/OTP flavors and types
+        run: |
+            TYPES="opt debug lcnt asan"
+            FLAVORS="emu jit"
+            for TYPE in ${TYPES}; do
+              for FLAVOR in ${FLAVORS}; do
+                echo "::group::{TYPE=$TYPE FLAVOR=$FLAVOR}"
+                docker run otp "make TYPE=$TYPE FLAVOR=$FLAVOR"
+                echo "::endgroup::"
+              done
+            done
+
   fuzz:
     name: Fuzz test Erlang/OTP
     if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-fuzzer')}}
     runs-on: ubuntu-latest
-    needs: build-otp
+    needs: build-otp-flavors
     steps:
       - uses: actions/checkout@v3
       - name: Cache BASE image
