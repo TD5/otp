@@ -9,11 +9,18 @@ N=${4}
 set -exo pipefail
 
 # Ensure the various flavours are built, so that we can fuzz them
-./configure
-make -j
-make -j FLAVOR=emu
-make -j TYPE=asan
-make -j TYPE=debug
+export OTP_TOP="${OTP_DIR}"
+ls -laH "${OTP_TOP}"
+./configure # TODO Depend on types and flavours job
+TYPES="opt debug lcnt asan"
+FLAVORS="emu jit"
+for TYPE in ${TYPES}; do 
+  for FLAVOR in ${FLAVORS}; do
+    echo "::group::{TYPE=$TYPE FLAVOR=$FLAVOR}"
+    make -j TYPE=$TYPE FLAVOR=$FLAVOR
+    echo "::endgroup::"
+  done
+done
 
 # To update erlfuzz, update this to a later commit hash, branch or tag
 ERLFUZZ_VERSION=c9364609b8944c71c8e6184abd8793477772862b
