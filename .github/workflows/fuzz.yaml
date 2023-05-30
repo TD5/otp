@@ -101,10 +101,21 @@ jobs:
             --build-arg MAKEFLAGS=-j$(($(nproc) + 2)) \
             --file ".github/dockerfiles/Dockerfile.64-bit" \
             .github/
+      - name: Build extra types and flavors
+        run: |
+          TYPES="opt debug lcnt asan"
+          FLAVORS="emu jit"
+          for TYPE in ${TYPES}; do
+            for FLAVOR in ${FLAVORS}; do
+              echo "::group::{TYPE=$TYPE FLAVOR=$FLAVOR}"
+              docker run -v $PWD:/github otp "make TYPE=$TYPE FLAVOR=$FLAVOR"
+              echo "::endgroup::"
+            done
+          done
       - name: Run erlfuzz
         id: run-erlfuzz
         run: |
-          docker run -v $PWD:/github --entrypoint "" otp /bin/bash -c "/github/.github/scripts/run-fuzzer.sh fuzzer/ /github/ /github/ 5"
+          docker run -v $PWD:/github --entrypoint "" otp /bin/bash -c "/github/.github/scripts/run-fuzzer.sh fuzzer/ /github /github 10"
       - name: Collect erlfuzz results
         if: always()
         run: |
