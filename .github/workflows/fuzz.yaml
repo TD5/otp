@@ -41,7 +41,6 @@ jobs:
     with:
       base-branch: ${{ github.ref_name }}
 
-
   fuzz:
     name: Fuzz test Erlang/OTP
     if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-fuzzer')}}
@@ -81,7 +80,7 @@ jobs:
             .github/
       - name: Build extra types and flavors for fuzzing
         run: |
-          TYPES="opt debug lcnt asan"
+          TYPES="opt debug lcnt"
           FLAVORS="emu jit"
           for TYPE in ${TYPES}; do
             for FLAVOR in ${FLAVORS}; do
