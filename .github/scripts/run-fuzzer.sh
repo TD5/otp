@@ -44,7 +44,7 @@ cerl -noshell +V
 erlc --version || true
 echo "ERL_TOP: ${ERL_TOP}" || true
 
-PATH="${ERL_TOP}":$PATH
+PATH="${ERL_TOP}/bin":$PATH
 which cerl
 which erlc
 cerl -noshell +V
