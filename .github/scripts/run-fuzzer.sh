@@ -42,13 +42,16 @@ which cerl
 which erlc
 cerl -noshell +V
 erlc --version || true
-echo "ERL_TOP: ${ERL_TOP}" || true
 
 PATH="${ERL_TOP}/bin":$PATH
 which cerl
 which erlc
 cerl -noshell +V
 erlc --version || true
+echo "ERL_TOP: ${ERL_TOP}" || true
+echo "ERL_LIBS: ${ERL_LIBS}" || true
+echo "OTP_ROOT: ${OTP_ROOT}" || true
+echo "OTPROOT: ${OTPROOT}" || true
 
 
 echo "Fuzzing erl"
