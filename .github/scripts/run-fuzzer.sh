@@ -44,6 +44,12 @@ cerl -noshell +V
 erlc --version || true
 echo "ERL_TOP: ${ERL_TOP}" || true
 
+PATH="${ERL_TOP}":$PATH
+which cerl
+which erlc
+cerl -noshell +V
+erlc --version || true
+
 
 echo "Fuzzing erl"
 echo "Generating ${N} test cases"
