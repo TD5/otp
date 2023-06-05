@@ -38,6 +38,8 @@ jobs:
   build-otp-base:
     if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/run-fuzzer')}}
     uses: ./.github/workflows/base-build.yaml
+    permissions:
+      packages: read
     with:
       base-branch: ${{ github.ref_name }}
 
