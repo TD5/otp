@@ -1,6 +1,7 @@
 name: Run fuzz tester
 
-on: # Allow manual runs via special PR comment '/run-fuzzer'
+on:
+  # Allow manual runs via special PR comment '/run-fuzzer'
   issue_comment:
     types: [created, edited]
   # Allow manual runs via GitHub web interface, CLI etc.
