@@ -483,18 +483,21 @@ max([],    Max)              -> Max.
       Len :: non_neg_integer(),
       T :: term().
 
-sublist(List, 1, L) when is_list(List), is_integer(L), L >= 0 ->
-    sublist(List, L);
-sublist([], S, _L) when is_integer(S), S >= 2 ->
+sublist(List, S, L) when is_list(List), is_integer(L), L >= 0, is_integer(S) ->
+    sublist_1(List, S, L).
+
+sublist_1(List, 1, L) when L >= 0 ->
+    sublist_2(List, L);
+sublist_1([], S, _L) when S >= 2 ->
     [];
-sublist([_H1,_H2,_H3,_H4,_H5,_H6,_H7,_H8|T], S, L) when is_integer(S), S > 8 ->
-    sublist(T, S-8, L);
-sublist([_H1,_H2,_H3,_H4|T], S, L) when is_integer(S), S > 4 ->
-    sublist(T, S-4, L);
-sublist([_H1,_H2|T], S, L) when is_integer(S), S > 2 ->
-    sublist(T, S-2, L);
-sublist([_H|T], S, L) when is_integer(S), S > 1 ->
-    sublist(T, S-1, L).
+sublist_1([_H1,_H2,_H3,_H4,_H5,_H6,_H7,_H8|T], S, L) when S > 8 ->
+    sublist_1(T, S-8, L);
+sublist_1([_H1,_H2,_H3,_H4|T], S, L) when S > 4 ->
+    sublist_1(T, S-4, L);
+sublist_1([_H1,_H2|T], S, L) when S > 2 ->
+    sublist_1(T, S-2, L);
+sublist_1([_H|T], S, L) when S > 1 ->
+    sublist_1(T, S-1, L).
 
 -spec sublist(List1, Len) -> List2 when
       List1 :: [T],
