@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 1996-2020. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 
 -module(ordsets).
@@ -47,6 +47,16 @@ is_set([E|Es]) -> is_set(Es, E);
 is_set([]) -> true;
 is_set(_) -> false.
 
+is_set([E2,E3,E4,E5,E6,E7,E8,E9|Es], E1) ->
+    case (E1 < E2) andalso (E2 < E3) andalso (E3 < E4) andalso (E4 < E5) andalso (E5 < E6) andalso (E6 < E7) andalso (E7 < E8) andalso (E8 < E9) of
+        false -> false;
+        true -> is_set(Es, E9)
+    end;
+is_set([E2,E3,E4,E5|Es], E1) ->
+    case (E1 < E2) andalso (E2 < E3) andalso (E3 < E4) andalso (E4 < E5) of
+        false -> false;
+        true -> is_set(Es, E5)
+    end;
 is_set([E2|Es], E1) when E1 < E2 ->
     is_set(Es, E2);
 is_set([_|_], _) -> false;
@@ -65,7 +75,8 @@ size(S) -> length(S).
 -spec is_empty(Ordset) -> boolean() when
       Ordset :: ordset(_).
 
-is_empty(S) -> S=:=[].
+is_empty([]) -> true;
+is_empty(_) -> false.
 
 %% to_list(OrdSet) -> [Elem].
 %%  Return the elements in OrdSet as a list.
@@ -93,10 +104,30 @@ from_list(L) ->
       Element :: term(),
       Ordset :: ordset(_).
 
-is_element(E, [H|Es]) when E > H -> is_element(E, Es);
-is_element(E, [H|_]) when E < H -> false;
-is_element(_E, [_H|_]) -> true;			%E == H
-is_element(_, []) -> false.
+is_element(E, [H1|[_H2,_H3,H4|[_H5,_H6,_H7,H8|Es3]=Es2]=Es1]) ->
+    case E > H8 of
+        true -> is_element(E, Es3);
+        false ->
+            case E > H4 of
+                true -> is_element_1(E, Es2);
+                false ->
+                    case E > H1 of
+                        true -> is_element_1(E, Es1);
+                        false ->
+                            case E < H1 of
+                                true -> false;
+                                false -> true % E == H
+                            end
+                    end
+            end
+    end;
+is_element(E, Es) ->
+    is_element_1(E, Es).
+
+is_element_1(E, [H|Es]) when E > H -> is_element_1(E, Es);
+is_element_1(E, [H|_]) when E < H -> false;
+is_element_1(_E, [_H|_]) -> true;			%E == H
+is_element_1(_, []) -> false.
 
 %% add_element(Element, OrdSet) -> OrdSet.
 %%  Return OrdSet with Element inserted in it.
@@ -108,10 +139,30 @@ is_element(_, []) -> false.
 
 %-spec add_element(E, ordset(T)) -> [T | E,...].
 
-add_element(E, [H|Es]) when E > H -> [H|add_element(E, Es)];
-add_element(E, [H|_]=Set) when E < H -> [E|Set];
-add_element(_E, [_H|_]=Set) -> Set;		%E == H
-add_element(E, []) -> [E].
+add_element(E, [H1|[H2,H3,H4|[H5,H6,H7,H8|Es3]=Es2]=Es1]=Es) ->
+    case E > H8 of
+        true -> [H1,H2,H3,H4,H5,H6,H7,H8|add_element(E, Es3)];
+        false ->
+            case E > H4 of
+                true -> [H1,H2,H4,H4|add_element_1(E, Es2)];
+                false ->
+                    case E > H1 of
+                        true -> [H1|add_element_1(E, Es1)];
+                        false ->
+                            case E < H1 of
+                                true -> [E|Es];
+                                false -> Es % E == H
+                            end
+                    end
+            end
+    end;
+add_element(E, Set) ->
+    add_element_1(E, Set).
+
+add_element_1(E, [H|Es]) when E > H -> [H|add_element_1(E, Es)];
+add_element_1(E, [H|_]=Set) when E < H -> [E|Set];
+add_element_1(_E, [_H|_]=Set) -> Set;		%E == H
+add_element_1(E, []) -> [E].
 
 %% del_element(Element, OrdSet) -> OrdSet.
 %%  Return OrdSet but with Element removed.
@@ -121,10 +172,30 @@ add_element(E, []) -> [E].
       Ordset1 :: ordset(T),
       Ordset2 :: ordset(T).
 
-del_element(E, [H|Es]) when E > H -> [H|del_element(E, Es)];
-del_element(E, [H|_]=Set) when E < H -> Set;
-del_element(_E, [_H|Es]) -> Es;			%E == H
-del_element(_, []) -> [].
+del_element(E, [H1|[H2,H3,H4|[H5,H6,H7,H8|Es3]=Es2]=Es1]=Es) ->
+    case E > H8 of
+        true -> [H1,H2,H3,H4,H5,H6,H7,H8|del_element(E, Es3)];
+        false ->
+            case E > H4 of
+                true -> [H1,H2,H4,H4|del_element_1(E, Es2)];
+                false ->
+                    case E > H1 of
+                        true -> [H1|del_element_1(E, Es1)];
+                        false ->
+                            case E < H1 of
+                                true -> Es;
+                                false -> Es1 % E == H
+                            end
+                    end
+            end
+    end;
+del_element(E, Set) ->
+    del_element_1(E, Set).
+
+del_element_1(E, [H|Es]) when E > H -> [H|del_element_1(E, Es)];
+del_element_1(E, [H|_]=Set) when E < H -> Set;
+del_element_1(_E, [_H|Es]) -> Es;			%E == H
+del_element_1(_, []) -> [].
 
 %% union(OrdSet1, OrdSet2) -> OrdSet
 %%  Return the union of OrdSet1 and OrdSet2.
