@@ -151,9 +151,18 @@ append(L1, L2) -> L1 ++ L2.
       List1 :: [T],
       T :: term().
 
-append([E]) -> E;
-append([H|T]) -> H ++ append(T);
-append([]) -> [].
+append([E]) ->
+    E;
+append([H1, H2, H3, H4, H5, H6, H7, H8 | T]) ->
+    H1 ++ (H2 ++ (H3 ++ (H4 ++ (H5 ++ (H6 ++ (H7 ++ (H8 ++ append(T))))))));
+append([H1, H2, H3, H4 | T]) ->
+    H1 ++ (H2 ++ (H3 ++ (H4 ++ append(T))));
+append([H1, H2 | T]) ->
+    H1 ++ (H2 ++ append(T));
+append([H | T]) ->
+    H ++ append(T);
+append([]) ->
+    [].
 
 %% subtract(List1, List2) subtract elements in List2 form List1.
 
@@ -195,13 +204,20 @@ reverse([A, B | L]) ->
       Elem :: T,
       T :: term().
 
-nth(1, [H|_]) -> H;
+nth(1, [Hd|_]) -> Hd;
 nth(N, [_|_]=L) when is_integer(N), N > 1 ->
     nth_1(N, L).
 
-nth_1(1, [H|_]) -> H;
-nth_1(N, [_|T]) ->
-    nth_1(N - 1, T).
+nth_1(1, [Hd|_]) ->
+    Hd;
+nth_1(N, [_,_,_,_,_,_,_,_|Tl]) when N > 8 ->
+    nth_1(N - 8, Tl);
+nth_1(N, [_,_,_,_|Tl]) when N > 4 ->
+    nth_1(N - 4, Tl);
+nth_1(N, [_,_|Tl]) when N > 2 ->
+    nth_1(N - 2, Tl);
+nth_1(N, [_|Tl]) ->
+    nth_1(N - 1, Tl).
 
 -spec nthtail(N, List) -> Tail when
       N :: non_neg_integer(),
@@ -215,7 +231,15 @@ nthtail(1, [_|T]) -> T;
 nthtail(N, [_|_]=L) when is_integer(N), N > 1 ->
     nthtail_1(N, L).
 
+nthtail_1(0, []) -> [];
+nthtail_1(0, L) -> L;
 nthtail_1(1, [_|T]) -> T;
+nthtail_1(N, [_,_,_,_,_,_,_,_|T]) when N >= 8 ->
+    nthtail_1(N - 8, T);
+nthtail_1(N, [_,_,_,_|T]) when N >= 4 ->
+    nthtail_1(N - 4, T);
+nthtail_1(N, [_,_|T]) when N >= 2 ->
+    nthtail_1(N - 2, T);
 nthtail_1(N, [_|T]) ->
     nthtail_1(N - 1, T).
 
@@ -226,6 +250,18 @@ nthtail_1(N, [_|T]) ->
       List2 :: [T],
       T :: term().
 
+prefix([X1,X2,X3,X4,X5,X6,X7,X8|PreTail], [X1,X2,X3,X4,X5,X6,X7,X8|Tail]) ->
+    prefix(PreTail, Tail);
+prefix([_,_,_,_,_,_,_,_|_], [_,_,_,_,_,_,_,_|_]) ->
+    false;
+prefix([X1,X2,X3,X4|PreTail], [X1,X2,X3,X4|Tail]) ->
+    prefix(PreTail, Tail);
+prefix([_,_,_,_|_], [_,_,_,_|_]) ->
+    false;
+prefix([X1,X2|PreTail], [X1,X2|Tail]) ->
+    prefix(PreTail, Tail);
+prefix([_,_|_], [_,_|_]) ->
+    false;
 prefix([X|PreTail], [X|Tail]) ->
     prefix(PreTail, Tail);
 prefix([], List) when is_list(List) -> true;
@@ -252,8 +288,26 @@ suffix(Suffix, List) ->
 %% This is the simple recursive implementation
 %% reverse(tl(reverse(L))) is faster on average,
 %% but creates more garbage.
-droplast([_T])  -> [];
-droplast([H|T]) -> [H|droplast(T)].
+droplast([_T])  ->
+    [];
+droplast([E1,_]) ->
+    [E1];
+droplast([E1,E2,_]) ->
+    [E1,E2];
+droplast([E1,E2,E3,_]) ->
+    [E1,E2,E3];
+droplast([E1,E2,E3,E4,_]) ->
+    [E1,E2,E3,E4];
+droplast([E1,E2,E3,E4,E5,_]) ->
+    [E1,E2,E3,E4,E5];
+droplast([E1,E2,E3,E4,E5,E6,_]) ->
+    [E1,E2,E3,E4,E5,E6];
+droplast([E1,E2,E3,E4,E5,E6,E7,_]) ->
+    [E1,E2,E3,E4,E5,E6,E7];
+droplast([E1,E2,E3,E4,E5,E6,E7,E8,_]) ->
+    [E1,E2,E3,E4,E5,E6,E7,E8];
+droplast([E1,E2,E3,E4,E5,E6,E7,E8|T]) ->
+    [E1,E2,E3,E4,E5,E6,E7,E8|droplast(T)].
 
 %% last(List) returns the last element in a list.
 
@@ -262,10 +316,19 @@ droplast([H|T]) -> [H|droplast(T)].
       Last :: T,
       T :: term().
 
-last([E|Es]) -> last(E, Es).
+last([E|Es]) ->
+    last(E, Es).
 
-last(_, [E|Es]) -> last(E, Es);
-last(E, []) -> E.
+last(_, [_,_,_,_,_,_,_,E|Es]) ->
+    last(E, Es);
+last(_, [_,_,_,E|Es]) ->
+    last(E, Es);
+last(_, [_,E|Es]) ->
+    last(E, Es);
+last(_, [E|Es]) ->
+    last(E, Es);
+last(E, []) ->
+    E.
 
 %% seq(Min, Max) -> [Min,Min+1, ..., Max]
 %% seq(Min, Max, Incr) -> [Min,Min+Incr, ..., Max]
@@ -278,9 +341,11 @@ last(E, []) -> E.
       Seq :: [integer()].
 
 seq(First, Last)
-    when is_integer(First), is_integer(Last), First-1 =< Last -> 
+    when is_integer(First), is_integer(Last), First-1 =< Last ->
     seq_loop(Last-First+1, Last, []).
 
+seq_loop(N, X, L) when N >= 8 ->
+     seq_loop(N-8, X-8, [X-7,X-6,X-5,X-4,X-3,X-2,X-1,X|L]);
 seq_loop(N, X, L) when N >= 4 ->
      seq_loop(N-4, X-4, [X-3,X-2,X-1,X|L]);
 seq_loop(N, X, L) when N >= 2 ->
@@ -325,6 +390,9 @@ seq_loop(0, _, _, L) ->
 
 sum(L)          -> sum(L, 0).
 
+sum([H1,H2,H3,H4,H5,H6,H7,H8|T], Sum) -> sum(T, Sum + H1 + H2 + H3 + H4 + H5 + H6 + H7 + H8);
+sum([H1,H2,H3,H4|T], Sum) -> sum(T, Sum + H1 + H2 + H3 + H4);
+sum([H1,H2|T], Sum) -> sum(T, Sum + H1 + H2);
 sum([H|T], Sum) -> sum(T, Sum + H);
 sum([], Sum)    -> Sum.
 
@@ -337,10 +405,19 @@ sum([], Sum)    -> Sum.
       List :: [T],
       T :: term().
 
-duplicate(N, X) when is_integer(N), N >= 0 -> duplicate(N, X, []).
+duplicate(N, X) when is_integer(N), N >= 0 ->
+    duplicate_1(N, X, []).
 
-duplicate(0, _, L) -> L;
-duplicate(N, X, L) -> duplicate(N-1, X, [X|L]).
+duplicate_1(0, _, L) ->
+    L;
+duplicate_1(N, X, L) when N >= 8 ->
+    duplicate_1(N - 8, X, [X, X, X, X, X, X, X, X | L]);
+duplicate_1(N, X, L) when N >= 4 ->
+    duplicate_1(N - 4, X, [X, X, X, X | L]);
+duplicate_1(N, X, L) when N >= 2 ->
+    duplicate_1(N - 2, X, [X, X | L]);
+duplicate_1(N, X, L) ->
+    duplicate_1(N - 1, X, [X | L]).
 
 %% min(L) -> returns the minimum element of the list L
 
@@ -351,9 +428,23 @@ duplicate(N, X, L) -> duplicate(N-1, X, [X|L]).
 
 min([H|T]) -> min(T, H).
 
+min([H1,H2,H3,H4,H5,H6,H7|T], Min) ->
+    min(T,
+        min(
+            min(
+                min(Min,H1),
+                min(H2,H3)),
+            min(
+                min(H4,H5),
+                min(H6,H7))));
+min([H1,H2,H3|T], Min) ->
+    min(T,
+        min(
+            min(Min,H1),
+            min(H2,H3)));
 min([H|T], Min) when H < Min -> min(T, H);
 min([_|T], Min)              -> min(T, Min);
-min([],    Min)              -> Min. 
+min([],    Min)              -> Min.
 
 %% max(L) -> returns the maximum element of the list L
 
@@ -364,6 +455,20 @@ min([],    Min)              -> Min.
 
 max([H|T]) -> max(T, H).
 
+max([H1,H2,H3,H4,H5,H6,H7|T], Min) ->
+    max(T,
+        max(
+            max(
+                max(Min,H1),
+                max(H2,H3)),
+            max(
+                max(H4,H5),
+                max(H6,H7))));
+max([H1,H2,H3|T], Min) ->
+    max(T,
+        max(
+            max(Min,H1),
+            max(H2,H3)));
 max([H|T], Max) when H > Max -> max(T, H);
 max([_|T], Max)              -> max(T, Max);
 max([],    Max)              -> Max.
@@ -382,7 +487,13 @@ sublist(List, 1, L) when is_list(List), is_integer(L), L >= 0 ->
     sublist(List, L);
 sublist([], S, _L) when is_integer(S), S >= 2 ->
     [];
-sublist([_H|T], S, L) when is_integer(S), S >= 2 ->
+sublist([_H1,_H2,_H3,_H4,_H5,_H6,_H7,_H8|T], S, L) when is_integer(S), S > 8 ->
+    sublist(T, S-8, L);
+sublist([_H1,_H2,_H3,_H4|T], S, L) when is_integer(S), S > 4 ->
+    sublist(T, S-4, L);
+sublist([_H1,_H2|T], S, L) when is_integer(S), S > 2 ->
+    sublist(T, S-2, L);
+sublist([_H|T], S, L) when is_integer(S), S > 1 ->
     sublist(T, S-1, L).
 
 -spec sublist(List1, Len) -> List2 when
@@ -394,7 +505,13 @@ sublist([_H|T], S, L) when is_integer(S), S >= 2 ->
 sublist(List, L) when is_integer(L), is_list(List) ->
     sublist_2(List, L).
 
-sublist_2([H|T], L) when L > 0 ->
+sublist_2([H1,H2,H3,H4,H5,H6,H7,H8|T], L) when L >= 8 ->
+    [H1,H2,H3,H4,H5,H6,H7,H8|sublist_2(T, L-8)];
+sublist_2([H1,H2,H3,H4|T], L) when L >= 4 ->
+    [H1,H2,H3,H4|sublist_2(T, L-4)];
+sublist_2([H1,H2|T], L) when L >= 2 ->
+    [H1,H2|sublist_2(T, L-2)];
+sublist_2([H|T], L) when L >= 1 ->
     [H|sublist_2(T, L-1)];
 sublist_2(_, 0) ->
     [];
@@ -411,7 +528,7 @@ sublist_2(List, L) when is_list(List), L > 0 ->
       T :: term().
 
 delete(Item, [Item|Rest]) -> Rest;
-delete(Item, [H|Rest]) -> 
+delete(Item, [H|Rest]) ->
     [H|delete(Item, Rest)];
 delete(_, []) -> [].
 
@@ -425,7 +542,16 @@ delete(_, []) -> [].
       A :: term(),
       B :: term().
 
-zip(Xs, Ys) -> zip(Xs, Ys, fail).
+zip([HdL1, HdL2, HdL3, HdL4, HdL5, HdL6, HdL7, HdL8 | TlL], [HdR1, HdR2, HdR3, HdR4, HdR5, HdR6, HdR7, HdR8 | TlR]) ->
+    [{HdL1, HdR1}, {HdL2, HdR2}, {HdL3, HdR3}, {HdL4, HdR4}, {HdL5, HdR5}, {HdL6, HdR6}, {HdL7, HdR7}, {HdL8, HdR8} | zip(TlL, TlR)];
+zip([HdL1, HdL2, HdL3, HdL4 | TlL], [HdR1, HdR2, HdR3, HdR4 | TlR]) ->
+    [{HdL1, HdR1}, {HdL2, HdR2}, {HdL3, HdR3}, {HdL4, HdR4} | zip(TlL, TlR)];
+zip([HdL1, HdL2 | TlL], [HdR1, HdR2 | TlR]) ->
+    [{HdL1, HdR1}, {HdL2, HdR2} | zip(TlL, TlR)];
+zip([HdL | TlL], [HdR | TlR]) ->
+    [{HdL, HdR} | zip(TlL, TlR)];
+zip([], []) ->
+    [].
 
 -spec zip(List1, List2, How) -> List3 when
       List1 :: [A],
@@ -437,10 +563,10 @@ zip(Xs, Ys) -> zip(Xs, Ys, fail).
       DefaultA :: term(),
       DefaultB :: term().
 
+zip(Xs, Ys, fail) ->
+    zip(Xs, Ys);
 zip([X | Xs], [Y | Ys], How) ->
     [{X, Y} | zip(Xs, Ys, How)];
-zip([], [], fail) ->
-    [];
 zip([], [], trim) ->
     [];
 zip([], [], {pad, {_, _}}) ->
@@ -465,10 +591,19 @@ zip([_ | _]=Xs, [], {pad, {_, Y}}) ->
       A :: term(),
       B :: term().
 
-unzip(Ts) -> unzip(Ts, [], []).
+unzip(Ts) ->
+    unzip_1(Ts, [], []).
 
-unzip([{X, Y} | Ts], Xs, Ys) -> unzip(Ts, [X | Xs], [Y | Ys]);
-unzip([], Xs, Ys) -> {reverse(Xs), reverse(Ys)}.
+unzip_1([{X1,Y1},{X2,Y2},{X3,Y3},{X4,Y4},{X5,Y5},{X6,Y6},{X7,Y7},{X8,Y8} | Ts], Xs, Ys) ->
+    unzip_1(Ts, [X8,X7,X6,X5,X4,X3,X2,X1 | Xs], [Y8,Y7,Y6,Y5,Y4,Y3,Y2,Y1 | Ys]);
+unzip_1([{X1,Y1},{X2,Y2},{X3,Y3},{X4,Y4} | Ts], Xs, Ys) ->
+    unzip_1(Ts, [X4,X3,X2,X1 | Xs], [Y4,Y3,Y2,Y1 | Ys]);
+unzip_1([{X1,Y1},{X2,Y2} | Ts], Xs, Ys) ->
+    unzip_1(Ts, [X2,X1 | Xs], [Y2,Y1 | Ys]);
+unzip_1([{X,Y} | Ts], Xs, Ys) ->
+    unzip_1(Ts, [X | Xs], [Y | Ys]);
+unzip_1([], Xs, Ys) ->
+    {reverse(Xs), reverse(Ys)}.
 
 %% Return [{X0, Y0, Z0}, {X1, Y1, Z1}, ..., {Xn, Yn, Zn}] for lists [X0,
 %% X1, ..., Xn], [Y0, Y1, ..., Yn] and [Z0, Z1, ..., Zn].
@@ -551,7 +686,16 @@ unzip3([], Xs, Ys, Zs) ->
       Y :: term(),
       T :: term().
 
-zipwith(F, Xs, Ys) -> zipwith(F, Xs, Ys, fail).
+zipwith(F, [HdL1, HdL2, HdL3, HdL4, HdL5, HdL6, HdL7, HdL8 | TlL], [HdR1, HdR2, HdR3, HdR4, HdR5, HdR6, HdR7, HdR8 | TlR]) ->
+    [F(HdL1, HdR1), F(HdL2, HdR2), F(HdL3, HdR3), F(HdL4, HdR4), F(HdL5, HdR5), F(HdL6, HdR6), F(HdL7, HdR7), F(HdL8, HdR8) | zipwith(F, TlL, TlR)];
+zipwith(F, [HdL1, HdL2, HdL3, HdL4 | TlL], [HdR1, HdR2, HdR3, HdR4 | TlR]) ->
+    [F(HdL1, HdR1), F(HdL2, HdR2), F(HdL3, HdR3), F(HdL4, HdR4) | zipwith(F, TlL, TlR)];
+zipwith(F, [HdL1, HdL2 | TlL], [HdR1, HdR2 | TlR]) ->
+    [F(HdL1, HdR1), F(HdL2, HdR2) | zipwith(F, TlL, TlR)];
+zipwith(F, [HdL | TlL], [HdR | TlR]) ->
+    [F(HdL, HdR) | zipwith(F, TlL, TlR)];
+zipwith(_F, [], []) ->
+    [].
 
 -spec zipwith(Combine, List1, List2, How) -> List3 when
       Combine :: fun((X | DefaultX, Y | DefaultY) -> T),
@@ -565,10 +709,10 @@ zipwith(F, Xs, Ys) -> zipwith(F, Xs, Ys, fail).
       DefaultY :: term(),
       T :: term().
 
+zipwith(F, Xs, Ys, fail) ->
+    zipwith(F, Xs, Ys);
 zipwith(F, [X | Xs], [Y | Ys], How) ->
     [F(X, Y) | zipwith(F, Xs, Ys, How)];
-zipwith(F, [], [], fail) when is_function(F, 2) ->
-    [];
 zipwith(F, [], [], trim) when is_function(F, 2) ->
     [];
 zipwith(F, [], [], {pad, {_, _}}) when is_function(F, 2) ->
@@ -646,7 +790,7 @@ zipwith3(F, [X | Xs], [Y | Ys], [], {pad, {_, _, Z}} = How) ->
 
 sort([X, Y | L] = L0) when X =< Y ->
     case L of
-	[] -> 
+	[] ->
 	    L0;
 	[Z] when Y =< Z ->
 	    L0;
@@ -1011,7 +1155,7 @@ keysort_1(_I, X, _EX, [], R) ->
 keymerge(Index, L1, L2) when is_integer(Index), Index > 0 ->
     keymerge_1(Index, L1, L2).
 
-keymerge_1(Index, [_|_]=T1, [H2 | T2]) -> 
+keymerge_1(Index, [_|_]=T1, [H2 | T2]) ->
     E2 = element(Index, H2),
     M = keymerge2_1(Index, T1, E2, H2, T2, []),
     lists:reverse(M, []);
@@ -1030,7 +1174,7 @@ keymerge_1(_Index, [], []) ->
 rkeymerge(Index, L1, L2) when is_integer(Index), Index > 0 ->
     rkeymerge_1(Index, L1, L2).
 
-rkeymerge_1(Index, [_|_]=T1, [H2 | T2]) -> 
+rkeymerge_1(Index, [_|_]=T1, [H2 | T2]) ->
     E2 = element(Index, H2),
     M = rkeymerge2_1(Index, T1, E2, H2, T2, []),
     lists:reverse(M, []);
@@ -1161,7 +1305,7 @@ rukeymerge_1(_Index, [], []) ->
 
 keymap(Fun, Index, [Tup|Tail]) ->
    [setelement(Index, Tup, Fun(element(Index, Tup)))|keymap(Fun, Index, Tail)];
-keymap(Fun, Index, []) when is_integer(Index), Index >= 1, 
+keymap(Fun, Index, []) when is_integer(Index), Index >= 1,
                             is_function(Fun, 1) -> [].
 
 -spec enumerate(List1) -> List2 when
@@ -1189,6 +1333,35 @@ enumerate(Index, List1) ->
 enumerate(Index, Step, List1) when is_integer(Index), is_integer(Step) ->
     enumerate_1(Index, Step, List1).
 
+enumerate_1(Index, Step, [H1,H2,H3,H4,H5,H6,H7,H8|T]) ->
+    IndexStep = Index + Step,
+    IndexStep2 = IndexStep + Step,
+    IndexStep3 = IndexStep2 + Step,
+    IndexStep4 = IndexStep3 + Step,
+    IndexStep5 = IndexStep4 + Step,
+    IndexStep6 = IndexStep5 + Step,
+    IndexStep7 = IndexStep6 + Step,
+    IndexStep8 = IndexStep7 + Step,
+    [
+        {Index, H1},
+        {IndexStep, H2},
+        {IndexStep2, H3},
+        {IndexStep3, H4},
+        {IndexStep4, H5},
+        {IndexStep5, H6},
+        {IndexStep6, H7},
+        {IndexStep7, H8}
+        |enumerate_1(IndexStep8, Step, T)
+    ];
+enumerate_1(Index, Step, [H1,H2,H3,H4|T]) ->
+    IndexStep = Index + Step,
+    IndexStep2 = IndexStep + Step,
+    IndexStep3 = IndexStep2 + Step,
+    IndexStep4 = IndexStep3 + Step,
+    [{Index, H1},{IndexStep, H2},{IndexStep2, H3},{IndexStep3, H4}|enumerate_1(IndexStep4, Step, T)];
+enumerate_1(Index, Step, [H1,H2|T]) ->
+    IndexStep = Index + Step,
+    [{Index, H1},{IndexStep, H2}|enumerate_1(IndexStep + Step, Step, T)];
 enumerate_1(Index, Step, [H|T]) ->
     [{Index, H}|enumerate_1(Index + Step, Step, T)];
 enumerate_1(_Index, _Step, []) ->
@@ -1280,7 +1453,7 @@ usort_1(Fun, X, [Y | L]) ->
         false  ->
 	    ufsplit_2(Y, L, Fun, [X])
     end.
-                    
+
 -spec umerge(Fun, List1, List2) -> List3 when
       Fun :: fun((A, B) -> boolean()),
       List1 :: [A],
@@ -1388,7 +1561,7 @@ umerge(L) ->
     umergel(L).
 
 %% umerge3(X, Y, Z) -> L
-%%  merges three sorted lists X, Y and Z without duplicates, 
+%%  merges three sorted lists X, Y and Z without duplicates,
 %%  removes duplicates
 
 -spec umerge3(List1, List2, List3) -> List4 when
@@ -1491,7 +1664,7 @@ rumerge([], []) ->
 %% dropwhile(Predicate, List)
 %% splitwith(Predicate, List)
 %%  for list programming. Function here is a 'fun'.
-%% 
+%%
 %%  The name zf is a joke!
 %%
 %%  N.B. Unless where the functions actually needs it only foreach/2/3,
@@ -1506,22 +1679,17 @@ rumerge([], []) ->
       List :: [T],
       T :: term().
 
-all(Pred, List) when is_function(Pred, 1) ->
-    case List of
-        [Hd | Tail] ->
-            case Pred(Hd) of
-                true -> all_1(Pred, Tail);
-                false -> false
-            end;
-        [] -> true
-    end.
-
-all_1(Pred, [Hd | Tail]) ->
-    case Pred(Hd) of
-        true -> all_1(Pred, Tail);
-        false -> false
-    end;
-all_1(_Pred, []) ->
+all(Pred, [Hd1, Hd2, Hd3, Hd4, Hd5, Hd6, Hd7, Hd8 | Tl]) ->
+    Pred(Hd1) andalso Pred(Hd2) andalso Pred(Hd3) andalso Pred(Hd4)
+    andalso Pred(Hd5) andalso Pred(Hd6) andalso Pred(Hd7) andalso Pred(Hd8)
+    andalso all(Pred, Tl);
+all(Pred, [Hd1, Hd2, Hd3, Hd4 | Tl]) ->
+    Pred(Hd1) andalso Pred(Hd2) andalso Pred(Hd3) andalso Pred(Hd4) andalso all(Pred, Tl);
+all(Pred, [Hd1, Hd2 | Tl]) ->
+    Pred(Hd1) andalso Pred(Hd2) andalso all(Pred, Tl);
+all(Pred, [Hd | Tl]) ->
+    Pred(Hd) andalso all(Pred, Tl);
+all(_Pred, []) ->
     true.
 
 -spec any(Pred, List) -> boolean() when
@@ -1529,22 +1697,17 @@ all_1(_Pred, []) ->
       List :: [T],
       T :: term().
 
-any(Pred, List) when is_function(Pred, 1) ->
-    case List of
-        [Hd | Tail] ->
-            case Pred(Hd) of
-                true -> true;
-                false -> any_1(Pred, Tail)
-            end;
-        [] -> false
-    end.
-
-any_1(Pred, [Hd | Tail]) ->
-    case Pred(Hd) of
-        true -> true;
-        false -> any_1(Pred, Tail)
-    end;
-any_1(_Pred, []) ->
+any(Pred, [Hd1, Hd2, Hd3, Hd4, Hd5, Hd6, Hd7, Hd8 | Tl]) ->
+    Pred(Hd1) orelse Pred(Hd2) orelse Pred(Hd3) orelse Pred(Hd4)
+    orelse Pred(Hd5) orelse Pred(Hd6) orelse Pred(Hd7) orelse Pred(Hd8)
+    orelse any(Pred, Tl);
+any(Pred, [Hd1, Hd2, Hd3, Hd4 | Tl]) ->
+    Pred(Hd1) orelse Pred(Hd2) orelse Pred(Hd3) orelse Pred(Hd4) orelse any(Pred, Tl);
+any(Pred, [Hd1, Hd2 | Tl]) ->
+    Pred(Hd1) orelse Pred(Hd2) orelse any(Pred, Tl);
+any(Pred, [Hd | Tl]) ->
+    Pred(Hd) orelse any(Pred, Tl);
+any(_Pred, []) ->
     false.
 
 -spec map(Fun, List1) -> List2 when
@@ -1575,6 +1738,15 @@ map_1(_F, []) ->
 flatmap(F, List) when is_function(F, 1) ->
     flatmap_1(F, List).
 
+flatmap_1(F, [Hd1, Hd2, Hd3, Hd4, Hd5, Hd6, Hd7, Hd8 | Tail]) ->
+    F(Hd1) ++
+        (F(Hd2) ++
+            F(Hd3) ++
+            (F(Hd4) ++ (F(Hd5) ++ (F(Hd6) ++ (F(Hd7) ++ (F(Hd8) ++ flatmap_1(F, Tail)))))));
+flatmap_1(F, [Hd1, Hd2, Hd3, Hd4 | Tail]) ->
+    F(Hd1) ++ (F(Hd2) ++ F(Hd3) ++ (F(Hd4) ++ flatmap_1(F, Tail)));
+flatmap_1(F, [Hd1, Hd2 | Tail]) ->
+    F(Hd1) ++ (F(Hd2) ++ flatmap_1(F, Tail));
 flatmap_1(F, [Hd | Tail]) ->
     F(Hd) ++ flatmap_1(F, Tail);
 flatmap_1(_F, []) ->
@@ -1589,16 +1761,19 @@ flatmap_1(_F, []) ->
       List :: [T],
       T :: term().
 
-foldl(F, Accu, List) when is_function(F, 2) ->
-    case List of
-        [Hd | Tail] -> foldl_1(F, F(Hd, Accu), Tail);
-        [] -> Accu
-    end.
+foldl(F, Acc, List) when is_function(F, 2) ->
+    foldl_1(F, Acc, List).
 
-foldl_1(F, Accu, [Hd | Tail]) ->
-    foldl_1(F, F(Hd, Accu), Tail);
-foldl_1(_F, Accu, []) ->
-    Accu.
+foldl_1(F, Acc, [Hd1, Hd2, Hd3, Hd4, Hd5, Hd6, Hd7, Hd8 | Tail]) ->
+    foldl_1(F, F(Hd8, F(Hd7, F(Hd6, F(Hd5, F(Hd4, F(Hd3, F(Hd2, F(Hd1, Acc)))))))), Tail);
+foldl_1(F, Acc, [Hd1, Hd2, Hd3, Hd4 | Tail]) ->
+    foldl_1(F, F(Hd4, F(Hd3, F(Hd2, F(Hd1, Acc)))), Tail);
+foldl_1(F, Acc, [Hd1, Hd2 | Tail]) ->
+    foldl_1(F, F(Hd2, F(Hd1, Acc)), Tail);
+foldl_1(F, Acc, [Hd | Tail]) ->
+    foldl_1(F, F(Hd, Acc), Tail);
+foldl_1(_F, Acc, []) ->
+    Acc.
 
 -spec foldr(Fun, Acc0, List) -> Acc1 when
       Fun :: fun((Elem :: T, AccIn) -> AccOut),
@@ -1609,13 +1784,19 @@ foldl_1(_F, Accu, []) ->
       List :: [T],
       T :: term().
 
-foldr(F, Accu, List) when is_function(F, 2) ->
-    foldr_1(F, Accu, List).
+foldr(F, Acc, List) when is_function(F, 2) ->
+    foldr_1(F, Acc, List).
 
-foldr_1(F, Accu, [Hd | Tail]) ->
-    F(Hd, foldr_1(F, Accu, Tail));
-foldr_1(_F, Accu, []) ->
-    Accu.
+foldr_1(F, Acc, [Hd1, Hd2, Hd3, Hd4, Hd5, Hd6, Hd7, Hd8 | Tail]) ->
+    F(Hd1, F(Hd2, F(Hd3, F(Hd4, F(Hd5, F(Hd6, F(Hd7, F(Hd8, foldr_1(F, Acc, Tail)))))))));
+foldr_1(F, Acc, [Hd1, Hd2, Hd3, Hd4 | Tail]) ->
+    F(Hd1, F(Hd2, F(Hd3, F(Hd4, foldr_1(F, Acc, Tail)))));
+foldr_1(F, Acc, [Hd1, Hd2 | Tail]) ->
+    F(Hd1, F(Hd2, foldr_1(F, Acc, Tail)));
+foldr_1(F, Acc, [Hd | Tail]) ->
+    F(Hd, foldr_1(F, Acc, Tail));
+foldr_1(_F, Acc, []) ->
+    Acc.
 
 -spec filter(Pred, List1) -> List2 when
       Pred :: fun((Elem :: T) -> boolean()),
@@ -1682,6 +1863,26 @@ zf(F, L) ->
 foreach(F, List) when is_function(F, 1) ->
     foreach_1(F, List).
 
+foreach_1(F, [Hd1, Hd2, Hd3, Hd4, Hd5, Hd6, Hd7, Hd8 | Tail]) ->
+    F(Hd1),
+    F(Hd2),
+    F(Hd3),
+    F(Hd4),
+    F(Hd5),
+    F(Hd6),
+    F(Hd7),
+    F(Hd8),
+    foreach_1(F, Tail);
+foreach_1(F, [Hd1, Hd2, Hd3, Hd4 | Tail]) ->
+    F(Hd1),
+    F(Hd2),
+    F(Hd3),
+    F(Hd4),
+    foreach_1(F, Tail);
+foreach_1(F, [Hd1, Hd2 | Tail]) ->
+    F(Hd1),
+    F(Hd2),
+    foreach_1(F, Tail);
 foreach_1(F, [Hd | Tail]) ->
     F(Hd),
     foreach_1(F, Tail);
@@ -1699,15 +1900,38 @@ foreach_1(_F, []) ->
       A :: term(),
       B :: term().
 
-mapfoldl(F, Accu, List) when is_function(F, 2) ->
-    mapfoldl_1(F, Accu, List).
+mapfoldl(F, Acc, List) when is_function(F, 2) ->
+    mapfoldl_1(F, Acc, List).
 
-mapfoldl_1(F, Accu0, [Hd | Tail]) ->
-    {R, Accu1} = F(Hd, Accu0),
-    {Rs, Accu2} = mapfoldl_1(F, Accu1, Tail),
-    {[R | Rs], Accu2};
-mapfoldl_1(_F, Accu, []) ->
-    {[], Accu}.
+mapfoldl_1(F, Acc0, [Hd1, Hd2, Hd3, Hd4, Hd5, Hd6, Hd7, Hd8 | Tail]) ->
+    {R1, Acc1} = F(Hd1, Acc0),
+    {R2, Acc2} = F(Hd2, Acc1),
+    {R3, Acc3} = F(Hd3, Acc2),
+    {R4, Acc4} = F(Hd4, Acc3),
+    {R5, Acc5} = F(Hd5, Acc4),
+    {R6, Acc6} = F(Hd6, Acc5),
+    {R7, Acc7} = F(Hd7, Acc6),
+    {R8, Acc8} = F(Hd8, Acc7),
+    {Rs, Acc9} = mapfoldl_1(F, Acc8, Tail),
+    {[R1,R2,R3,R4,R5,R6,R7,R8 | Rs], Acc9};
+mapfoldl_1(F, Acc0, [Hd1, Hd2, Hd3, Hd4 | Tail]) ->
+    {R1, Acc1} = F(Hd1, Acc0),
+    {R2, Acc2} = F(Hd2, Acc1),
+    {R3, Acc3} = F(Hd3, Acc2),
+    {R4, Acc4} = F(Hd4, Acc3),
+    {Rs, Acc5} = mapfoldl_1(F, Acc4, Tail),
+    {[R1,R2,R3,R4 | Rs], Acc5};
+mapfoldl_1(F, Acc0, [Hd1, Hd2 | Tail]) ->
+    {R1, Acc1} = F(Hd1, Acc0),
+    {R2, Acc2} = F(Hd2, Acc1),
+    {Rs, Acc3} = mapfoldl_1(F, Acc2, Tail),
+    {[R1,R2 | Rs], Acc3};
+mapfoldl_1(F, Acc0, [Hd | Tail]) ->
+    {R, Acc1} = F(Hd, Acc0),
+    {Rs, Acc2} = mapfoldl_1(F, Acc1, Tail),
+    {[R | Rs], Acc2};
+mapfoldl_1(_F, Acc, []) ->
+    {[], Acc}.
 
 -spec mapfoldr(Fun, Acc0, List1) -> {List2, Acc1} when
       Fun :: fun((A, AccIn) -> {B, AccOut}),
@@ -1816,6 +2040,12 @@ split(N, List) ->
 
 split(0, L, R) ->
     {lists:reverse(R, []), L};
+split(N, [H1,H2,H3,H4,H5,H6,H7,H8|T], R) when N >= 8 ->
+    split(N-8, T, [H8,H7,H6,H5,H4,H3,H2,H1|R]);
+split(N, [H1,H2,H3,H4|T], R) when N >= 4 ->
+    split(N-4, T, [H4,H3,H2,H1|R]);
+split(N, [H1,H2|T], R) when N >= 2 ->
+    split(N-2, T, [H2,H1|R]);
 split(N, [H|T], R) ->
     split(N-1, T, [H|R]);
 split(_, [], _) ->
@@ -1841,15 +2071,15 @@ join_prepend(Sep, [H|T]) -> [Sep,H|join_prepend(Sep,T)].
 %%% type information.
 %%% =================================================================
 
--compile({inline, 
+-compile({inline,
           [{merge3_12,7}, {merge3_21,7}, {rmerge3_12,7}, {rmerge3_21,7}]}).
 
--compile({inline, 
+-compile({inline,
           [{umerge3_12,8}, {umerge3_21,8},
 	   {rumerge3_12a,7}, {rumerge3_12b,8}]}).
 
--compile({inline, 
-          [{keymerge3_12,12}, {keymerge3_21,12}, 
+-compile({inline,
+          [{keymerge3_12,12}, {keymerge3_21,12},
            {rkeymerge3_12,12}, {rkeymerge3_21,12}]}).
 
 -compile({inline,
@@ -2727,10 +2957,10 @@ ukeymerge3_2(I, E1, T1, H1, [], _HdM, _D, M, _E3, H3, T3) ->
     ukeymerge2_2(I, T1, E1, H1, T3, [H3 | M]).
 
 % E1 =< E2. Inlined.
-ukeymerge3_12(I, E1, T1, H1, E2, H2, T2, E3, H3, T3, M, _HdM, D) 
+ukeymerge3_12(I, E1, T1, H1, E2, H2, T2, E3, H3, T3, M, _HdM, D)
                                                              when E1 =< E3 ->
     ukeymerge3_1(I, T1, D, E1, E2, H2, T2, [H1 | M], E3, H3, T3);
-ukeymerge3_12(I, E1, T1, H1, E2, H2, T2, E3, _H3, T3, M, HdM, _D) 
+ukeymerge3_12(I, E1, T1, H1, E2, H2, T2, E3, _H3, T3, M, HdM, _D)
                                                              when E3 == HdM ->
     ukeymerge3_12_3(I, E1, T1, H1, E2, H2, T2, M, T3);
 ukeymerge3_12(I, E1, T1, H1, E2, H2, T2, _E3, H3, T3, M, _HdM, _D) ->
@@ -2748,10 +2978,10 @@ ukeymerge3_12_3(I, E1, T1, H1, E2, H2, T2, M, []) ->
     ukeymerge2_1(I, T1, E2, E1, T2, [H1 | M], H2).
 
 % E1 > E2. Inlined.
-ukeymerge3_21(I, E1, T1, H1, E2, H2, T2, E3, H3, T3, M, _HdM, D) 
+ukeymerge3_21(I, E1, T1, H1, E2, H2, T2, E3, H3, T3, M, _HdM, D)
                                                              when E2 =< E3 ->
     ukeymerge3_2(I, E1, T1, H1, T2, E2, D, [H2 | M], E3, H3, T3);
-ukeymerge3_21(I, E1, T1, H1, E2, H2, T2, E3, _H3, T3, M, HdM, _D) 
+ukeymerge3_21(I, E1, T1, H1, E2, H2, T2, E3, _H3, T3, M, HdM, _D)
                                                              when E3 == HdM ->
     ukeymerge3_21_3(I, E1, T1, H1, E2, H2, T2, M, T3);
 ukeymerge3_21(I, E1, T1, H1, E2, H2, T2, _E3, H3, T3, M, _HdM, _D) ->
@@ -2790,7 +3020,7 @@ rukeymerge3_12a(I, E1, H1, T1, E2, H2, T2, E3, H3, T3, M) ->
     rukeymerge3_2(I, E1, H1, T1, T2, H2, E2, M, E3, H3, T3).
 
 % E1 > E2. Inlined
-rukeymerge3_21a(I, E1, H1, T1, E2, H2, T2, E3, H3, T3, M, _D1, _D2) 
+rukeymerge3_21a(I, E1, H1, T1, E2, H2, T2, E3, H3, T3, M, _D1, _D2)
                                                               when E1 =< E3 ->
     rukeymerge3_21_3(I, E1, H1, T1, E2, H2, T2, M, E3, H3, T3);
 rukeymerge3_21a(I, _E1, H1, T1, E2, H2, T2, E3, H3, T3, M, D1, D2) ->
@@ -2816,7 +3046,7 @@ rukeymerge3_2(I, _E1, H1, T1, [], H2M, _E2M, M, E3, H3, T3) ->
     rukeymerge2_1(I, T1, E3, T3, [H1, H2M | M], H3).
 
 % E1 =< E2. Inlined.
-rukeymerge3_12b(I, E1, H1, T1, E2, H2, T2, E3, H3, T3, M, H2M) 
+rukeymerge3_12b(I, E1, H1, T1, E2, H2, T2, E3, H3, T3, M, H2M)
                                                              when E2 =< E3 ->
     rukeymerge3_12_3(I, E1, H1, T1, E2, H2, T2, [H2M | M], E3, H3, T3);
 rukeymerge3_12b(I, E1, H1, T1, E2, H2, T2, E3, H3, T3, M, H2M) ->
@@ -2916,7 +3146,7 @@ rukeymerge2_2(_I, T1, _E1, [], M, _E2M, H2M, H1) ->
 %% Ascending.
 fsplit_1(Y, X, Fun, [Z | L], R, Rs) ->
     case Fun(Y, Z) of
-        true -> 
+        true ->
             fsplit_1(Z, Y, Fun, L, [X | R], Rs);
         false ->
             case Fun(X, Z) of
@@ -2954,7 +3184,7 @@ fsplit_1_1(Y, X, Fun, [], R, Rs, S) ->
 %% Descending.
 fsplit_2(Y, X, Fun, [Z | L], R, Rs) ->
     case Fun(Y, Z) of
-        false -> 
+        false ->
             fsplit_2(Z, Y, Fun, L, [X | R], Rs);
         true ->
             case Fun(X, Z) of
@@ -3009,7 +3239,7 @@ rfmergel([L], Acc, Fun, O) ->
 rfmergel([], Acc, Fun, O) ->
     fmergel(Acc, [], Fun, O).
 
-%% merge/3 
+%% merge/3
 
 %% Elements from the first list are prioritized.
 fmerge2_1([H1 | T1], H2, Fun, T2, M) ->
@@ -3213,7 +3443,7 @@ rufmerge2_2(H1, T1, Fun, [H2 | T2], M, H2M) ->
     end;
 rufmerge2_2(H1, T1, Fun, [], M, H2M) ->
     case Fun(H2M, H1) of
-        true -> 
+        true ->
             lists:reverse(T1, [H1 | M]);
         false ->
             lists:reverse(T1, [H1, H2M | M])
