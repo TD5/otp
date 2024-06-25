@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 1996-2024. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 
 -module(ordsets).
@@ -142,6 +142,8 @@ from_list(L) ->
       Element :: term(),
       Ordset :: ordset(_).
 
+is_element(E, [_,_,_,_,_,_,_,_,H|Es]) when E > H -> % Skip quickly if possible
+    is_element(E, Es);
 is_element(E, [H|Es]) when E > H -> is_element(E, Es);
 is_element(E, [H|_]) when E < H -> false;
 is_element(_E, [_H|_]) -> true;			%E == H
@@ -158,6 +160,8 @@ is_element(_, []) -> false.
 
 %-spec add_element(E, ordset(T)) -> [T | E,...].
 
+add_element(E, [H1,H2,H3,H4,H5,H6,H7,H8|Es]) when E > H8 -> % Skip quickly if possible
+    [H1,H2,H3,H4,H5,H6,H7,H8|add_element(E, Es)];
 add_element(E, [H|Es]) when E > H -> [H|add_element(E, Es)];
 add_element(E, [H|_]=Set) when E < H -> [E|Set];
 add_element(_E, [_H|_]=Set) -> Set;		%E == H
@@ -172,6 +176,8 @@ add_element(E, []) -> [E].
       Ordset1 :: ordset(T),
       Ordset2 :: ordset(T).
 
+del_element(E, [H1,H2,H3,H4,H5,H6,H7,H8|Es]) when E > H8 -> % Skip quickly if possible
+    [H1,H2,H3,H4,H5,H6,H7,H8|del_element(E, Es)];
 del_element(E, [H|Es]) when E > H -> [H|del_element(E, Es)];
 del_element(E, [H|_]=Set) when E < H -> Set;
 del_element(_E, [_H|Es]) -> Es;			%E == H
