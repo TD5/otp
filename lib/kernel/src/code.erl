@@ -652,9 +652,18 @@ modp(Atom) when is_atom(Atom) -> true;
 modp(List) when is_list(List) -> int_list(List);
 modp(_)                       -> false.
 
-int_list([H|T]) when is_integer(H) -> int_list(T);
-int_list([_|_])                    -> false;
-int_list([])                       -> true.
+int_list([E1,E2,E3,E4]) ->
+    is_integer(E1) andalso is_integer(E2) andalso is_integer(E3) andalso is_integer(E4);
+int_list([E1,E2,E3]) ->
+    is_integer(E1) andalso is_integer(E2) andalso is_integer(E3);
+int_list([E1,E2]) ->
+    is_integer(E1) andalso is_integer(E2);
+int_list([E]) ->
+    is_integer(E);
+int_list([]) ->
+    true;
+int_list([H1,H2,H3,H4|Tl]) ->
+    is_integer(H1) andalso is_integer(H2) andalso is_integer(H3) andalso is_integer(H4) andalso int_list(Tl).
 
 -doc """
 Removes the current code for `Module`, that is, the current code for `Module` is
@@ -1637,7 +1646,7 @@ call(Req) ->
 -spec start_link() -> {'ok', pid()}.
 start_link() ->
     do_start().
-    
+
 %%-----------------------------------------------------------------
 %% In the init phase, code must not use any modules not yet loaded,
 %% either pre_loaded (e.g. init) or first in the script (e.g.
@@ -1954,7 +1963,7 @@ clash() ->
 search([]) -> [];
 search([{Dir, File} | Tail]) ->
     case lists:keyfind(File, 2, Tail) of
-	false -> 
+	false ->
 	    search(Tail);
 	{Dir2, File} ->
 	    io:format("** ~ts hides ~ts~n",
@@ -1975,7 +1984,7 @@ decorate([File|Tail], Dir) ->
 
 filter(_Ext, Dir, error) ->
     io:format("** Bad path can't read ~ts~n", [Dir]), [];
-filter(Ext, _, {ok,Files}) -> 
+filter(Ext, _, {ok,Files}) ->
     filter2(Ext, length(Ext), Files).
 
 filter2(_Ext, _Extlen, []) -> [];

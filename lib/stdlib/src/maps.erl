@@ -1123,10 +1123,24 @@ with(Ks,Map1) when is_list(Ks), is_map(Map1) ->
 with(Ks,M) ->
     error_with_info(error_type(M), [Ks,M]).
 
-with_1([K|Ks], Map) ->
+with_1([K1,K2], Map) ->
     case Map of
-        #{K := V} -> [{K,V}|with_1(Ks, Map)];
-        #{} -> with_1(Ks, Map)
+        #{K1 := V1, K2 := V2} -> [{K1,V1},{K2,V2}];
+        #{K1 := V1} -> [{K1,V1}];
+        #{K2 := V2} -> [{K2,V2}];
+        #{} -> []
+    end;
+with_1([K1,K2|Ks], Map) ->
+    case Map of
+        #{K1 := V1, K2 := V2} -> [{K1,V1},{K2,V2}|with_1(Ks,Map)];
+        #{K1 := V1} -> [{K1,V1}|with_1(Ks,Map)];
+        #{K2 := V2} -> [{K2,V2}|with_1(Ks,Map)];
+        #{} -> with_1(Ks,Map)
+    end;
+with_1([K], Map) ->
+    case Map of
+        #{K := V} -> [{K,V}];
+        #{} -> []
     end;
 with_1([], _Map) -> [].
 
@@ -1171,6 +1185,28 @@ groups_from_list(Fun, List0) when is_function(Fun, 1) ->
 groups_from_list(Fun, List) ->
     badarg_with_info([Fun, List]).
 
+groups_from_list_1(Fun, [H1,H2,H3,H4|Tail], Acc) ->
+    K1 = Fun(H1),
+    NewAcc1 = case Acc of
+                 #{K1 := Vs1} -> Acc#{K1 := [H1 | Vs1]};
+                 #{} -> Acc#{K1 => [H1]}
+             end,
+    K2 = Fun(H2),
+    NewAcc2 = case NewAcc1 of
+                 #{K2 := Vs2} -> NewAcc1#{K2 := [H2 | Vs2]};
+                 #{} -> NewAcc1#{K2 => [H2]}
+             end,
+    K3 = Fun(H3),
+    NewAcc3 = case NewAcc2 of
+                 #{K3 := Vs3} -> NewAcc2#{K3 := [H3 | Vs3]};
+                 #{} -> NewAcc2#{K3 => [H3]}
+             end,
+    K4 = Fun(H4),
+    NewAcc4 = case NewAcc3 of
+                 #{K4 := Vs4} -> NewAcc3#{K4 := [H4 | Vs4]};
+                 #{} -> NewAcc3#{K4 => [H4]}
+             end,
+    groups_from_list_1(Fun, Tail, NewAcc4);
 groups_from_list_1(Fun, [H | Tail], Acc) ->
     K = Fun(H),
     NewAcc = case Acc of
@@ -1228,6 +1264,32 @@ groups_from_list(Fun, ValueFun, List0) when is_function(Fun, 1),
 groups_from_list(Fun, ValueFun, List) ->
     badarg_with_info([Fun, ValueFun, List]).
 
+groups_from_list_2(Fun, ValueFun, [H1,H2,H3,H4|Tail], Acc) ->
+    K1 = Fun(H1),
+    V1 = ValueFun(H1),
+    NewAcc1 = case Acc of
+                 #{K1 := Vs1} -> Acc#{K1 := [V1 | Vs1]};
+                 #{} -> Acc#{K1 => [V1]}
+             end,
+    K2 = Fun(H2),
+    V2 = ValueFun(H2),
+    NewAcc2 = case NewAcc1 of
+                 #{K2 := Vs2} -> NewAcc1#{K2 := [V2 | Vs2]};
+                 #{} -> NewAcc1#{K2 => [V2]}
+             end,
+    K3 = Fun(H3),
+    V3 = ValueFun(H3),
+    NewAcc3 = case NewAcc2 of
+                 #{K3 := Vs3} -> NewAcc2#{K3 := [V3 | Vs3]};
+                 #{} -> NewAcc2#{K3 => [V3]}
+             end,
+    K4 = Fun(H4),
+    V4 = ValueFun(H4),
+    NewAcc4 = case NewAcc3 of
+                 #{K4 := Vs4} -> NewAcc3#{K4 := [V4 | Vs4]};
+                 #{} -> NewAcc3#{K4 => [V4]}
+             end,
+    groups_from_list_1(Fun, Tail, NewAcc4);
 groups_from_list_2(Fun, ValueFun, [H | Tail], Acc) ->
     K = Fun(H),
     V = ValueFun(H),

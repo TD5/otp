@@ -946,6 +946,12 @@ scan_spcs_fun(Cs, #erl_scan{}=St, Line, Col, Toks, N)
   when is_integer(N), N >= 1 ->
     scan_spcs(Cs, St, Line, Col, Toks, N).
 
+scan_spcs([$\s,$\s,$\s,$\s,$\s,$\s,$\s,$\s|Cs], St, Line, Col, Toks, N) when N < 9 ->
+    scan_spcs(Cs, St, Line, Col, Toks, N+8);
+scan_spcs([$\s,$\s,$\s,$\s|Cs], St, Line, Col, Toks, N) when N < 13 ->
+    scan_spcs(Cs, St, Line, Col, Toks, N+4);
+scan_spcs([$\s,$\s|Cs], St, Line, Col, Toks, N) when N < 15 ->
+    scan_spcs(Cs, St, Line, Col, Toks, N+2);
 scan_spcs([$\s|Cs], St, Line, Col, Toks, N) when N < 16 ->
     scan_spcs(Cs, St, Line, Col, Toks, N+1);
 scan_spcs([]=Cs, St, Line, Col, Toks, N) ->
@@ -957,6 +963,10 @@ scan_tabs_fun(Cs, #erl_scan{}=St, Line, Col, Toks, N)
   when is_integer(N), N >= 1 ->
     scan_tabs(Cs, St, Line, Col, Toks, N).
 
+scan_tabs([$\t,$\t,$\t,$\t|Cs], St, Line, Col, Toks, N) when N < 7 ->
+    scan_tabs(Cs, St, Line, Col, Toks, N+4);
+scan_tabs([$\t,$\t|Cs], St, Line, Col, Toks, N) when N < 9 ->
+    scan_tabs(Cs, St, Line, Col, Toks, N+2);
 scan_tabs([$\t|Cs], St, Line, Col, Toks, N) when N < 10 ->
     scan_tabs(Cs, St, Line, Col, Toks, N+1);
 scan_tabs([]=Cs, St, Line, Col, Toks, N) ->
@@ -967,8 +977,42 @@ scan_tabs(Cs, St, Line, Col, Toks, N) ->
 skip_white_space_fun(Cs, #erl_scan{}=St, Line, Col, Toks, N) ->
     skip_white_space(Cs, St, Line, Col, Toks, N).
 
+% Repeating space characters and newlines are common, so unroll those
+
+skip_white_space([$\s,$\s,$\s,$\s,$\s,$\s,$\s,$\s|Cs], St, Line, Col, Toks, N) ->
+    skip_white_space(Cs, St, Line, Col, Toks, N+8);
+skip_white_space([$\s,$\s,$\s,$\s,$\s,$\s,$\s|Cs], St, Line, Col, Toks, N) ->
+    skip_white_space(Cs, St, Line, Col, Toks, N+7);
+skip_white_space([$\s,$\s,$\s,$\s,$\s,$\s|Cs], St, Line, Col, Toks, N) ->
+    skip_white_space(Cs, St, Line, Col, Toks, N+6);
+skip_white_space([$\s,$\s,$\s,$\s,$\s|Cs], St, Line, Col, Toks, N) ->
+    skip_white_space(Cs, St, Line, Col, Toks, N+5);
+skip_white_space([$\s,$\s,$\s,$\s|Cs], St, Line, Col, Toks, N) ->
+    skip_white_space(Cs, St, Line, Col, Toks, N+4);
+skip_white_space([$\s,$\s,$\s|Cs], St, Line, Col, Toks, N) ->
+    skip_white_space(Cs, St, Line, Col, Toks, N+3);
+skip_white_space([$\s,$\s|Cs], St, Line, Col, Toks, N) ->
+    skip_white_space(Cs, St, Line, Col, Toks, N+2);
+skip_white_space([$\s|Cs], St, Line, Col, Toks, N) ->
+    skip_white_space(Cs, St, Line, Col, Toks, N+1);
+
+skip_white_space([$\n,$\n,$\n,$\n,$\n,$\n,$\n,$\n|Cs], St, Line, Col, Toks, _N) ->
+    skip_white_space(Cs, St, Line+8, new_column(Col, 1), Toks, 0);
+skip_white_space([$\n,$\n,$\n,$\n,$\n,$\n,$\n|Cs], St, Line, Col, Toks, _N) ->
+    skip_white_space(Cs, St, Line+7, new_column(Col, 1), Toks, 0);
+skip_white_space([$\n,$\n,$\n,$\n,$\n,$\n|Cs], St, Line, Col, Toks, _N) ->
+    skip_white_space(Cs, St, Line+6, new_column(Col, 1), Toks, 0);
+skip_white_space([$\n,$\n,$\n,$\n,$\n|Cs], St, Line, Col, Toks, _N) ->
+    skip_white_space(Cs, St, Line+5, new_column(Col, 1), Toks, 0);
+skip_white_space([$\n,$\n,$\n,$\n|Cs], St, Line, Col, Toks, _N) ->
+    skip_white_space(Cs, St, Line+4, new_column(Col, 1), Toks, 0);
+skip_white_space([$\n,$\n,$\n|Cs], St, Line, Col, Toks, _N) ->
+    skip_white_space(Cs, St, Line+3, new_column(Col, 1), Toks, 0);
+skip_white_space([$\n,$\n|Cs], St, Line, Col, Toks, _N) ->
+    skip_white_space(Cs, St, Line+2, new_column(Col, 1), Toks, 0);
 skip_white_space([$\n|Cs], St, Line, Col, Toks, _N) ->
     skip_white_space(Cs, St, Line+1, new_column(Col, 1), Toks, 0);
+
 skip_white_space([C|Cs], St, Line, Col, Toks, N) when ?WHITE_SPACE(C) ->
     skip_white_space(Cs, St, Line, Col, Toks, N+1);
 skip_white_space([]=Cs, St, Line, Col, Toks, N) ->
@@ -979,7 +1023,24 @@ skip_white_space(Cs, St, Line, Col, Toks, N) ->
 scan_white_space_fun(Cs, #erl_scan{}=St, Line, Col, Toks, Ncs) ->
     scan_white_space(Cs, St, Line, Col, Toks, Ncs).
 
-%% Maybe \t and \s should break the loop.
+%% Repeated space characters are common, so unroll them
+scan_white_space([$\s,$\s,$\s,$\s,$\s,$\s,$\s,$\s|Cs], St, Line, Col, Toks, Ncs) ->
+    scan_white_space(Cs, St, Line, Col, Toks, [$\s,$\s,$\s,$\s,$\s,$\s,$\s,$\s|Ncs]);
+scan_white_space([$\s,$\s,$\s,$\s,$\s,$\s,$\s|Cs], St, Line, Col, Toks, Ncs) ->
+    scan_white_space(Cs, St, Line, Col, Toks, [$\s,$\s,$\s,$\s,$\s,$\s,$\s|Ncs]);
+scan_white_space([$\s,$\s,$\s,$\s,$\s,$\s|Cs], St, Line, Col, Toks, Ncs) ->
+    scan_white_space(Cs, St, Line, Col, Toks, [$\s,$\s,$\s,$\s,$\s,$\s|Ncs]);
+scan_white_space([$\s,$\s,$\s,$\s,$\s|Cs], St, Line, Col, Toks, Ncs) ->
+    scan_white_space(Cs, St, Line, Col, Toks, [$\s,$\s,$\s,$\s,$\s|Ncs]);
+scan_white_space([$\s,$\s,$\s,$\s|Cs], St, Line, Col, Toks, Ncs) ->
+    scan_white_space(Cs, St, Line, Col, Toks, [$\s,$\s,$\s,$\s|Ncs]);
+scan_white_space([$\s,$\s,$\s|Cs], St, Line, Col, Toks, Ncs) ->
+    scan_white_space(Cs, St, Line, Col, Toks, [$\s,$\s,$\s|Ncs]);
+scan_white_space([$\s,$\s|Cs], St, Line, Col, Toks, Ncs) ->
+    scan_white_space(Cs, St, Line, Col, Toks, [$\s,$\s|Ncs]);
+scan_white_space([$\s|Cs], St, Line, Col, Toks, Ncs) ->
+    scan_white_space(Cs, St, Line, Col, Toks, [$\s|Ncs]);
+
 scan_white_space([$\n|_]=Cs, St, Line, Col, Toks, Ncs) ->
     white_space_end(Cs, St, Line, Col, Toks, length(Ncs), lists:reverse(Ncs));
 scan_white_space([C|Cs], St, Line, Col, Toks, Ncs) when ?WHITE_SPACE(C) ->
@@ -1144,7 +1205,7 @@ scan_tqstring(Cs, St, Line, Col, Toks, {SigilType,Qs}) ->
                 #tqs{
                    line = Line, col = Col,
                    sigil_type = SigilType, qs = Nqs, verbatim = Verbatim,
-                   str = lists_duplicate(Nqs, $", "") }, %"
+                   str = lists:duplicate(Nqs, $") }, %"
             scan_tqstring_lines(Ncs, St, Line, int_column(Col)+Qs, Toks, Tqs)
     end.
 
@@ -1371,6 +1432,12 @@ strip_indent(Indent, Cs) ->
             strip_indent(Indent, Cs, 1)
     end.
 %%
+strip_indent([C1,C2,C3,C4|Indent], [C1,C2,C3,C4|Cs], Col) ->
+    strip_indent(Indent, Cs, Col+4);    % Strip
+strip_indent([C1,C2,C3|Indent], [C1,C2,C3|Cs], Col) ->
+    strip_indent(Indent, Cs, Col+3);    % Strip
+strip_indent([C1,C2|Indent], [C1,C2|Cs], Col) ->
+    strip_indent(Indent, Cs, Col+2);    % Strip
 strip_indent([C|Indent], [C|Cs], Col) ->
     strip_indent(Indent, Cs, Col+1);    % Strip
 strip_indent([], Cs, _) -> Cs;          % Done
@@ -2079,11 +2146,6 @@ int_column(no_col) ->
     1;
 int_column(Col) when is_integer(Col) ->
     Col.
-
-
-%% lists:duplicate/3 (not exported)
-lists_duplicate(0, _, L) -> L;
-lists_duplicate(N, X, L) -> lists_duplicate(N-1, X, [X|L]).
 
 %% lists:foldl/3 over lists:reverse/2
 lists_foldl_reverse(Lists, Acc) ->

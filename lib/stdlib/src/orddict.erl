@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 1996-2024. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 
@@ -88,6 +88,8 @@ new() -> [].
       Orddict :: orddict(Key, Value :: term()).
 
 is_key(Key, [{K,_}|_]) when Key < K -> false;
+is_key(Key, [_,_,_,_,_,_,_,{K,_}|Dict]) when Key > K -> is_key(Key, Dict);
+is_key(Key, [_,_,_,{K,_}|Dict]) when Key > K -> is_key(Key, Dict);
 is_key(Key, [{K,_}|Dict]) when Key > K -> is_key(Key, Dict);
 is_key(_Key, [{_K,_Val}|_]) -> true;		%Key == K
 is_key(_, []) -> false.
@@ -144,6 +146,8 @@ _Example:_
 -spec fetch(Key, Orddict) -> Value when
       Orddict :: orddict(Key, Value).
 
+fetch(Key, [_,_,_,_,_,_,_,{K,_}|D]) when Key > K -> fetch(Key, D);
+fetch(Key, [_,_,_,{K,_}|D]) when Key > K -> fetch(Key, D);
 fetch(Key, [{K,_}|D]) when Key > K -> fetch(Key, D);
 fetch(Key, [{K,Value}|_]) when Key == K -> Value.
 
@@ -169,6 +173,8 @@ error
       Orddict :: orddict(Key, Value).
 
 find(Key, [{K,_}|_]) when Key < K -> error;
+find(Key, [_,_,_,_,_,_,_,{K,_}|D]) when Key > K -> find(Key, D);
+find(Key, [_,_,_,{K,_}|D]) when Key > K -> find(Key, D);
 find(Key, [{K,_}|D]) when Key > K -> find(Key, D);
 find(_Key, [{_K,Value}|_]) -> {ok,Value};	%Key == K
 find(_, []) -> error.
@@ -189,8 +195,24 @@ _Example:_
       Orddict :: orddict(Key, Value :: term()),
       Keys :: [Key].
 
-fetch_keys([{Key,_}|Dict]) ->
-    [Key|fetch_keys(Dict)];
+fetch_keys([{K1,_},{K2,_},{K3,_},{K4,_},{K5,_},{K6,_},{K7,_},{K8,_}]) ->
+    [K1,K2,K3,K4,K5,K6,K7,K8];
+fetch_keys([{K1,_},{K2,_},{K3,_},{K4,_},{K5,_},{K6,_},{K7,_}]) ->
+    [K1,K2,K3,K4,K5,K6,K7];
+fetch_keys([{K1,_},{K2,_},{K3,_},{K4,_},{K5,_},{K6,_}]) ->
+    [K1,K2,K3,K4,K5,K6];
+fetch_keys([{K1,_},{K2,_},{K3,_},{K4,_},{K5,_}]) ->
+    [K1,K2,K3,K4,K5];
+fetch_keys([{K1,_},{K2,_},{K3,_},{K4,_}]) ->
+    [K1,K2,K3,K4];
+fetch_keys([{K1,_},{K2,_},{K3,_}]) ->
+    [K1,K2,K3];
+fetch_keys([{K1,_},{K2,_}]) ->
+    [K1,K2];
+fetch_keys([{K1,_}]) ->
+    [K1];
+fetch_keys([{K1,_},{K2,_},{K3,_},{K4,_},{K5,_},{K6,_},{K7,_},{K8,_}|Dict]) ->
+    [K1,K2,K3,K4,K5,K6,K7,K8|fetch_keys(Dict)];
 fetch_keys([]) -> [].
 
 -doc """
@@ -210,6 +232,10 @@ _Example:_
       Orddict2 :: orddict(Key, Value).
 
 erase(Key, [{K,_}=E|Dict]) when Key < K -> [E|Dict];
+erase(Key, [E1,E2,E3,E4,E5,E6,E7,{K,_}=E8|Dict]) when Key > K ->
+    [E1,E2,E3,E4,E5,E6,E7,E8|erase(Key, Dict)];
+erase(Key, [E1,E2,E3,{K,_}=E4|Dict]) when Key > K ->
+    [E1,E2,E3,E4|erase(Key, Dict)];
 erase(Key, [{K,_}=E|Dict]) when Key > K ->
     [E|erase(Key, Dict)];
 erase(_Key, [{_K,_Val}|Dict]) -> Dict;		%Key == K
@@ -242,6 +268,10 @@ take(Key, Dict) ->
 
 take_1(Key, [{K,_}|_], _Acc) when Key < K ->
     error;
+take_1(Key, [P1,P2,P3,P4,P5,P6,P7,{K,_}=P8|D], Acc) when Key > K ->
+    take_1(Key, D, [P1,P2,P3,P4,P5,P6,P7,P8|Acc]);
+take_1(Key, [P1,P2,P3,{K,_}=P4|D], Acc) when Key > K ->
+    take_1(Key, D, [P1,P2,P3,P4|Acc]);
 take_1(Key, [{K,_}=P|D], Acc) when Key > K ->
     take_1(Key, D, [P|Acc]);
 take_1(_Key, [{_K,Value}|D], Acc) ->
@@ -269,6 +299,10 @@ _Example:_
 
 store(Key, New, [{K,_}|_]=Dict) when Key < K ->
     [{Key,New}|Dict];
+store(Key, New, [E1,E2,E3,E4,E5,E6,E7,{K,_}=E8|Dict]) when Key > K ->
+    [E1,E2,E3,E3,E4,E5,E6,E7,E8|store(Key, New, Dict)];
+store(Key, New, [E1,E2,E3,{K,_}=E4|Dict]) when Key > K ->
+    [E1,E2,E3,E3,E4|store(Key, New, Dict)];
 store(Key, New, [{K,_}=E|Dict]) when Key > K ->
     [E|store(Key, New, Dict)];
 store(Key, New, [{_K,_Old}|Dict]) ->		%Key == K
@@ -312,6 +346,10 @@ _Example 2:_
 
 append(Key, New, [{K,_}|_]=Dict) when Key < K ->
     [{Key,[New]}|Dict];
+append(Key, New, [E1,E2,E3,E4,E5,E6,E7,{K,_}=E8|Dict]) when Key > K ->
+    [E1,E2,E3,E4,E5,E6,E7,E8|append(Key, New, Dict)];
+append(Key, New, [E1,E2,E3,{K,_}=E4|Dict]) when Key > K ->
+    [E1,E2,E3,E4|append(Key, New, Dict)];
 append(Key, New, [{K,_}=E|Dict]) when Key > K ->
     [E|append(Key, New, Dict)];
 append(Key, New, [{_K,Old}|Dict]) ->		%Key == K
@@ -368,6 +406,10 @@ _Example:_
       Orddict1 :: orddict(Key, Value),
       Orddict2 :: orddict(Key, Value).
 
+update(Key, Fun, [E1,E2,E3,E4,E5,E6,E7,{K,_}=E8|Dict]) when Key > K ->
+    [E1,E2,E3,E4,E5,E6,E7,E8|update(Key, Fun, Dict)];
+update(Key, Fun, [E1,E2,E3,{K,_}=E4|Dict]) when Key > K ->
+    [E1,E2,E3,E4|update(Key, Fun, Dict)];
 update(Key, Fun, [{K,_}=E|Dict]) when Key > K ->
     [E|update(Key, Fun, Dict)];
 update(Key, Fun, [{K,Val}|Dict]) when Key == K ->
@@ -411,6 +453,10 @@ _Example 2:_
 
 update(Key, _, Init, [{K,_}|_]=Dict) when Key < K ->
     [{Key,Init}|Dict];
+update(Key, Fun, Init, [E1,E2,E3,E4,E5,E6,E7,{K,_}=E8|Dict]) when Key > K ->
+    [E1,E2,E3,E4,E5,E6,E7,E8|update(Key, Fun, Init, Dict)];
+update(Key, Fun, Init, [E1,E2,E3,{K,_}=E4|Dict]) when Key > K ->
+    [E1,E2,E3,E4|update(Key, Fun, Init, Dict)];
 update(Key, Fun, Init, [{K,_}=E|Dict]) when Key > K ->
     [E|update(Key, Fun, Init, Dict)];
 update(Key, Fun, _Init, [{_K,Val}|Dict]) ->		%Key == K
@@ -436,6 +482,10 @@ update_counter(Key, Incr, D) ->
 
 update_counter(Key, Incr, [{K,_}|_]=Dict) when Key < K ->
     [{Key,Incr}|Dict];
+update_counter(Key, Incr, [E1,E2,E3,E4,E5,E6,E7,{K,_}=E8|Dict]) when Key > K ->
+    [E1,E2,E3,E4,E5,E6,E7,E8|update_counter(Key, Incr, Dict)];
+update_counter(Key, Incr, [E1,E2,E3,{K,_}=E4|Dict]) when Key > K ->
+    [E1,E2,E3,E4|update_counter(Key, Incr, Dict)];
 update_counter(Key, Incr, [{K,_}=E|Dict]) when Key > K ->
     [E|update_counter(Key, Incr, Dict)];
 update_counter(Key, Incr, [{_K,Val}|Dict]) ->		%Key == K
@@ -510,7 +560,7 @@ _Example:_
 
 filter(F, [{Key,Val}=E|D]) ->
     case F(Key, Val) of
-	true -> [E|filter(F, D)]; 
+	true -> [E|filter(F, D)];
 	false -> filter(F, D)
     end;
 filter(F, []) when is_function(F, 2) -> [].
@@ -558,6 +608,12 @@ merge(F, [{K1,V1}|D1], [{_K2,V2}|D2]) ->	%K1 == K2
 merge(F, [], D2) when is_function(F, 3) -> D2;
 merge(F, D1, []) when is_function(F, 3) -> D1.
 
+reverse_pairs([{_,_}=H1,{_,_}=H2,{_,_}=H3,{_,_}=H4,{_,_}=H5,{_,_}=H6,{_,_}=H7,{_,_}=H8|T], Acc) ->
+    reverse_pairs(T, [H8,H7,H6,H5,H4,H3,H2,H1|Acc]);
+reverse_pairs([{_,_}=H1,{_,_}=H2,{_,_}=H3,{_,_}=H4|T], Acc) ->
+    reverse_pairs(T, [H4,H3,H2,H1|Acc]);
+reverse_pairs([{_,_}=H1,{_,_}=H2|T], Acc) ->
+    reverse_pairs(T, [H2,H1|Acc]);
 reverse_pairs([{_,_}=H|T], Acc) ->
     reverse_pairs(T, [H|Acc]);
 reverse_pairs([], Acc) -> Acc.
