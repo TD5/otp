@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 1996-2024. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 
@@ -87,10 +87,15 @@ new() -> [].
 -spec is_key(Key, Orddict) -> boolean() when
       Orddict :: orddict(Key, Value :: term()).
 
-is_key(Key, [{K,_}|_]) when Key < K -> false;
-is_key(Key, [{K,_}|Dict]) when Key > K -> is_key(Key, Dict);
-is_key(_Key, [{_K,_Val}|_]) -> true;		%Key == K
-is_key(_, []) -> false.
+is_key(Key, [_,_,_,_,_,_,_,{K,_}|Dict]) when Key > K -> is_key(Key, Dict);
+is_key(Key, [_,_,_,{K,_}|Dict]) when Key > K -> is_key_1(Key, Dict);
+is_key(Key, Dict) -> is_key_1(Key, Dict).
+
+-doc false.
+is_key_1(Key, [{K,_}|_]) when Key < K -> false;
+is_key_1(Key, [{K,_}|Dict]) when Key > K -> is_key_1(Key, Dict);
+is_key_1(_Key, [{_K,_Val}|_]) -> true;		%Key == K
+is_key_1(_, []) -> false.
 
 -doc "Converts a dictionary to a list representation.".
 -spec to_list(Orddict) -> List when
@@ -144,8 +149,13 @@ _Example:_
 -spec fetch(Key, Orddict) -> Value when
       Orddict :: orddict(Key, Value).
 
-fetch(Key, [{K,_}|D]) when Key > K -> fetch(Key, D);
-fetch(Key, [{K,Value}|_]) when Key == K -> Value.
+fetch(Key, [_,_,_,_,_,_,_,{K,_}|D]) when Key > K -> fetch(Key, D);
+fetch(Key, [_,_,_,{K,_}|D]) when Key > K -> fetch_1(Key, D);
+fetch(Key, D) when is_list(D) -> fetch_1(Key, D).
+
+-doc false.
+fetch_1(Key, [{K,_}|D]) when Key > K -> fetch_1(Key, D);
+fetch_1(Key, [{K,Value}|_]) when Key == K -> Value.
 
 -doc """
 Searches for a key in a dictionary. Returns `{ok, Value}`, where `Value` is the
@@ -168,10 +178,36 @@ error
 -spec find(Key, Orddict) -> {'ok', Value} | 'error' when
       Orddict :: orddict(Key, Value).
 
-find(Key, [{K,_}|_]) when Key < K -> error;
-find(Key, [{K,_}|D]) when Key > K -> find(Key, D);
-find(_Key, [{_K,Value}|_]) -> {ok,Value};	%Key == K
-find(_, []) -> error.
+find(Key, [_,_,_,{K4,V4}|[_,_,_,{K8,V8}|AfterK8]=AfterK4]=D) ->
+    case Key > K8 of
+        true ->
+            find(Key, AfterK8);
+        false ->
+            case Key < K8 of
+                true ->
+                    case Key > K4 of
+                        true ->
+                            find(Key, AfterK4);
+                        false ->
+                            case Key < K4 of
+                                true ->
+                                    find(Key, D);
+                                false ->
+                                    {ok, V4} % Key == K4
+                            end
+                    end;
+                false ->
+                    {ok, V8} % Key == K8
+            end
+    end;
+find(Key, D) when is_list(D) ->
+    find_1(Key, D).
+
+-doc false.
+find_1(Key, [{K,_}|_]) when Key < K -> error;
+find_1(Key, [{K,_}|D]) when Key > K -> find_1(Key, D);
+find_1(_Key, [{_K,Value}|_]) -> {ok,Value};	%Key == K
+find_1(_, []) -> error.
 
 -doc """
 Returns a list of all keys in a dictionary.
@@ -189,8 +225,24 @@ _Example:_
       Orddict :: orddict(Key, Value :: term()),
       Keys :: [Key].
 
-fetch_keys([{Key,_}|Dict]) ->
-    [Key|fetch_keys(Dict)];
+fetch_keys([{K1,_},{K2,_},{K3,_},{K4,_},{K5,_},{K6,_},{K7,_},{K8,_}]) ->
+    [K1,K2,K3,K4,K5,K6,K7,K8];
+fetch_keys([{K1,_},{K2,_},{K3,_},{K4,_},{K5,_},{K6,_},{K7,_}]) ->
+    [K1,K2,K3,K4,K5,K6,K7];
+fetch_keys([{K1,_},{K2,_},{K3,_},{K4,_},{K5,_},{K6,_}]) ->
+    [K1,K2,K3,K4,K5,K6];
+fetch_keys([{K1,_},{K2,_},{K3,_},{K4,_},{K5,_}]) ->
+    [K1,K2,K3,K4,K5];
+fetch_keys([{K1,_},{K2,_},{K3,_},{K4,_}]) ->
+    [K1,K2,K3,K4];
+fetch_keys([{K1,_},{K2,_},{K3,_}]) ->
+    [K1,K2,K3];
+fetch_keys([{K1,_},{K2,_}]) ->
+    [K1,K2];
+fetch_keys([{K1,_}]) ->
+    [K1];
+fetch_keys([{K1,_},{K2,_},{K3,_},{K4,_},{K5,_},{K6,_},{K7,_},{K8,_}|Dict]) ->
+    [K1,K2,K3,K4,K5,K6,K7,K8|fetch_keys(Dict)];
 fetch_keys([]) -> [].
 
 -doc """
@@ -209,11 +261,37 @@ _Example:_
       Orddict1 :: orddict(Key, Value),
       Orddict2 :: orddict(Key, Value).
 
-erase(Key, [{K,_}=E|Dict]) when Key < K -> [E|Dict];
-erase(Key, [{K,_}=E|Dict]) when Key > K ->
-    [E|erase(Key, Dict)];
-erase(_Key, [{_K,_Val}|Dict]) -> Dict;		%Key == K
-erase(_, []) -> [].
+erase(Key, [H1,H2,H3,H4={K4,_}|[H5,H6,H7,H8={K8,_}|AfterK8]=AfterK4]=D) ->
+    case Key > K8 of
+        true ->
+            [H1,H2,H3,H4,H5,H6,H7,H8|erase(Key, AfterK8)];
+        false ->
+            case Key < K8 of
+                true ->
+                    case Key > K4 of
+                        true ->
+                            [H1,H2,H3,H4|erase(Key, AfterK4)];
+                        false ->
+                            case Key < K4 of
+                                true ->
+                                    erase(Key, D);
+                                false ->
+                                    [H1,H2,H3,H5,H6,H7,H8|D] % Key == K4
+                            end
+                    end;
+                false ->
+                    [H1,H2,H3,H5,H6,H7|D] % Key == K8
+            end
+    end;
+erase(Key, D) when is_list(D) ->
+    erase_1(Key, D).
+
+-doc false.
+erase_1(Key, [{K,_}=E|Dict]) when Key < K -> [E|Dict];
+erase_1(Key, [{K,_}=E|Dict]) when Key > K ->
+    [E|erase_1(Key, Dict)];
+erase_1(_Key, [{_K,_Val}|Dict]) -> Dict;		%Key == K
+erase_1(_, []) -> [].
 
 -doc """
 This function returns value from dictionary and new dictionary without this
@@ -237,16 +315,43 @@ error
       Key :: term(),
       Value :: term().
 
-take(Key, Dict) ->
+take(Key, Dict) when is_list(Dict) ->
     take_1(Key, Dict, []).
 
-take_1(Key, [{K,_}|_], _Acc) when Key < K ->
+-doc false.
+take_1(Key, [H1,H2,H3,H4={K4,V4}|[H5,H6,H7,H8={K8,V8}|AfterK8]=AfterK4]=D, Acc) ->
+    case Key > K8 of
+        true ->
+            take_1(Key, AfterK8, [H8,H7,H6,H5,H4,H3,H2,H1|Acc]);
+        false ->
+            case Key < K8 of
+                true ->
+                    case Key > K4 of
+                        true ->
+                            take_2(Key, AfterK4, [H4,H3,H2,H1|Acc]);
+                        false ->
+                            case Key < K4 of
+                                true ->
+                                    take_2(Key, D, Acc);
+                                false ->
+                                    {V4,lists:reverse(Acc, [H1,H2,H3,H5,H6,H7,H8|D])} % Key == K4
+                            end
+                    end;
+                false ->
+                    {V8,lists:reverse(Acc, [H1,H2,H3,H4,H5,H6,H7|D])} % Key == K8
+            end
+    end;
+take_1(Key, D, Acc) ->
+    take_2(Key, D, Acc).
+
+-doc false.
+take_2(Key, [{K,_}|_], _Acc) when Key < K ->
     error;
-take_1(Key, [{K,_}=P|D], Acc) when Key > K ->
-    take_1(Key, D, [P|Acc]);
-take_1(_Key, [{_K,Value}|D], Acc) ->
+take_2(Key, [{K,_}=P|D], Acc) when Key > K ->
+    take_2(Key, D, [P|Acc]);
+take_2(_Key, [{_K,Value}|D], Acc) ->
     {Value,lists:reverse(Acc, D)};
-take_1(_, [], _) -> error.
+take_2(_, [], _) -> error.
 
 -doc """
 Stores a `Key`-`Value` pair in a dictionary. If the `Key` already exists in
@@ -267,13 +372,39 @@ _Example:_
       Orddict1 :: orddict(Key, Value),
       Orddict2 :: orddict(Key, Value).
 
-store(Key, New, [{K,_}|_]=Dict) when Key < K ->
+store(Key, New, [H1,H2,H3,H4={K4,_}|[H5,H6,H7,H8={K8,_}|AfterK8]=AfterK4]=D) ->
+    case Key > K8 of
+        true ->
+            [H1,H2,H3,H4,H5,H6,H7,H8|store(Key, New, AfterK8)];
+        false ->
+            case Key < K8 of
+                true ->
+                    case Key > K4 of
+                        true ->
+                            [H1,H2,H3,H4|store_1(Key, New, AfterK4)];
+                        false ->
+                            case Key < K4 of
+                                true ->
+                                    store_1(Key, New, D);
+                                false ->
+                                    [H1,H2,H3,{Key,New}|AfterK4] % Key == K4
+                            end
+                    end;
+                false ->
+                    [H1,H2,H3,H4,H5,H6,H7,{Key,New}|AfterK8] % Key == K8
+            end
+    end;
+store(Key, D, Acc) when is_list(D) ->
+    store_1(Key, D, Acc).
+
+-doc false.
+store_1(Key, New, [{K,_}|_]=Dict) when Key < K ->
     [{Key,New}|Dict];
-store(Key, New, [{K,_}=E|Dict]) when Key > K ->
-    [E|store(Key, New, Dict)];
-store(Key, New, [{_K,_Old}|Dict]) ->		%Key == K
+store_1(Key, New, [{K,_}=E|Dict]) when Key > K ->
+    [E|store_1(Key, New, Dict)];
+store_1(Key, New, [{_K,_Old}|Dict]) ->		%Key == K
     [{Key,New}|Dict];
-store(Key, New, []) -> [{Key,New}].
+store_1(Key, New, []) -> [{Key,New}].
 
 -doc """
 Appends a new `Value` to the current list of values associated with `Key`. An
@@ -310,13 +441,39 @@ _Example 2:_
       Orddict1 :: orddict(Key, Value),
       Orddict2 :: orddict(Key, Value).
 
-append(Key, New, [{K,_}|_]=Dict) when Key < K ->
+append(Key, Value, [H1,H2,H3,H4={K4,V4}|[H5,H6,H7,H8={K8,V8}|AfterK8]=AfterK4]=D) ->
+    case Key > K8 of
+        true ->
+            [H1,H2,H3,H4,H5,H6,H7,H8|append(Key, Value, AfterK8)];
+        false ->
+            case Key < K8 of
+                true ->
+                    case Key > K4 of
+                        true ->
+                            [H1,H2,H3,H4|append_1(Key, Value, AfterK4)];
+                        false ->
+                            case Key < K4 of
+                                true ->
+                                    append_1(Key, Value, D);
+                                false ->
+                                    [H1,H2,H3,{Key,V4++[Value]}|AfterK4] % Key == K4
+                            end
+                    end;
+                false ->
+                    [H1,H2,H3,H4,H5,H6,H7,{Key,V8++[Value]}|AfterK8] % Key == K8
+            end
+    end;
+append(Key, New, Dict) when is_list(Dict) ->
+    append_1(Key, New, Dict).
+
+-doc false.
+append_1(Key, New, [{K,_}|_]=Dict) when Key < K ->
     [{Key,[New]}|Dict];
-append(Key, New, [{K,_}=E|Dict]) when Key > K ->
-    [E|append(Key, New, Dict)];
-append(Key, New, [{_K,Old}|Dict]) ->		%Key == K
+append_1(Key, New, [{K,_}=E|Dict]) when Key > K ->
+    [E|append_1(Key, New, Dict)];
+append_1(Key, New, [{_K,Old}|Dict]) ->		%Key == K
     [{Key,Old ++ [New]}|Dict];
-append(Key, New, []) -> [{Key,[New]}].
+append_1(Key, New, []) -> [{Key,[New]}].
 
 -doc """
 Appends a list of values `ValList` to the current list of values associated with
@@ -368,9 +525,38 @@ _Example:_
       Orddict1 :: orddict(Key, Value),
       Orddict2 :: orddict(Key, Value).
 
-update(Key, Fun, [{K,_}=E|Dict]) when Key > K ->
-    [E|update(Key, Fun, Dict)];
-update(Key, Fun, [{K,Val}|Dict]) when Key == K ->
+update(Key, Fun, Dict) when is_function(Fun, 1), is_list(Dict) ->
+    update_gallop(Key, Fun, Dict).
+
+update_gallop(Key, Fun, [H1,H2,H3,H4={K4,V4}|[H5,H6,H7,H8={K8,V8}|AfterK8]=AfterK4]=D) ->
+    case Key > K8 of
+        true ->
+            [H1,H2,H3,H4,H5,H6,H7,H8|update_gallop(Key, Fun, AfterK8)];
+        false ->
+            case Key < K8 of
+                true ->
+                    case Key > K4 of
+                        true ->
+                            [H1,H2,H3,H4|update_1(Key, Fun, AfterK4)];
+                        false ->
+                            case Key < K4 of
+                                true ->
+                                    update_1(Key, Fun, D);
+                                false ->
+                                    [H1,H2,H3,{Key,Fun(V4)}|AfterK4] % Key == K4
+                            end
+                    end;
+                false ->
+                    [H1,H2,H3,H4,H5,H6,H7,{Key,Fun(V8)}|AfterK8] % Key == K8
+            end
+    end;
+update_gallop(Key, Fun, Acc) ->
+    update_1(Key, Fun, Acc).
+
+-doc false.
+update_1(Key, Fun, [{K,_}=E|Dict]) when Key > K ->
+    [E|update_1(Key, Fun, Dict)];
+update_1(Key, Fun, [{K,Val}|Dict]) when Key == K ->
     [{Key,Fun(Val)}|Dict].
 
 -doc """
@@ -409,13 +595,42 @@ _Example 2:_
       Orddict1 :: orddict(Key, Value),
       Orddict2 :: orddict(Key, Value).
 
-update(Key, _, Init, [{K,_}|_]=Dict) when Key < K ->
+update(Key, Fun, Init, Dict) when is_function(Fun, 1), is_list(Dict) ->
+    update_gallop(Key, Fun, Init, Dict).
+
+update_gallop(Key, Fun, Init, [H1,H2,H3,H4={K4,V4}|[H5,H6,H7,H8={K8,V8}|AfterK8]=AfterK4]=D) ->
+    case Key > K8 of
+        true ->
+            [H1,H2,H3,H4,H5,H6,H7,H8|update_gallop(Key, Fun, Init, AfterK8)];
+        false ->
+            case Key < K8 of
+                true ->
+                    case Key > K4 of
+                        true ->
+                            [H1,H2,H3,H4|update_1(Key, Fun, Init, AfterK4)];
+                        false ->
+                            case Key < K4 of
+                                true ->
+                                    update_1(Key, Fun, Init, D);
+                                false ->
+                                    [H1,H2,H3,{Key,Fun(V4)}|AfterK4] % Key == K4
+                            end
+                    end;
+                false ->
+                    [H1,H2,H3,H4,H5,H6,H7,{Key,Fun(V8)}|AfterK8] % Key == K8
+            end
+    end;
+update_gallop(Key, Fun, Init, Acc) ->
+    update_1(Key, Fun, Init, Acc).
+
+-doc false.
+update_1(Key, _, Init, [{K,_}|_]=Dict) when Key < K ->
     [{Key,Init}|Dict];
-update(Key, Fun, Init, [{K,_}=E|Dict]) when Key > K ->
-    [E|update(Key, Fun, Init, Dict)];
-update(Key, Fun, _Init, [{_K,Val}|Dict]) ->		%Key == K
+update_1(Key, Fun, Init, [{K,_}=E|Dict]) when Key > K ->
+    [E|update_1(Key, Fun, Init, Dict)];
+update_1(Key, Fun, _Init, [{_K,Val}|Dict]) ->		%Key == K
     [{Key,Fun(Val)}|Dict];
-update(Key, _, Init, []) -> [{Key,Init}].
+update_1(Key, _, Init, []) -> [{Key,Init}].
 
 -doc """
 Adds `Increment` to the value associated with `Key` and store this value. If
@@ -434,13 +649,42 @@ update_counter(Key, Incr, D) ->
       Orddict2 :: orddict(Key, Value),
       Increment :: number().
 
-update_counter(Key, Incr, [{K,_}|_]=Dict) when Key < K ->
+update_counter(Key, Incr, Dict) when is_number(Incr), is_list(Dict) ->
+    update_counter_gallop(Key, Incr, Dict).
+
+update_counter_gallop(Key, Incr, [H1,H2,H3,H4={K4,V4}|[H5,H6,H7,H8={K8,V8}|AfterK8]=AfterK4]=D) ->
+    case Key > K8 of
+        true ->
+            [H1,H2,H3,H4,H5,H6,H7,H8|update_counter_gallop(Key, Incr, AfterK8)];
+        false ->
+            case Key < K8 of
+                true ->
+                    case Key > K4 of
+                        true ->
+                            [H1,H2,H3,H4|update_counter_1(Key, Incr, AfterK4)];
+                        false ->
+                            case Key < K4 of
+                                true ->
+                                    update_counter_1(Key, Incr, D);
+                                false ->
+                                    [H1,H2,H3,{Key,V4+Incr}|AfterK4] % Key == K4
+                            end
+                    end;
+                false ->
+                    [H1,H2,H3,H4,H5,H6,H7,{Key,V8+Incr}|AfterK8] % Key == K8
+            end
+    end;
+update_counter_gallop(Key, Incr, Acc) ->
+    update_counter_1(Key, Incr, Acc).
+
+-doc false.
+update_counter_1(Key, Incr, [{K,_}|_]=Dict) when Key < K ->
     [{Key,Incr}|Dict];
-update_counter(Key, Incr, [{K,_}=E|Dict]) when Key > K ->
-    [E|update_counter(Key, Incr, Dict)];
-update_counter(Key, Incr, [{_K,Val}|Dict]) ->		%Key == K
+update_counter_1(Key, Incr, [{K,_}=E|Dict]) when Key > K ->
+    [E|update_counter_1(Key, Incr, Dict)];
+update_counter_1(Key, Incr, [{_K,Val}|Dict]) ->		%Key == K
     [{Key,Val+Incr}|Dict];
-update_counter(Key, Incr, []) -> [{Key,Incr}].
+update_counter_1(Key, Incr, []) -> [{Key,Incr}].
 
 -doc """
 Calls `Fun` on successive keys and values of `Orddict` together with an extra
@@ -510,7 +754,7 @@ _Example:_
 
 filter(F, [{Key,Val}=E|D]) ->
     case F(Key, Val) of
-	true -> [E|filter(F, D)]; 
+	true -> [E|filter(F, D)];
 	false -> filter(F, D)
     end;
 filter(F, []) when is_function(F, 2) -> [].
@@ -558,6 +802,23 @@ merge(F, [{K1,V1}|D1], [{_K2,V2}|D2]) ->	%K1 == K2
 merge(F, [], D2) when is_function(F, 3) -> D2;
 merge(F, D1, []) when is_function(F, 3) -> D1.
 
-reverse_pairs([{_,_}=H|T], Acc) ->
-    reverse_pairs(T, [H|Acc]);
-reverse_pairs([], Acc) -> Acc.
+reverse_pairs([{_,_}=H1,{_,_}=H2,{_,_}=H3,{_,_}=H4,{_,_}=H5,{_,_}=H6,{_,_}=H7,{_,_}=H8], Acc) ->
+    [H8,H7,H6,H5,H4,H3,H2,H1|Acc];
+reverse_pairs([{_,_}=H1,{_,_}=H2,{_,_}=H3,{_,_}=H4,{_,_}=H5,{_,_}=H6,{_,_}=H7,{_,_}=H8|T], Acc) ->
+    reverse_pairs(T, [H8,H7,H6,H5,H4,H3,H2,H1|Acc]);
+reverse_pairs([{_,_}=H1,{_,_}=H2,{_,_}=H3,{_,_}=H4,{_,_}=H5,{_,_}=H6,{_,_}=H7], Acc) ->
+    [H7,H6,H5,H4,H3,H2,H1|Acc];
+reverse_pairs([{_,_}=H1,{_,_}=H2,{_,_}=H3,{_,_}=H4,{_,_}=H5,{_,_}=H6], Acc) ->
+    [H6,H5,H4,H3,H2,H1|Acc];
+reverse_pairs([{_,_}=H1,{_,_}=H2,{_,_}=H3,{_,_}=H4,{_,_}=H5], Acc) ->
+    [H5,H4,H3,H2,H1|Acc];
+reverse_pairs([{_,_}=H1,{_,_}=H2,{_,_}=H3,{_,_}=H4], Acc) ->
+    [H4,H3,H2,H1|Acc];
+reverse_pairs([{_,_}=H1,{_,_}=H2,{_,_}=H3], Acc) ->
+    [H3,H2,H1|Acc];
+reverse_pairs([{_,_}=H1,{_,_}=H2], Acc) ->
+    [H2,H1|Acc];
+reverse_pairs([{_,_}=H], Acc) ->
+    [H|Acc];
+reverse_pairs([], Acc) ->
+    Acc.

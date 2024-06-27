@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 1996-2024. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 
 -module(ordsets).
@@ -142,10 +142,36 @@ from_list(L) ->
       Element :: term(),
       Ordset :: ordset(_).
 
-is_element(E, [H|Es]) when E > H -> is_element(E, Es);
-is_element(E, [H|_]) when E < H -> false;
-is_element(_E, [_H|_]) -> true;			%E == H
-is_element(_, []) -> false.
+is_element(E, [_,_,_,H4|[_,_,_,H8|AfterH8]=AfterH4]=Es) -> % Gallop as far as possible
+    case E > H8 of
+        true ->
+            is_element(E, AfterH8);
+        false ->
+            case E < H8 of
+                true ->
+                    case E > H4 of
+                        true ->
+                            is_element_1(E, AfterH4);
+                        false ->
+                            case E < H4 of
+                                true ->
+                                    is_element_1(E, Es);
+                                false ->
+                                    true % E == H4
+                            end
+                    end;
+                false ->
+                    true % E == H8
+            end
+    end;
+is_element(E, Es) when is_list(Es) ->
+    is_element_1(E, Es).
+
+-doc false.
+is_element_1(E, [H|Es]) when E > H -> is_element_1(E, Es);
+is_element_1(E, [H|_]) when E < H -> false;
+is_element_1(_E, [_H|_]) -> true;			%E == H
+is_element_1(_, []) -> false.
 
 %% add_element(Element, OrdSet) -> OrdSet.
 %%  Return OrdSet with Element inserted in it.
@@ -158,10 +184,36 @@ is_element(_, []) -> false.
 
 %-spec add_element(E, ordset(T)) -> [T | E,...].
 
-add_element(E, [H|Es]) when E > H -> [H|add_element(E, Es)];
-add_element(E, [H|_]=Set) when E < H -> [E|Set];
-add_element(_E, [_H|_]=Set) -> Set;		%E == H
-add_element(E, []) -> [E].
+add_element(E, [H1,H2,H3,H4|[H5,H6,H7,H8|AfterH8]=AfterH4]=Es) -> % Gallop as far as possible
+    case E > H8 of
+        true ->
+            [H1,H2,H3,H4,H5,H6,H7,H8|add_element(E, AfterH8)];
+        false ->
+            case E < H8 of
+                true ->
+                    case E > H4 of
+                        true ->
+                            [H1,H2,H3,H4|add_element(E, AfterH4)];
+                        false ->
+                            case E < H4 of
+                                true ->
+                                    add_element_1(E, Es);
+                                false ->
+                                    true % E == H4
+                            end
+                    end;
+                false ->
+                    true % E == H8
+            end
+    end;
+add_element(E, Es) when is_list(Es) ->
+    add_element_1(E, Es).
+
+-doc false.
+add_element_1(E, [H|Es]) when E > H -> [H|add_element_1(E, Es)];
+add_element_1(E, [H|_]=Set) when E < H -> [E|Set];
+add_element_1(_E, [_H|_]=Set) -> Set;		%E == H
+add_element_1(E, []) -> [E].
 
 %% del_element(Element, OrdSet) -> OrdSet.
 %%  Return OrdSet but with Element removed.
@@ -172,10 +224,16 @@ add_element(E, []) -> [E].
       Ordset1 :: ordset(T),
       Ordset2 :: ordset(T).
 
-del_element(E, [H|Es]) when E > H -> [H|del_element(E, Es)];
-del_element(E, [H|_]=Set) when E < H -> Set;
-del_element(_E, [_H|Es]) -> Es;			%E == H
-del_element(_, []) -> [].
+del_element(E, [H1,H2,H3,H4,H5,H6,H7,H8|Es]) when E > H8 -> % Gallop as far as possible
+    [H1,H2,H3,H4,H5,H6,H7,H8|del_element(E, Es)];
+del_element(E, Es) when is_list(Es) ->
+    del_element_1(E, Es).
+
+-doc false.
+del_element_1(E, [H|Es]) when E > H -> [H|del_element_1(E, Es)];
+del_element_1(E, [H|_]=Set) when E < H -> Set;
+del_element_1(_E, [_H|Es]) -> Es;			%E == H
+del_element_1(_, []) -> [].
 
 %% union(OrdSet1, OrdSet2) -> OrdSet
 %%  Return the union of OrdSet1 and OrdSet2.

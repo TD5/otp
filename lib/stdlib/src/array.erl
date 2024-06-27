@@ -107,13 +107,13 @@ beyond the last set entry:
 -endif.
 
 
-%% Developers: 
-%% 
+%% Developers:
+%%
 %% For OTP devs: Both tests and documentation is extracted from this
-%% file, keep and update this file, 
+%% file, keep and update this file,
 %% test are extracted with array_SUITE:extract_tests().
 %% Doc with docb_gen array.erl
-%%  
+%%
 %% The key to speed is to minimize the number of tests, on
 %% large input. Always make the most probable path as short as possible.
 %% In particular, keep in mind that for large trees, the probability of
@@ -131,7 +131,7 @@ beyond the last set entry:
 %% stored in the tree when it is expanded. The last element of an
 %% internal node caches the number of elements that may be stored in
 %% each of its subtrees.
-%% 
+%%
 %% Note that to update an entry in a tree of height h = log[b] n, the
 %% total number of written words is (b+1)+(h-1)*(b+2), since tuples use
 %% a header word on the heap. 4 is the optimal base for minimizing the
@@ -722,10 +722,10 @@ See also `new/2`, `set/3`.
 """.
 -spec reset(I :: array_indx(), Array :: array(Type)) -> array(Type).
 
-reset(I, #array{size = N, max = M, default = D, elements = E}=A) 
+reset(I, #array{size = N, max = M, default = D, elements = E}=A)
     when is_integer(I), I >= 0, is_integer(N), is_integer(M) ->
     if I < N ->
-	    try A#array{elements = reset_1(I, E, D)} 
+	    try A#array{elements = reset_1(I, E, D)}
 	    catch throw:default -> A
 	    end;
        M > 0 ->
@@ -862,13 +862,13 @@ to_list_test_() ->
      ?_assert(lists:duplicate(666,6) =:= to_list(new(666,{default,6}))),
      ?_assert([1,2,3] =:= to_list(set(2,3,set(1,2,set(0,1,new()))))),
      ?_assert([3,2,1] =:= to_list(set(0,3,set(1,2,set(2,1,new()))))),
-     ?_assert([1|lists:duplicate(N0-2,0)++[1]] =:= 
+     ?_assert([1|lists:duplicate(N0-2,0)++[1]] =:=
 	      to_list(set(N0-1,1,set(0,1,new({default,0}))))),
-     ?_assert([1|lists:duplicate(N0-1,0)++[1]] =:= 
+     ?_assert([1|lists:duplicate(N0-1,0)++[1]] =:=
 	      to_list(set(N0,1,set(0,1,new({default,0}))))),
-     ?_assert([1|lists:duplicate(N0,0)++[1]] =:= 
+     ?_assert([1|lists:duplicate(N0,0)++[1]] =:=
 	      to_list(set(N0+1,1,set(0,1,new({default,0}))))),
-     ?_assert([1|lists:duplicate(N0*3,0)++[1]] =:= 
+     ?_assert([1|lists:duplicate(N0*3,0)++[1]] =:=
 	      to_list(set((N0*3)+1,1,set(0,1,new({default,0}))))),
      ?_assertError(badarg, to_list(no_array))
     ].
@@ -979,7 +979,7 @@ from_list(_, _) ->
 %% Building the leaf nodes (padding the last one as necessary) and
 %% counting the total number of elements.
 from_list_1(0, Xs, D, N, As, Es) ->
-    E = list_to_tuple(lists:reverse(As)),
+    E = list_to_tuple_rev(As),
     case Xs of
 	[] ->
 	    case Es of
@@ -1050,7 +1050,7 @@ from_list_test_() ->
      ?_assert(to_list(from_list(lists:seq(0,N3))) =:= lists:seq(0,N3)),
      ?_assert(to_list(from_list(lists:seq(0,N4))) =:= lists:seq(0,N4)),
      ?_assertError(badarg, from_list([a,b,a,c|d])),
-     ?_assertError(badarg, from_list(no_array))     
+     ?_assertError(badarg, from_list(no_array))
     ].
 -endif.
 
@@ -1138,11 +1138,11 @@ to_orddict_test_() ->
 	      =:= to_orddict(set(N0,1,set(0,1,new({default,0}))))),
      ?_assert([{0,1}|[{N,0}||N<-lists:seq(1,N0)]++[{N0+1,1}]]
 	      =:= to_orddict(set(N0+1,1,set(0,1,new({default,0}))))),
-     ?_assert([{0,0} | [{N,undefined}||N<-lists:seq(1,N0*2)]] ++ 
+     ?_assert([{0,0} | [{N,undefined}||N<-lists:seq(1,N0*2)]] ++
 	      [{N0*2+1,1} | [{N,undefined}||N<-lists:seq(N0*2+2,N0*10)]] ++
-	      [{N0*10+1,2}] =:= 
+	      [{N0*10+1,2}] =:=
 	      to_orddict(set(N0*10+1,2,set(N0*2+1,1,set(0,0,new()))))),
-     ?_assertError(badarg, to_orddict(no_array))     
+     ?_assertError(badarg, to_orddict(no_array))
     ].
 -endif.
 
@@ -1225,9 +1225,9 @@ sparse_to_orddict_test_() ->
 	      sparse_to_orddict(set(N0,1,set(0,1,new({default,0}))))),
      ?_assert([{0,1},{N0+1,1}] =:=
 	      sparse_to_orddict(set(N0+1,1,set(0,1,new({default,0}))))),
-     ?_assert([{0,0},{N0*2+1,1},{N0*10+1,2}] =:= 
+     ?_assert([{0,0},{N0*2+1,1},{N0*10+1,2}] =:=
 	      sparse_to_orddict(set(N0*10+1,2,set(N0*2+1,1,set(0,0,new()))))),
-     ?_assertError(badarg, sparse_to_orddict(no_array))     
+     ?_assertError(badarg, sparse_to_orddict(no_array))
     ].
 -endif.
 
@@ -1262,7 +1262,7 @@ from_orddict(_, _) ->
 
 %% 2 pass implementation, first pass builds the needed leaf nodes
 %% and adds hole sizes.
-%% (inserts default elements for missing list entries in the leafs 
+%% (inserts default elements for missing list entries in the leafs
 %%  and pads the last tuple if necessary).
 %% Second pass builds the tree from the leafs and the holes.
 %%
@@ -1272,13 +1272,13 @@ from_orddict(_, _) ->
 from_orddict_0([], N, _Max, _D, Es) ->
     %% Finished, build the resulting tree
     case Es of
-	[E] -> 
+	[E] ->
 	    {E, N, ?LEAFSIZE};
-	_ -> 
+	_ ->
 	    collect_leafs(N, Es, ?LEAFSIZE)
     end;
 
-from_orddict_0(Xs=[{Ix1, _}|_], Ix, Max0, D, Es0) 
+from_orddict_0(Xs=[{Ix1, _}|_], Ix, Max0, D, Es0)
   when is_integer(Ix1), Ix1 > Max0  ->
     %% We have a hole larger than a leaf
     Hole = Ix1-Ix,
@@ -1286,7 +1286,7 @@ from_orddict_0(Xs=[{Ix1, _}|_], Ix, Max0, D, Es0)
     Next = Ix+Step,
     from_orddict_0(Xs, Next, Next+?LEAFSIZE, D, [Step|Es0]);
 from_orddict_0(Xs0=[{_, _}|_], Ix0, Max, D, Es) ->
-    %% Fill a leaf 
+    %% Fill a leaf
     {Xs,E,Ix} = from_orddict_1(Ix0, Max, Xs0, Ix0, D, []),
     from_orddict_0(Xs, Ix, Ix+?LEAFSIZE, D, [E|Es]);
 from_orddict_0(Xs, _, _, _,_) ->
@@ -1294,7 +1294,7 @@ from_orddict_0(Xs, _, _, _,_) ->
 
 from_orddict_1(Ix, Ix, Xs, N, _D, As) ->
     %% Leaf is full
-    E = list_to_tuple(lists:reverse(As)),
+    E = list_to_tuple_rev(As),
     {Xs, E, N};
 from_orddict_1(Ix, Max, Xs, N0, D, As) ->
     case Xs of
@@ -1311,11 +1311,11 @@ from_orddict_1(Ix, Max, Xs, N0, D, As) ->
     end.
 
 %% Es is reversed i.e. starting from the largest leafs
-collect_leafs(N, Es, S) -> 
+collect_leafs(N, Es, S) ->
     I = (N-1) div S + 1,
     Pad = ((?NODESIZE - (I rem ?NODESIZE)) rem ?NODESIZE) * S,
     case Pad of
-	0 -> 
+	0 ->
 	    collect_leafs(?NODESIZE, Es, S, N, [S], []);
 	_ ->  %% Pad the end
 	    collect_leafs(?NODESIZE, [Pad|Es], S, N, [S], [])
@@ -1333,13 +1333,13 @@ collect_leafs(0, Xs, S, N, As, Es) ->
 			       ?extend(S))
 	    end;
 	_ ->
-	    collect_leafs(?NODESIZE, Xs, S, N, [S], [E | Es])		
+	    collect_leafs(?NODESIZE, Xs, S, N, [S], [E | Es])
     end;
-collect_leafs(I, [X | Xs], S, N, As0, Es0) 
+collect_leafs(I, [X | Xs], S, N, As0, Es0)
   when is_integer(X) ->
     %% A hole, pad accordingly.
     Step0 = (X div S),
-    if 
+    if
 	Step0 < I ->
 	    As = push(Step0, S, As0),
 	    collect_leafs(I-Step0, Xs, S, N, As, Es0);
@@ -1413,8 +1413,8 @@ from_orddict_test_() ->
      ?_assert(?LET(L, [{N4-1,0}],
 		   L =:= sparse_to_orddict(from_orddict(L)))),
 
-     %% Hole in middle 
-     
+     %% Hole in middle
+
      ?_assert(?LET(L, [{0,0},{N0,0}],
 		   L =:= sparse_to_orddict(from_orddict(L)))),
      ?_assert(?LET(L, [{0,0},{N1,0}],
@@ -1431,7 +1431,7 @@ from_orddict_test_() ->
 		   L =:= sparse_to_orddict(from_orddict(L)))),
      ?_assert(?LET(L, [{0,0},{N4-1,0}],
 		   L =:= sparse_to_orddict(from_orddict(L))))
-     
+
     ].
 -endif.
 
@@ -1466,17 +1466,17 @@ map(_, _) ->
 %% be a generally useful property.
 
 map_1(N, E=?NODEPATTERN(S), Ix, F, D) ->
-    list_to_tuple(lists:reverse([S | map_2(1, E, Ix, F, D, [],
-					   N div S + 1, N rem S, S)]));
+    list_to_tuple_rev([S | map_2(1, E, Ix, F, D, [],
+					   N div S + 1, N rem S, S)]);
 map_1(N, E, Ix, F, D) when is_integer(E) ->
     map_1(N, unfold(E, D), Ix, F, D);
 map_1(N, E, Ix, F, D) ->
-    list_to_tuple(lists:reverse(map_3(1, E, Ix, F, D, N+1, []))).
+    list_to_tuple_rev(map_3(1, E, Ix, F, D, N+1, [])).
 
 map_2(I, E, Ix, F, D, L, I, R, _S) ->
     map_2_1(I+1, E, [map_1(R, element(I, E), Ix, F, D) | L]);
 map_2(I, E, Ix, F, D, L, N, R, S) ->
-    map_2(I+1, E, Ix + S, F, D, 
+    map_2(I+1, E, Ix + S, F, D,
 	  [map_1(S-1, element(I, E), Ix, F, D) | L],
 	  N, R, S).
 
@@ -1500,7 +1500,7 @@ unfold(S, _D) when S > ?LEAFSIZE ->
     ?NEW_NODE(?reduce(S));
 unfold(_S, D) ->
     ?NEW_LEAF(D).
-    
+
 
 -ifdef(EUNIT).
 map_test_() ->
@@ -1521,8 +1521,8 @@ map_test_() ->
 	      =:= lists:seq(0,10)),
      ?_assert(to_list(map(Plus(11), from_list(lists:seq(0,99999))))
 	      =:= lists:seq(11,100010)),
-     ?_assert([{0,0},{N0*2+1,N0*2+1+1},{N0*100+1,N0*100+1+2}] =:= 
-	      sparse_to_orddict((map(Default, 
+     ?_assert([{0,0},{N0*2+1,N0*2+1+1},{N0*100+1,N0*100+1+2}] =:=
+	      sparse_to_orddict((map(Default,
 				     set(N0*100+1,2,
 					 set(N0*2+1,1,
 					     set(0,0,new())))))#array{default = no_value}))
@@ -1556,19 +1556,19 @@ sparse_map(_, _) ->
 %% TODO: we can probably optimize away the use of div/rem here
 
 sparse_map_1(N, E=?NODEPATTERN(S), Ix, F, D) ->
-    list_to_tuple(lists:reverse([S | sparse_map_2(1, E, Ix, F, D, [],
+    list_to_tuple_rev([S | sparse_map_2(1, E, Ix, F, D, [],
 						  N div S + 1,
-						  N rem S, S)]));
+						  N rem S, S)]);
 sparse_map_1(_N, E, _Ix, _F, _D) when is_integer(E) ->
     E;
 sparse_map_1(_N, E, Ix, F, D) ->
-    list_to_tuple(lists:reverse(sparse_map_3(1, E, Ix, F, D, []))).
+    list_to_tuple_rev(sparse_map_3(1, E, Ix, F, D, [])).
 
 sparse_map_2(I, E, Ix, F, D, L, I, R, _S) ->
     sparse_map_2_1(I+1, E,
 		   [sparse_map_1(R, element(I, E), Ix, F, D) | L]);
 sparse_map_2(I, E, Ix, F, D, L, N, R, S) ->
-    sparse_map_2(I+1, E, Ix + S, F, D, 
+    sparse_map_2(I+1, E, Ix + S, F, D,
 	  [sparse_map_1(S-1, element(I, E), Ix, F, D) | L],
 	  N, R, S).
 
@@ -1615,8 +1615,8 @@ sparse_map_test_() ->
      ?_assert(to_list(sparse_map(Plus(1),
 				 set(9,9,set(1,1,new({default,0})))))
 	      =:= [0,2,0,0,0,0,0,0,0,10]),
-     ?_assert([{0,0},{N0*2+1,N0*2+1+1},{N0*100+1,N0*100+1+2}] =:= 
-	      sparse_to_orddict(sparse_map(KeyPlus, 
+     ?_assert([{0,0},{N0*2+1,N0*2+1+1},{N0*100+1,N0*100+1+2}] =:=
+	      sparse_to_orddict(sparse_map(KeyPlus,
 					   set(N0*100+1,2,
 					       set(N0*2+1,1,
 						   set(0,0,new()))))))
@@ -1675,7 +1675,7 @@ foldl_test_() ->
     Sum = fun (_,X,N) -> N+X end,
     Reverse = fun (_,X,L) -> [X|L] end,
     Vals = fun(_K,undefined,{C,L}) -> {C+1,L};
-	      (K,X,{C,L}) -> {C,[K+X|L]} 
+	      (K,X,{C,L}) -> {C,[K+X|L]}
 	   end,
     [?_assertError(badarg, foldl([], 0, new())),
      ?_assertError(badarg, foldl([], 0, new(10))),
@@ -1751,7 +1751,7 @@ sparse_foldl_test_() ->
     Sum = fun (_,X,N) -> N+X end,
     Reverse = fun (_,X,L) -> [X|L] end,
     Vals = fun(_K,undefined,{C,L}) -> {C+1,L};
-	      (K,X,{C,L}) -> {C,[K+X|L]} 
+	      (K,X,{C,L}) -> {C,[K+X|L]}
 	   end,
     [?_assertError(badarg, sparse_foldl([], 0, new())),
      ?_assertError(badarg, sparse_foldl([], 0, new(10))),
@@ -1766,8 +1766,8 @@ sparse_foldl_test_() ->
      ?_assert(sparse_foldl(Sum, 0, from_list(lists:seq(0,10), 5)) =:= 50),
      ?_assert(sparse_foldl(Reverse, [], from_list(lists:seq(0,1000), 0))
 	      =:= lists:reverse(lists:seq(1,1000))),
-     ?_assert({0,[N0*100+1+2,N0*2+1+1,0]} =:= 
-	      sparse_foldl(Vals, {0,[]}, 
+     ?_assert({0,[N0*100+1+2,N0*2+1+1,0]} =:=
+	      sparse_foldl(Vals, {0,[]},
 			   set(N0*100+1,2,
 			       set(N0*2+1,1,
 				   set(0,0,new())))))
@@ -1831,7 +1831,7 @@ foldr_test_() ->
     Sum = fun (_,X,N) -> N+X end,
     List = fun (_,X,L) -> [X|L] end,
     Vals = fun(_K,undefined,{C,L}) -> {C+1,L};
-	      (K,X,{C,L}) -> {C,[K+X|L]} 
+	      (K,X,{C,L}) -> {C,[K+X|L]}
 	   end,
     [?_assertError(badarg, foldr([], 0, new())),
      ?_assertError(badarg, foldr([], 0, new(10))),
@@ -1924,6 +1924,35 @@ sparse_size(A) ->
 	    I + 1
     end.
 
+% Optimised version of list_to_tuple(lists:reverse(Foo))
+-doc false.
+list_to_tuple_rev([]) ->
+    {};
+list_to_tuple_rev([A,B]) ->
+    {B,A};
+list_to_tuple_rev([A,B,C]) ->
+    {C,B,A};
+list_to_tuple_rev([A,B,C,D]) ->
+    {D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E]) ->
+    {E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F]) ->
+    {F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G]) ->
+    {G,F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G,H]) ->
+    {H,G,F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G,H,I]) ->
+    {I,H,G,F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G,H,I,J]) -> % We want to directly handle at least ?NODESIZE and ?LEAFSIZE lists
+    {J,I,H,G,F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G,H,I,J,K]) ->
+    {K,J,I,H,G,F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G,H,I,J,K,L]) ->
+    {L,K,J,I,H,G,F,E,D,C,B,A};
+list_to_tuple_rev(L) ->
+    list_to_tuple(lists:reverse(L)).
+
 
 -ifdef(EUNIT).
 sparse_foldr_test_() ->
@@ -1932,7 +1961,7 @@ sparse_foldr_test_() ->
     Sum = fun (_,X,N) -> N+X end,
     List = fun (_,X,L) -> [X|L] end,
     Vals = fun(_K,undefined,{C,L}) -> {C+1,L};
-	      (K,X,{C,L}) -> {C,[K+X|L]} 
+	      (K,X,{C,L}) -> {C,[K+X|L]}
 	   end,
     [?_assertError(badarg, sparse_foldr([], 0, new())),
      ?_assertError(badarg, sparse_foldr([], 0, new(10))),
@@ -1958,10 +1987,10 @@ sparse_foldr_test_() ->
      ?_assert(sparse_size(array:from_list([1,2,3,undefined])) =:= 3),
      ?_assert(sparse_size(array:from_orddict([{3,0},{17,0},{99,undefined}]))
 			  =:= 18),
-     ?_assert({0,[0,N0*2+1+1,N0*100+1+2]} =:= 
-	      sparse_foldr(Vals, {0,[]}, 
+     ?_assert({0,[0,N0*2+1+1,N0*100+1+2]} =:=
+	      sparse_foldr(Vals, {0,[]},
 			   set(N0*100+1,2,
 			       set(N0*2+1,1,
-				   set(0,0,new())))))     
+				   set(0,0,new())))))
     ].
 -endif.

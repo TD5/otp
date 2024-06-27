@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 1997-2023. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 %%%----------------------------------------------------------------
@@ -25,7 +25,7 @@
 -include_lib("common_test/include/ct.hrl").
 
 %% Test server specific exports
--export([all/0, suite/0,groups/0,init_per_suite/1, end_per_suite/1, 
+-export([all/0, suite/0,groups/0,init_per_suite/1, end_per_suite/1,
 	 init_per_group/2,end_per_group/2]).
 -export([init_per_testcase/2, end_per_testcase/2]).
 
@@ -53,7 +53,7 @@
 	 zip3_fail/1, zip3_trim/1, zip3_pad/1,
 	 zipwith_fail/1, zipwith_trim/1, zipwith_pad/1,
 	 zipwith3_fail/1, zipwith3_trim/1, zipwith3_pad/1,
-	 filter_partition/1, 
+	 filter_partition/1,
 	 join/1,
 	 otp_5939/1, otp_6023/1, otp_6606/1, otp_7230/1,
 	 suffix/1, subtract/1, droplast/1, search/1, hof/1,
@@ -74,7 +74,7 @@ suite() ->
     [{ct_hooks,[ts_install_cth]},
      {timetrap,{minutes,4}}].
 
-all() -> 
+all() ->
     [{group, append},
      {group, key},
      {group, sort},
@@ -89,7 +89,7 @@ all() ->
      {group, zip},
      {group, misc}].
 
-groups() -> 
+groups() ->
     [{append, [parallel], [append_1, append_2]},
      {usort, [parallel],
       [umerge, rumerge, usort_1, usort_rand]},
@@ -861,7 +861,7 @@ rumerge(Conf) when is_list(Conf) ->
     L1 = [c,d,e],
     L2 = [b,c,d],
     true =
-	lists:umerge(L1, L2) == 
+	lists:umerge(L1, L2) ==
 	lists:reverse(lists:rumerge(lists:reverse(L1), lists:reverse(L2))),
 
     true = erts_debug:same(Singleton, lists:rumerge3([], [], Singleton)),
@@ -989,8 +989,8 @@ rkeymerge(Config) when is_list(Config) ->
     L1 = [{c,11},{c,12},{e,5}],
     L2 = [{b,2},{c,21},{c,22}],
     true =
-	lists:keymerge(1, L1, L2) == 
-	lists:reverse(lists:rkeymerge(1,lists:reverse(L1), 
+	lists:keymerge(1, L1, L2) ==
+	lists:reverse(lists:rkeymerge(1,lists:reverse(L1),
 				      lists:reverse(L2))),
 
     true = erts_debug:same(Singleton, lists:rkeymerge(1, Singleton, [])),
@@ -1100,7 +1100,7 @@ check_sorted1(I, J, A, [B | Rest]) ->
 
 keycompare(I, _J, A, B) when element(I, A) < element(I, B) ->
     ok;
-keycompare(I, J, A, B) when element(I, A) == element(I, B), 
+keycompare(I, J, A, B) when element(I, A) == element(I, B),
 			    element(J, A) =< element(J, B) ->
     ok.
 
@@ -1140,18 +1140,18 @@ ukeymerge(Conf) when is_list(Conf) ->
     [{1,a},{2,b},{3,c},{5,e},{7,g}] =
 	lists:ukeymerge(1, [{1,a},{2,b},{3,c},{5,e},{7,g}], [{2,b}]),
     [{1,a},{2,b},{3,c},{4,d},{5,e},{7,g}] =
-	lists:ukeymerge(1, [{1,a},{2,b},{3,c},{4,d},{5,e},{7,g}], 
+	lists:ukeymerge(1, [{1,a},{2,b},{3,c},{4,d},{5,e},{7,g}],
 			[{2,b},{4,d}]),
     [{1,a},{2,b},{3,c},{4,d},{5,e},{6,f},{7,g}] =
-	lists:ukeymerge(1, [{1,a},{3,c},{5,e},{6,f},{7,g}], 
+	lists:ukeymerge(1, [{1,a},{3,c},{5,e},{6,f},{7,g}],
 			[{2,b},{4,d},{6,f}]),
     [{1,a},{2,b},{3,c},{5,e},{7,g}] =
 	lists:ukeymerge(1, [{2,b}], [{1,a},{2,b},{3,c},{5,e},{7,g}]),
     [{1,a},{2,b},{3,c},{4,d},{5,e},{7,g}] =
-	lists:ukeymerge(1, [{2,b},{4,d}], 
+	lists:ukeymerge(1, [{2,b},{4,d}],
 			[{1,a},{2,b},{3,c},{4,d},{5,e},{7,g}]),
     [{1,a},{2,b},{3,c},{4,d},{5,e},{6,f},{7,g}] =
-	lists:ukeymerge(1, [{2,b},{4,d},{6,f}], 
+	lists:ukeymerge(1, [{2,b},{4,d},{6,f}],
 			[{1,a},{2,b},{3,c},{4,d},{5,e},{6,f},{7,g}]),
 
     L1 = [{a,1},{a,3},{a,5},{a,7}],
@@ -1201,25 +1201,25 @@ rukeymerge(Conf) when is_list(Conf) ->
     [{7,g},{6,f},{5,e},{3,c},{1,a}] =
 	lists:rukeymerge(1, [{7,g},{6,f},{5,e},{3,c},{1,a}], [{6,f}]),
     [{7,g},{6,f},{5,e},{4,d},{3,c},{1,a}] =
-	lists:rukeymerge(1, [{7,g},{6,f},{5,e},{4,d},{3,c},{1,a}], 
+	lists:rukeymerge(1, [{7,g},{6,f},{5,e},{4,d},{3,c},{1,a}],
 			 [{6,f},{4,d}]),
     [{7,g},{6,f},{5,e},{4,d},{3,c},{2,b},{1,a}] =
-	lists:rukeymerge(1, [{7,g},{6,f},{5,e},{4,d},{3,c},{2,b},{1,a}], 
+	lists:rukeymerge(1, [{7,g},{6,f},{5,e},{4,d},{3,c},{2,b},{1,a}],
 			 [{6,f},{4,d},{2,b}]),
     [{7,g},{5,e},{3,c},{2,b},{1,a}] =
 	lists:rukeymerge(1, [{2,b}], [{7,g},{5,e},{3,c},{2,b},{1,a}]),
     [{7,g},{5,e},{4,d},{3,c},{2,b},{1,a}] =
-	lists:rukeymerge(1, [{4,d},{2,b}], 
+	lists:rukeymerge(1, [{4,d},{2,b}],
 			 [{7,g},{5,e},{4,d},{3,c},{2,b},{1,a}]),
     [{7,g},{6,f},{5,e},{4,d},{3,c},{2,b},{1,a}] =
-	lists:rukeymerge(1, [{6,f},{4,d},{2,b}], 
+	lists:rukeymerge(1, [{6,f},{4,d},{2,b}],
 			 [{7,g},{6,f},{5,e},{4,d},{3,c},{2,b},{1,a}]),
 
     L1 = [{a,1},{a,3},{a,5},{a,7}],
     L2 = [{b,1},{b,3},{b,5},{b,7}],
     true =
-	lists:ukeymerge(2, L1, L2) == 
-	lists:reverse(lists:rukeymerge(2, lists:reverse(L1), 
+	lists:ukeymerge(2, L1, L2) ==
+	lists:reverse(lists:rukeymerge(2, lists:reverse(L1),
 				       lists:reverse(L2))),
 
     true = erts_debug:same(Singleton, lists:rukeymerge(1, Singleton, [])),
@@ -1324,7 +1324,7 @@ ukeysort_rand(Config) when is_list(Config) ->
     ok.
 
 %% Check that ukeysort/2 is stable and correct relative keysort/2.
-%% (this is not affected by the fact that keysort/2 is no longer really 
+%% (this is not affected by the fact that keysort/2 is no longer really
 %%  stable; ucheck_stability/1 checks ukeysort/2 (and usort/1, of course))
 gen_ukeysort_check(I, Input) ->
     U = lists:ukeysort(I, Input),
@@ -1371,7 +1371,7 @@ ucheck_sorted1(I, J, A, [B | Rest]) ->
 ukeycompare(I, _J, A, B) when element(I, A) < element(I, B) ->
     ok;
 ukeycompare(I, J, A, B) when A =/= B,
-			     element(I, A) == element(I, B), 
+			     element(I, A) == element(I, B),
 			     element(J, A) =< element(J, B) ->
     ok.
 
@@ -1493,7 +1493,7 @@ sloop(N, S) ->
 	    sloop(N, NS)
     end.
 
-display_state(S) ->    
+display_state(S) ->
     io:format("sort:   ~p~n", [S#state.sort]),
     io:format("usort:  ~p~n", [S#state.usort]).
 
@@ -1742,8 +1742,10 @@ lists_flatten(List) ->
 %% flatten/1 error cases
 flatten_1_e(Config) when is_list(Config) ->
     ?flatten_error1(a),
-    ?flatten_error1([a|b]),
-    ?flatten_error1([[a],[b|c],[d]]),
+    ?flatten_error1({}),
+    % Now allowed; previously resulted in an error:
+    [a,b] = lists:flatten([a|b]),
+    [a,b,c,d] = lists:flatten([[a],[b|c],[d]]),
     ok.
 
 %%% [arndt] What if second arg isn't a proper list? This issue isn't
