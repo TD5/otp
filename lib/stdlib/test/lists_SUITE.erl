@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 1997-2023. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 %%%----------------------------------------------------------------
@@ -23,9 +23,11 @@
 
 -module(lists_SUITE).
 -include_lib("common_test/include/ct.hrl").
+-include_lib("stdlib/include/assert.hrl").
+
 
 %% Test server specific exports
--export([all/0, suite/0,groups/0,init_per_suite/1, end_per_suite/1, 
+-export([all/0, suite/0,groups/0,init_per_suite/1, end_per_suite/1,
 	 init_per_group/2,end_per_group/2]).
 -export([init_per_testcase/2, end_per_testcase/2]).
 
@@ -33,7 +35,7 @@
 -export([member/1, reverse/1,
 	 keymember/1, keysearch_keyfind/1,
 	 keystore/1, keytake/1, keyreplace/1,
-	 append_1/1, append_2/1,
+	 keydelete/1, append_1/1, append_2/1,
 	 seq_loop/1, seq_2/1, seq_3/1, seq_2_e/1, seq_3_e/1,
 
 	 sublist_2/1, sublist_3/1, sublist_2_e/1, sublist_3_e/1,
@@ -53,10 +55,13 @@
 	 zip3_fail/1, zip3_trim/1, zip3_pad/1,
 	 zipwith_fail/1, zipwith_trim/1, zipwith_pad/1,
 	 zipwith3_fail/1, zipwith3_trim/1, zipwith3_pad/1,
-	 filter_partition/1, 
+	 filter_partition/1,
 	 join/1,
 	 otp_5939/1, otp_6023/1, otp_6606/1, otp_7230/1,
 	 suffix/1, subtract/1, droplast/1, search/1, hof/1,
+     batch_any/1, batch_all/1, batch_flatten/1, batch_flatlength/1,
+     batch_nth/1, batch_nthtail/1, batch_prefix/1, batch_droplast/1,
+     batch_last/1, batch_sum/1, batch_join/1, batch_zip/1,
 	 enumerate/1, error_info/1]).
 
 %% Sort randomized lists until stopped.
@@ -74,7 +79,7 @@ suite() ->
     [{ct_hooks,[ts_install_cth]},
      {timetrap,{minutes,4}}].
 
-all() -> 
+all() ->
     [{group, append},
      {group, key},
      {group, sort},
@@ -87,9 +92,10 @@ all() ->
      {group, seq},
      {group, tickets},
      {group, zip},
+     {group, batching},
      {group, misc}].
 
-groups() -> 
+groups() ->
     [{append, [parallel], [append_1, append_2]},
      {usort, [parallel],
       [umerge, rumerge, usort_1, usort_rand]},
@@ -97,7 +103,7 @@ groups() ->
       [keymerge, rkeymerge, keysort_1, keysort_rand,
        keysort_i, keysort_error]},
      {key, [parallel], [keymember, keysearch_keyfind, keystore,
-			keytake, keyreplace]},
+			keydelete, keytake, keyreplace]},
      {sort,[parallel],[merge, rmerge, sort_1, sort_rand]},
      {ukeysort, [parallel],
       [ukeymerge, rukeymerge, ukeysort_1, ukeysort_rand,
@@ -114,6 +120,10 @@ groups() ->
 		        zipwith_fail, zipwith_trim, zipwith_pad,
 		        zipwith3_fail, zipwith3_trim, zipwith3_pad]},
      {uniq, [parallel], [uniq_1, uniq_2]},
+     {batching, [parallel], [batch_any, batch_all, batch_flatten,
+                                batch_flatlength, batch_nth, batch_nthtail,
+                                batch_prefix, batch_droplast, batch_last,
+                                batch_join, batch_zip]},
      {misc, [parallel], [reverse, member, dropwhile, takewhile,
 			 filter_partition, suffix, subtract, join,
 			 hof, droplast, search, enumerate, error_info]}
@@ -176,6 +186,13 @@ reverse(Config) when is_list(Config) ->
     reverse_test(0),
     reverse_test(1),
     reverse_test(2),
+    reverse_test(3),
+    reverse_test(4),
+    reverse_test(5),
+    reverse_test(6),
+    reverse_test(7),
+    reverse_test(8),
+    reverse_test(9),
     reverse_test(128),
     reverse_test(256),
     reverse_test(1000),
@@ -408,7 +425,29 @@ keytake(Config) when is_list(Config) ->
     {value,{a,1},[{b,2},{c,3}]} = lists:keytake(1, 2, L),
     {value,{b,2},[{a,1},{c,3}]} = lists:keytake(2, 2, L),
     {value,{c,3},[{a,1},{b,2}]} = lists:keytake(3, 2, L),
+    LL = [{a,1},{b,2},{c,3},{d,4},{e,5},{f,6}],
+    {value,{a,1},[{b,2},{c,3},{d,4},{e,5},{f,6}]} = lists:keytake(1, 2, LL),
+    {value,{b,2},[{a,1},{c,3},{d,4},{e,5},{f,6}]} = lists:keytake(2, 2, LL),
+    {value,{c,3},[{a,1},{b,2},{d,4},{e,5},{f,6}]} = lists:keytake(3, 2, LL),
+    {value,{d,4},[{a,1},{b,2},{c,3},{e,5},{f,6}]} = lists:keytake(4, 2, LL),
+    {value,{e,5},[{a,1},{b,2},{c,3},{d,4},{f,6}]} = lists:keytake(5, 2, LL),
+    {value,{f,6},[{a,1},{b,2},{c,3},{d,4},{e,5}]} = lists:keytake(6, 2, LL),
     false = lists:keytake(4, 2, L),
+    ok.
+
+keydelete(Config) when is_list(Config) ->
+    ?assertMatch({'EXIT',_}, (catch lists:keydelete(key, 0, []))),
+    ?assertMatch({'EXIT',_}, (catch lists:keydelete(key, 1, {}))),
+    ?assertMatch({'EXIT',_}, (catch lists:keydelete(key, 1, {a,b}))),
+    ?assertEqual([{a}], lists:keydelete(key, 2, [{a}])),
+    ?assertEqual([a], lists:keydelete(key, 1, [a])),
+    ?assertEqual([], lists:keydelete(k, 1, [])),
+    ?assertEqual([{a},{b},{c}], lists:keydelete(k, 1, [{a},{b},{c}])),
+    L = [{a,1},{b,2},{c,3}],
+    ?assertEqual([{b,2},{c,3}], lists:keydelete(1, 2, L)),
+    ?assertEqual([{a,1},{c,3}], lists:keydelete(2, 2, L)),
+    ?assertEqual([{a,1},{b,2}], lists:keydelete(3, 2, L)),
+    ?assertEqual(L, lists:keydelete(4, 2, L)),
     ok.
 
 %% Test lists:keyreplace/4.
@@ -861,7 +900,7 @@ rumerge(Conf) when is_list(Conf) ->
     L1 = [c,d,e],
     L2 = [b,c,d],
     true =
-	lists:umerge(L1, L2) == 
+	lists:umerge(L1, L2) ==
 	lists:reverse(lists:rumerge(lists:reverse(L1), lists:reverse(L2))),
 
     true = erts_debug:same(Singleton, lists:rumerge3([], [], Singleton)),
@@ -989,8 +1028,8 @@ rkeymerge(Config) when is_list(Config) ->
     L1 = [{c,11},{c,12},{e,5}],
     L2 = [{b,2},{c,21},{c,22}],
     true =
-	lists:keymerge(1, L1, L2) == 
-	lists:reverse(lists:rkeymerge(1,lists:reverse(L1), 
+	lists:keymerge(1, L1, L2) ==
+	lists:reverse(lists:rkeymerge(1,lists:reverse(L1),
 				      lists:reverse(L2))),
 
     true = erts_debug:same(Singleton, lists:rkeymerge(1, Singleton, [])),
@@ -1100,7 +1139,7 @@ check_sorted1(I, J, A, [B | Rest]) ->
 
 keycompare(I, _J, A, B) when element(I, A) < element(I, B) ->
     ok;
-keycompare(I, J, A, B) when element(I, A) == element(I, B), 
+keycompare(I, J, A, B) when element(I, A) == element(I, B),
 			    element(J, A) =< element(J, B) ->
     ok.
 
@@ -1140,18 +1179,18 @@ ukeymerge(Conf) when is_list(Conf) ->
     [{1,a},{2,b},{3,c},{5,e},{7,g}] =
 	lists:ukeymerge(1, [{1,a},{2,b},{3,c},{5,e},{7,g}], [{2,b}]),
     [{1,a},{2,b},{3,c},{4,d},{5,e},{7,g}] =
-	lists:ukeymerge(1, [{1,a},{2,b},{3,c},{4,d},{5,e},{7,g}], 
+	lists:ukeymerge(1, [{1,a},{2,b},{3,c},{4,d},{5,e},{7,g}],
 			[{2,b},{4,d}]),
     [{1,a},{2,b},{3,c},{4,d},{5,e},{6,f},{7,g}] =
-	lists:ukeymerge(1, [{1,a},{3,c},{5,e},{6,f},{7,g}], 
+	lists:ukeymerge(1, [{1,a},{3,c},{5,e},{6,f},{7,g}],
 			[{2,b},{4,d},{6,f}]),
     [{1,a},{2,b},{3,c},{5,e},{7,g}] =
 	lists:ukeymerge(1, [{2,b}], [{1,a},{2,b},{3,c},{5,e},{7,g}]),
     [{1,a},{2,b},{3,c},{4,d},{5,e},{7,g}] =
-	lists:ukeymerge(1, [{2,b},{4,d}], 
+	lists:ukeymerge(1, [{2,b},{4,d}],
 			[{1,a},{2,b},{3,c},{4,d},{5,e},{7,g}]),
     [{1,a},{2,b},{3,c},{4,d},{5,e},{6,f},{7,g}] =
-	lists:ukeymerge(1, [{2,b},{4,d},{6,f}], 
+	lists:ukeymerge(1, [{2,b},{4,d},{6,f}],
 			[{1,a},{2,b},{3,c},{4,d},{5,e},{6,f},{7,g}]),
 
     L1 = [{a,1},{a,3},{a,5},{a,7}],
@@ -1201,25 +1240,25 @@ rukeymerge(Conf) when is_list(Conf) ->
     [{7,g},{6,f},{5,e},{3,c},{1,a}] =
 	lists:rukeymerge(1, [{7,g},{6,f},{5,e},{3,c},{1,a}], [{6,f}]),
     [{7,g},{6,f},{5,e},{4,d},{3,c},{1,a}] =
-	lists:rukeymerge(1, [{7,g},{6,f},{5,e},{4,d},{3,c},{1,a}], 
+	lists:rukeymerge(1, [{7,g},{6,f},{5,e},{4,d},{3,c},{1,a}],
 			 [{6,f},{4,d}]),
     [{7,g},{6,f},{5,e},{4,d},{3,c},{2,b},{1,a}] =
-	lists:rukeymerge(1, [{7,g},{6,f},{5,e},{4,d},{3,c},{2,b},{1,a}], 
+	lists:rukeymerge(1, [{7,g},{6,f},{5,e},{4,d},{3,c},{2,b},{1,a}],
 			 [{6,f},{4,d},{2,b}]),
     [{7,g},{5,e},{3,c},{2,b},{1,a}] =
 	lists:rukeymerge(1, [{2,b}], [{7,g},{5,e},{3,c},{2,b},{1,a}]),
     [{7,g},{5,e},{4,d},{3,c},{2,b},{1,a}] =
-	lists:rukeymerge(1, [{4,d},{2,b}], 
+	lists:rukeymerge(1, [{4,d},{2,b}],
 			 [{7,g},{5,e},{4,d},{3,c},{2,b},{1,a}]),
     [{7,g},{6,f},{5,e},{4,d},{3,c},{2,b},{1,a}] =
-	lists:rukeymerge(1, [{6,f},{4,d},{2,b}], 
+	lists:rukeymerge(1, [{6,f},{4,d},{2,b}],
 			 [{7,g},{6,f},{5,e},{4,d},{3,c},{2,b},{1,a}]),
 
     L1 = [{a,1},{a,3},{a,5},{a,7}],
     L2 = [{b,1},{b,3},{b,5},{b,7}],
     true =
-	lists:ukeymerge(2, L1, L2) == 
-	lists:reverse(lists:rukeymerge(2, lists:reverse(L1), 
+	lists:ukeymerge(2, L1, L2) ==
+	lists:reverse(lists:rukeymerge(2, lists:reverse(L1),
 				       lists:reverse(L2))),
 
     true = erts_debug:same(Singleton, lists:rukeymerge(1, Singleton, [])),
@@ -1324,7 +1363,7 @@ ukeysort_rand(Config) when is_list(Config) ->
     ok.
 
 %% Check that ukeysort/2 is stable and correct relative keysort/2.
-%% (this is not affected by the fact that keysort/2 is no longer really 
+%% (this is not affected by the fact that keysort/2 is no longer really
 %%  stable; ucheck_stability/1 checks ukeysort/2 (and usort/1, of course))
 gen_ukeysort_check(I, Input) ->
     U = lists:ukeysort(I, Input),
@@ -1371,7 +1410,7 @@ ucheck_sorted1(I, J, A, [B | Rest]) ->
 ukeycompare(I, _J, A, B) when element(I, A) < element(I, B) ->
     ok;
 ukeycompare(I, J, A, B) when A =/= B,
-			     element(I, A) == element(I, B), 
+			     element(I, A) == element(I, B),
 			     element(J, A) =< element(J, B) ->
     ok.
 
@@ -1493,7 +1532,7 @@ sloop(N, S) ->
 	    sloop(N, NS)
     end.
 
-display_state(S) ->    
+display_state(S) ->
     io:format("sort:   ~p~n", [S#state.sort]),
     io:format("usort:  ~p~n", [S#state.usort]).
 
@@ -1508,6 +1547,7 @@ seq_loop(Config) when is_list(Config) ->
 %% Non-error cases for seq/2.
 seq_2(Config) when is_list(Config) ->
     [1,2,3] = lists:seq(1,3),
+    [1,2,3,4,5,6,7,8,9] = lists:seq(1,9),
     [1] = lists:seq(1,1),
     Big = 748274827583793785928592859,
     Big1 = Big+1,
@@ -1528,6 +1568,7 @@ seq_error(Args) ->
 %% Non-error cases for seq/3.
 seq_3(Config) when is_list(Config) ->
     [1,2,3] = lists:seq(1,3,1),
+    [1,3,5,7,9,11,13,15,17] = lists:seq(1,17,2),
     [1] = lists:seq(1,1,1),
     Big = 748274827583793785928592859,
     Big1 = Big+1,
@@ -1542,6 +1583,7 @@ seq_3(Config) when is_list(Config) ->
     [1, 4, 7, 10, 13, 16, 19] = lists:seq(1, 19, 3),
     [1, 4, 7, 10, 13, 16, 19] = lists:seq(1, 20, 3),
     [1, 4, 7, 10, 13, 16, 19] = lists:seq(1, 21, 3),
+    [1, 4, 7, 10, 13, 16, 19, 22] = lists:seq(1, 22, 3),
 
     [1] = lists:seq(1, 1, 0),		%OTP-2613
     ok.
@@ -1742,6 +1784,7 @@ lists_flatten(List) ->
 %% flatten/1 error cases
 flatten_1_e(Config) when is_list(Config) ->
     ?flatten_error1(a),
+    ?flatten_error1({}),
     ?flatten_error1([a|b]),
     ?flatten_error1([[a],[b|c],[d]]),
     ok.
@@ -2452,3 +2495,497 @@ uniq_2(_Config) ->
                    [{42, 1}, {42.0, 99}, {a, 99}, {a, 1}, {42, 100}]),
     [1] = lists:uniq(fun(_) -> whatever end, lists:seq(1, 10)),
     ok.
+
+batch_any(_Config) ->
+    false = lists:any(fun (needle) -> true ; (_) -> false end, []),
+    false = lists:any(fun (needle) -> true ; (_) -> false end, [hay]),
+    false = lists:any(fun (needle) -> true ; (_) -> false end, [hay,hay]),
+    false = lists:any(fun (needle) -> true ; (_) -> false end, [hay,hay,hay]),
+    false = lists:any(fun (needle) -> true ; (_) -> false end, [hay,hay,hay,hay]),
+    false = lists:any(fun (needle) -> true ; (_) -> false end, [hay,hay,hay,hay,hay]),
+    false = lists:any(fun (needle) -> true ; (_) -> false end, [hay,hay,hay,hay,hay,hay]),
+    false = lists:any(fun (needle) -> true ; (_) -> false end, [hay,hay,hay,hay,hay,hay,hay]),
+    false = lists:any(fun (needle) -> true ; (_) -> false end, [hay,hay,hay,hay,hay,hay,hay,hay]),
+    false = lists:any(fun (needle) -> true ; (_) -> false end, [hay,hay,hay,hay,hay,hay,hay,hay,hay]),
+
+    true = lists:any(fun (needle) -> true ; (_) -> false end, [needle]),
+    true = lists:any(fun (needle) -> true ; (_) -> false end, [hay,needle]),
+    true = lists:any(fun (needle) -> true ; (_) -> false end, [hay,hay,needle]),
+    true = lists:any(fun (needle) -> true ; (_) -> false end, [hay,hay,hay,needle]),
+    true = lists:any(fun (needle) -> true ; (_) -> false end, [hay,hay,hay,hay,needle]),
+    true = lists:any(fun (needle) -> true ; (_) -> false end, [hay,hay,hay,hay,hay,needle]),
+    true = lists:any(fun (needle) -> true ; (_) -> false end, [hay,hay,hay,hay,hay,hay,needle]),
+    true = lists:any(fun (needle) -> true ; (_) -> false end, [hay,hay,hay,hay,hay,hay,hay,needle]),
+    true = lists:any(fun (needle) -> true ; (_) -> false end, [hay,hay,hay,hay,hay,hay,hay,hay,needle]),
+    true = lists:any(fun (needle) -> true ; (_) -> false end, [hay,hay,hay,hay,hay,hay,hay,hay,hay,needle]),
+    true = lists:any(fun (needle) -> true ; (_) -> false end, [needle,hay]),
+    true = lists:any(fun (needle) -> true ; (_) -> false end, [needle,hay,hay]),
+    true = lists:any(fun (needle) -> true ; (_) -> false end, [needle,hay,hay,hay]),
+    true = lists:any(fun (needle) -> true ; (_) -> false end, [needle,hay,hay,hay,hay]),
+    true = lists:any(fun (needle) -> true ; (_) -> false end, [needle,hay,hay,hay,hay,hay]),
+    true = lists:any(fun (needle) -> true ; (_) -> false end, [needle,hay,hay,hay,hay,hay,hay]),
+    true = lists:any(fun (needle) -> true ; (_) -> false end, [needle,hay,hay,hay,hay,hay,hay,hay]),
+    true = lists:any(fun (needle) -> true ; (_) -> false end, [needle,hay,hay,hay,hay,hay,hay,hay,hay]),
+    true = lists:any(fun (needle) -> true ; (_) -> false end, [needle,hay,hay,hay,hay,hay,hay,hay,hay,hay]).
+
+batch_all(_Config) ->
+    true = lists:all(fun (hay) -> true ; (_) -> false end, []),
+    true = lists:all(fun (hay) -> true ; (_) -> false end, [hay]),
+    true = lists:all(fun (hay) -> true ; (_) -> false end, [hay,hay]),
+    true = lists:all(fun (hay) -> true ; (_) -> false end, [hay,hay,hay]),
+    true = lists:all(fun (hay) -> true ; (_) -> false end, [hay,hay,hay,hay]),
+    true = lists:all(fun (hay) -> true ; (_) -> false end, [hay,hay,hay,hay,hay]),
+    true = lists:all(fun (hay) -> true ; (_) -> false end, [hay,hay,hay,hay,hay,hay]),
+    true = lists:all(fun (hay) -> true ; (_) -> false end, [hay,hay,hay,hay,hay,hay,hay]),
+    true = lists:all(fun (hay) -> true ; (_) -> false end, [hay,hay,hay,hay,hay,hay,hay,hay]),
+    true = lists:all(fun (hay) -> true ; (_) -> false end, [hay,hay,hay,hay,hay,hay,hay,hay,hay]),
+
+    false = lists:all(fun (hay) -> true ; (_) -> false end, [needle]),
+    false = lists:all(fun (hay) -> true ; (_) -> false end, [hay,needle]),
+    false = lists:all(fun (hay) -> true ; (_) -> false end, [hay,hay,needle]),
+    false = lists:all(fun (hay) -> true ; (_) -> false end, [hay,hay,hay,needle]),
+    false = lists:all(fun (hay) -> true ; (_) -> false end, [hay,hay,hay,hay,needle]),
+    false = lists:all(fun (hay) -> true ; (_) -> false end, [hay,hay,hay,hay,hay,needle]),
+    false = lists:all(fun (hay) -> true ; (_) -> false end, [hay,hay,hay,hay,hay,hay,needle]),
+    false = lists:all(fun (hay) -> true ; (_) -> false end, [hay,hay,hay,hay,hay,hay,hay,needle]),
+    false = lists:all(fun (hay) -> true ; (_) -> false end, [hay,hay,hay,hay,hay,hay,hay,hay,needle]),
+    false = lists:all(fun (hay) -> true ; (_) -> false end, [hay,hay,hay,hay,hay,hay,hay,hay,hay,needle]),
+    false = lists:all(fun (hay) -> true ; (_) -> false end, [needle,hay]),
+    false = lists:all(fun (hay) -> true ; (_) -> false end, [needle,hay,hay]),
+    false = lists:all(fun (hay) -> true ; (_) -> false end, [needle,hay,hay,hay]),
+    false = lists:all(fun (hay) -> true ; (_) -> false end, [needle,hay,hay,hay,hay]),
+    false = lists:all(fun (hay) -> true ; (_) -> false end, [needle,hay,hay,hay,hay,hay]),
+    false = lists:all(fun (hay) -> true ; (_) -> false end, [needle,hay,hay,hay,hay,hay,hay]),
+    false = lists:all(fun (hay) -> true ; (_) -> false end, [needle,hay,hay,hay,hay,hay,hay,hay]),
+    false = lists:all(fun (hay) -> true ; (_) -> false end, [needle,hay,hay,hay,hay,hay,hay,hay,hay]),
+    false = lists:all(fun (hay) -> true ; (_) -> false end, [needle,hay,hay,hay,hay,hay,hay,hay,hay,hay]).
+
+
+batch_flatten(_Config) ->
+    ?assertError(_, lists:flatten(x)),
+    ?assertError(_, lists:flatten(#{})),
+    ?assertError(_, lists:flatten(<<"string"/utf8>>)),
+    ?assertError(_, lists:flatten({a,b})),
+    ?assertError(_, lists:flatten([x|y])),
+    ?assertError(_, lists:flatten([[v,w|x],[y|z]])),
+    ?assertError(_, lists:flatten([[w,x,y,z|v],a,b])),
+    ?assertError(_, lists:flatten([a,b,c,d,[w,x,y,z|v],a,b])),
+    ?assertError(_, lists:flatten([a,b,c,d,e,f,[g,[w,x,y,z|v],h]])),
+    ?assertError(_, lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23|0])),
+    [x,y] = lists:flatten([x,y]),
+    [1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,17,18] =
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,[],11,12,13,14,16,17,18]),
+    [1,2,3,4,5,6,7,8,9,10,10.5,11,12,13,14,16,17,18] =
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,[10.5],11,12,13,14,16,17,18]),
+    [] = lists:flatten([]),
+    [x] = lists:flatten([x]),
+    [x] = lists:flatten([[x]]),
+    [x] = lists:flatten([[[x]]]),
+    [x] = lists:flatten([[[x]]]),
+    [x] = lists:flatten([[[[x]]]]),
+    [w,x,y,z] = lists:flatten([w,[x,[y,[z],[]]]]),
+    [w,x,y,z] = lists:flatten([w,[],[[],x,[]],[y,[[]],[[[],z]]]]),
+    [w,x,y,z] = lists:flatten([w,x,[y],z]),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15],
+        lists:flatten([[[1,2,3,4,[5,6,[]],7,8,9,10,11,12,13,14,15]]])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,1,2,3,4,5,6,7,8,1,2,3,4,5,6,7,8,9,9,1,2,3,4,5,1,2,3,4,5,6,7,8,1,2,3,4,5,6,7,8,1,2,3,4,5,6,7,8,9,9],
+        lists:flatten([1,2,3,4,5,6,7,8,1,2,3,4,5,6,7,8,1,2,3,4,5,6,7,8,9,9,[1,2,3,4,5],1,2,3,4,5,6,7,8,1,2,3,4,5,6,7,8,1,2,3,4,5,6,7,8,9,9])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,1,1,1,1,1,1,1,1,1,1,2,3,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,1,1,1,1,1,1,1,1,1,[],[],[[[[[]]]]],[[[[1,2]]],3],x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,[],25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,[],24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,[],23,24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,[],22,23,24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,[],21,22,23,24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,[],20,21,22,23,24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,[],19,20,21,22,23,24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,[],18,19,20,21,22,23,24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,[],17,18,19,20,21,22,23,24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,[],16,17,18,19,20,21,22,23,24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,[],15,16,17,18,19,20,21,22,23,24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,[],14,15,16,17,18,19,20,21,22,23,24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,[],13,14,15,16,17,18,19,20,21,22,23,24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,0],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,0])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,0,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,[0],25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,0,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,[0],24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,0,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,[0],23,24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,0,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,[0],22,23,24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,0,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,[0],21,22,23,24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,0,20,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,[0],20,21,22,23,24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,0,19,20,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,[0],19,20,21,22,23,24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,0,18,19,20,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,[0],18,19,20,21,22,23,24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,0,17,18,19,20,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,[0],17,18,19,20,21,22,23,24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0,16,17,18,19,20,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,[0],16,17,18,19,20,21,22,23,24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,14,0,15,16,17,18,19,20,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,14,[0],15,16,17,18,19,20,21,22,23,24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,13,0,14,15,16,17,18,19,20,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,13,[0],14,15,16,17,18,19,20,21,22,23,24,25])
+    ),
+    ?assertEqual(
+        [1,2,3,4,5,6,7,8,9,10,11,12,0,13,14,15,16,17,18,19,20,21,22,23,24,25],
+        lists:flatten([1,2,3,4,5,6,7,8,9,10,11,12,[0],13,14,15,16,17,18,19,20,21,22,23,24,25])
+    ),
+    ListOfList = [[],[1,2,3],[d,e,f],[],[g,h,i,j,k],[m],[n],[o,p]],
+    ?assertEqual(
+        lists:append(ListOfList),
+        lists:flatten(ListOfList)
+    ),
+    ?assertEqual(
+        lists:append(ListOfList++ListOfList),
+        lists:flatten(ListOfList++ListOfList)
+    ),
+    ?assertEqual(
+        lists:append(ListOfList++ListOfList++ListOfList),
+        lists:flatten(ListOfList++ListOfList++ListOfList)
+    ),
+    ?assertEqual(
+        "=ERROR REPORT==== 5-Jul-2024::12:52:02.577051 ===",
+        lists:flatten([61,"ERROR REPORT",61,61,61,61,32,"5",45,"Jul",45,"2024",58,58,"12",58,"52",58, ["0",50], 46,"577051",32,[],61,61,61])
+    ),
+    ?assertEqual(
+        "A cat, a dog and a mouse",
+        lists:flatten(io_lib:format("A ~ts, a ~ts and a ~ts", [cat, "dog", <<"mouse"/utf8>>]))
+    ).
+
+batch_flatlength(_Config) ->
+    ?assertError(_, lists:flatlength([x|y])),
+    ?assertError(_, lists:flatlength([[v,w|x],[y|z]])),
+    ?assertError(_, lists:flatlength([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23|0])),
+    2 = lists:flatlength([x,y]),
+    17 = lists:flatlength([1,2,3,4,5,6,7,8,9,10,[],11,12,13,14,15,16,17]),
+    18 = lists:flatlength([1,2,3,4,5,6,7,8,9,10,[10.5],11,12,13,14,15,16,17]),
+    0 = lists:flatlength([]),
+    1 = lists:flatlength([x]),
+    1 = lists:flatlength([[x]]),
+    1 = lists:flatlength([[[x]]]),
+    1 = lists:flatlength([[[x]]]),
+    1 = lists:flatlength([[[[x]]]]),
+    4 = lists:flatlength([w,[x,[y,[z],[]]]]),
+    4 = lists:flatlength([w,[],[[],x,[]],[y,[[]],[[[],z]]]]),
+    4 = lists:flatlength([w,x,[y],z]),
+    Size = 100,
+    _ = [begin L=lists:duplicate(N, elem), ?assertEqual(length(L),lists:flatlength(L)) end || N <- lists:seq(1,Size)],
+    Complex = lists:duplicate(Size,[w,[],[[],x,[]],[y,[[]],[[[],z]]]]),
+    _ = [begin L=lists:sublist(Complex,N), ?assertEqual(length(lists:flatten(L)),lists:flatlength(L)) end || N <- lists:seq(1,Size)],
+    ok.
+
+batch_nth(_Config) ->
+    ?assertError(function_clause, lists:nth(2,[])),
+    ?assertError(function_clause, lists:nth(2,[x])),
+    needle=lists:nth(1,[needle]),
+    needle=lists:nth(1,[needle,hay]),
+
+    needle=lists:nth(1,[needle,hay]),
+    needle=lists:nth(2,[hay,needle]),
+
+    needle=lists:nth(1,[needle,hay,hay]),
+    needle=lists:nth(3,[hay,hay,needle]),
+
+    needle=lists:nth(1,[needle,hay,hay,hay]),
+    needle=lists:nth(4,[hay,hay,hay,needle]),
+
+    needle=lists:nth(1,[needle,hay,hay,hay,hay]),
+    needle=lists:nth(5,[hay,hay,hay,hay,needle]),
+
+    needle=lists:nth(1,[needle,hay,hay,hay,hay,hay]),
+    needle=lists:nth(6,[hay,hay,hay,hay,hay,needle]),
+
+    needle=lists:nth(1,[needle,hay,hay,hay,hay,hay,hay]),
+    needle=lists:nth(7,[hay,hay,hay,hay,hay,hay,needle]),
+
+    needle=lists:nth(1,[needle,hay,hay,hay,hay,hay,hay,hay]),
+    needle=lists:nth(8,[hay,hay,hay,hay,hay,hay,hay,needle]),
+
+    needle=lists:nth(1,[needle,hay,hay,hay,hay,hay,hay,hay,hay]),
+    hay=lists:nth(8,[hay,hay,hay,hay,hay,hay,hay,hay,needle]),
+    needle=lists:nth(9,[hay,hay,hay,hay,hay,hay,hay,hay,needle]),
+    ?assertError(function_clause, lists:nth(10,[hay,hay,hay,hay,hay,hay,hay,needle])).
+
+batch_nthtail(_Config) ->
+    []=lists:nthtail(1,[needle]),
+    [needle]=lists:nthtail(1,[hay,needle]),
+
+    [hay]=lists:nthtail(1,[needle,hay]),
+    [needle]=lists:nthtail(1,[hay,needle]),
+
+    []=lists:nthtail(3,[hay,hay,needle]),
+    [needle]=lists:nthtail(2,[hay,hay,needle]),
+    [hay,needle]=lists:nthtail(2,[hay,hay,hay,needle]),
+    [hay,hay,needle]=lists:nthtail(1,[hay,hay,hay,needle]),
+    [hay,hay,hay,needle]=lists:nthtail(0,[hay,hay,hay,needle]),
+
+    [hay,hay,needle]=lists:nthtail(1,[hay,hay,hay,needle]),
+    ?assertError(_, lists:nthtail(5,[hay,hay,hay,needle])),
+
+    [needle]=lists:nthtail(4,[hay,hay,hay,hay,needle]),
+    [hay,hay,hay,hay,needle]=lists:nthtail(1,[hay,hay,hay,hay,hay,needle]),
+
+    [needle]=lists:nthtail(5,[hay,hay,hay,hay,hay,needle]),
+    [hay,hay,hay,hay,hay,needle]=lists:nthtail(1,[hay,hay,hay,hay,hay,hay,needle]),
+
+    [needle]=lists:nthtail(6,[hay,hay,hay,hay,hay,hay,needle]),
+    [hay,hay,hay,hay,hay,hay,needle]=lists:nthtail(1,[hay,hay,hay,hay,hay,hay,hay,needle]),
+
+    [needle]=lists:nthtail(7,[hay,hay,hay,hay,hay,hay,hay,needle]),
+    [hay,hay,hay,hay,hay,hay,hay,needle]=lists:nthtail(1,[hay,hay,hay,hay,hay,hay,hay,hay,needle]),
+
+    ?assertError(function_clause, lists:nthtail(20,[hay,hay,hay,hay,hay,hay,hay,hay,hay,needle])),
+    [hay,needle]=lists:nthtail(8,[hay,hay,hay,hay,hay,hay,hay,hay,hay,needle]),
+    [hay,hay,hay,hay,hay,hay,hay,needle]=lists:nthtail(2,[hay,hay,hay,hay,hay,hay,hay,hay,hay,needle]),
+    [hay,hay,hay,hay,hay,hay,hay,hay,needle]=lists:nthtail(1,[hay,hay,hay,hay,hay,hay,hay,hay,hay,needle]),
+    [hay,hay,hay,hay,hay,hay,hay,hay,hay,needle]=lists:nthtail(0,[hay,hay,hay,hay,hay,hay,hay,hay,hay,needle]).
+
+
+batch_prefix(_Config) ->
+    ?assert(lists:prefix([], [])),
+    ?assert(lists:prefix([], [foo])),
+    ?assert(lists:prefix([], [foo, bar])),
+    ?assert(lists:prefix([], [foo, bar, baz])),
+
+    ?assertNot(lists:prefix([foo], [])),
+    ?assertNot(lists:prefix([foo], [bar])),
+    ?assertNot(lists:prefix([foo, bar], [])),
+    ?assertNot(lists:prefix([foo, bar, baz], [])),
+
+    ?assert(lists:prefix([foo], [foo])),
+    ?assert(lists:prefix([foo], [foo, bar])),
+    ?assert(lists:prefix([foo], [foo, bar, baz])),
+
+    ?assertNot(lists:prefix([foo], [])),
+    ?assertNot(lists:prefix([foo, bar], [foo])),
+    ?assertNot(lists:prefix([foo, bar, baz], [foo])),
+
+    ?assert(lists:prefix([1], [1])),
+    ?assert(lists:prefix([1,2], [1,2])),
+    ?assert(lists:prefix([1,2,3], [1,2,3])),
+    ?assert(lists:prefix([1,2,3,4], [1,2,3,4])),
+    ?assert(lists:prefix([1,2,3,4,5], [1,2,3,4,5])),
+    ?assert(lists:prefix([1,2,3,4,5,6], [1,2,3,4,5,6])),
+    ?assert(lists:prefix([1,2,3,4,5,6,7], [1,2,3,4,5,6,7])),
+    ?assert(lists:prefix([1,2,3,4,5,6,7,8], [1,2,3,4,5,6,7,8])),
+    ?assert(lists:prefix([1,2,3,4,5,6,7,8,9], [1,2,3,4,5,6,7,8,9])),
+    ?assert(lists:prefix([1,2,3,4,5,6,7,8,9,10], [1,2,3,4,5,6,7,8,9,10])),
+
+    ?assert(lists:prefix([1,2,3,4], [1,2,3,4])),
+    ?assert(lists:prefix([1,2,3,4], [1,2,3,4,1,2,3,4])),
+    ?assert(lists:prefix([1,2,3,4], [1,2,3,4,1,2,3,4,1,2,3,4])),
+
+    ?assertNot(lists:prefix([1,2,3,4], [])),
+    ?assertNot(lists:prefix([1,2,3,4,1,2,3,4], [1,2,3,4])),
+    ?assertNot(lists:prefix([1,2,3,4,1,2,3,4,1,2,3,4], [1,2,3,4])),
+
+    ?assert(lists:prefix([1,2,3,4,1,2,3,4,1,2,3,4], [1,2,3,4,1,2,3,4,1,2,3,4])),
+    ?assertNot(lists:prefix([1,2,3,4,1,2,3,4,1,2,3,nope], [1,2,3,4,1,2,3,4,1,2,3,4])).
+
+batch_droplast(_Config) ->
+    ?assertError(_, lists:droplast([])),
+    [1,2,3,4,5,6,7,8,9]=lists:droplast([1,2,3,4,5,6,7,8,9,10]),
+    [1,2,3,4,5,6,7,8]=lists:droplast([1,2,3,4,5,6,7,8,9]),
+    [1,2,3,4,5,6,7]=lists:droplast([1,2,3,4,5,6,7,8]),
+    [1,2,3,4,5,6]=lists:droplast([1,2,3,4,5,6,7]),
+    [1,2,3,4,5]=lists:droplast([1,2,3,4,5,6]),
+    [1,2,3,4]=lists:droplast([1,2,3,4,5]),
+    [1,2,3]=lists:droplast([1,2,3,4]),
+    [1,2]=lists:droplast([1,2,3]),
+    [1]=lists:droplast([1,2]),
+    []=lists:droplast([1]).
+
+batch_last(_Config) ->
+    ?assertError(_, lists:last([])),
+    10=lists:last([1,2,3,4,5,6,7,8,9,10]),
+    9=lists:last([1,2,3,4,5,6,7,8,9]),
+    8=lists:last([1,2,3,4,5,6,7,8]),
+    7=lists:last([1,2,3,4,5,6,7]),
+    6=lists:last([1,2,3,4,5,6]),
+    5=lists:last([1,2,3,4,5]),
+    4=lists:last([1,2,3,4]),
+    3=lists:last([1,2,3]),
+    2=lists:last([1,2]),
+    1=lists:last([1]).
+
+batch_sum(_Config) ->
+    0=lists:sum([]),
+    55=lists:sum([1,2,3,4,5,6,7,8,9,10]),
+    45=lists:sum([1,2,3,4,5,6,7,8,9]),
+    36=lists:sum([1,2,3,4,5,6,7,8]),
+    28=lists:sum([1,2,3,4,5,6,7]),
+    21=lists:sum([1,2,3,4,5,6]),
+    15=lists:sum([1,2,3,4,5]),
+    10=lists:sum([1,2,3,4]),
+    6=lists:sum([1,2,3]),
+    3=lists:sum([1,2]),
+    1=lists:sum([1]).
+
+batch_join(_Config) ->
+    [] =
+        lists:join('and',[]),
+    [cats] =
+        lists:join('and',[cats]),
+    [cats,'and',dogs] =
+        lists:join('and',[cats,dogs]),
+    [cats,'and',dogs,'and',horses] =
+        lists:join('and',[cats,dogs,horses]),
+    [cats,'and',dogs,'and',horses,'and',chickens] =
+        lists:join('and',[cats,dogs,horses,chickens]),
+    [cats,'and',dogs,'and',horses,'and',chickens,'and',cows] =
+        lists:join('and',[cats,dogs,horses,chickens,cows]),
+    [cats,'and',dogs,'and',horses,'and',chickens,'and',cows,'and',sheep] =
+        lists:join('and',[cats,dogs,horses,chickens,cows,sheep]),
+    [cats,'and',dogs,'and',horses,'and',chickens,'and',cows,'and',sheep,'and',mice] =
+        lists:join('and',[cats,dogs,horses,chickens,cows,sheep,mice]),
+    [cats,'and',dogs,'and',horses,'and',chickens,'and',cows,'and',sheep,'and',mice,'and',pigs] =
+        lists:join('and',[cats,dogs,horses,chickens,cows,sheep,mice,pigs]).
+
+batch_zip(_Config) ->
+    ?assertEqual(
+        [],
+        lists:zip([],[])),
+    ?assertEqual(
+        [{1,11}],
+        lists:zip([1],[11])),
+    ?assertEqual(
+        [{1,11},{2,12}],
+        lists:zip(lists:seq(1,2),lists:seq(11,12))),
+    ?assertEqual([{
+        1,11},{2,12},{3,13}],
+        lists:zip(lists:seq(1,3),lists:seq(11,13))),
+    ?assertEqual(
+        [{1,11},{2,12},{3,13},{4,14}],
+        lists:zip(lists:seq(1,4),lists:seq(11,14))),
+    ?assertEqual(
+        [{1,11},{2,12},{3,13},{4,14},{5,15}],
+        lists:zip(lists:seq(1,5),lists:seq(11,15))),
+    ?assertEqual(
+        [{1,11},{2,12},{3,13},{4,14},{5,15},{6,16}],
+        lists:zip(lists:seq(1,6),lists:seq(11,16))),
+    ?assertEqual(
+        [{1,11},{2,12},{3,13},{4,14},{5,15},{6,16},{7,17}],
+        lists:zip(lists:seq(1,7),lists:seq(11,17))),
+    ?assertEqual(
+        [{1,11},{2,12},{3,13},{4,14},{5,15},{6,16},{7,17},{8,18}],
+        lists:zip(lists:seq(1,8),lists:seq(11,18))),
+    ?assertEqual(
+        [{1,11},{2,12},{3,13},{4,14},{5,15},{6,16},{7,17},{8,18},{9,19}],
+        lists:zip(lists:seq(1,9),lists:seq(11,19))),
+    ?assertEqual(
+        [{1,11},{2,12},{3,13},{4,14},{5,15},{6,16},{7,17},{8,18},{9,19},{10,20}],
+        lists:zip(lists:seq(1,10),lists:seq(11,20))),
+
+    ?assertEqual(
+        {[],[]},
+        lists:unzip([])),
+    ?assertEqual(
+        {[1],[11]},
+        lists:unzip([{1,11}])),
+    ?assertEqual(
+        {lists:seq(1,2),lists:seq(11,12)},
+        lists:unzip([{1,11},{2,12}])),
+    ?assertEqual(
+        {lists:seq(1,3),lists:seq(11,13)},
+        lists:unzip([{1,11},{2,12},{3,13}])),
+    ?assertEqual(
+        {lists:seq(1,4),lists:seq(11,14)},
+        lists:unzip([{1,11},{2,12},{3,13},{4,14}])),
+    ?assertEqual(
+        {lists:seq(1,5),lists:seq(11,15)},
+        lists:unzip([{1,11},{2,12},{3,13},{4,14},{5,15}])),
+    ?assertEqual(
+        {lists:seq(1,6),lists:seq(11,16)},
+        lists:unzip([{1,11},{2,12},{3,13},{4,14},{5,15},{6,16}])),
+    ?assertEqual(
+        {lists:seq(1,7),lists:seq(11,17)},
+        lists:unzip([{1,11},{2,12},{3,13},{4,14},{5,15},{6,16},{7,17}])),
+    ?assertEqual(
+        {lists:seq(1,8),lists:seq(11,18)},
+        lists:unzip([{1,11},{2,12},{3,13},{4,14},{5,15},{6,16},{7,17},{8,18}])),
+    ?assertEqual(
+        {lists:seq(1,9),lists:seq(11,19)},
+        lists:unzip([{1,11},{2,12},{3,13},{4,14},{5,15},{6,16},{7,17},{8,18},{9,19}])),
+    ?assertEqual(
+        {lists:seq(1,10),lists:seq(11,20)},
+        lists:unzip([{1,11},{2,12},{3,13},{4,14},{5,15},{6,16},{7,17},{8,18},{9,19},{10,20}])).
