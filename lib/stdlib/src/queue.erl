@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 1996-2024. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 -module(queue).
@@ -172,7 +172,7 @@ true
 -doc(#{title => <<"Original API">>}).
 -spec to_list(Q :: queue(Item)) -> list(Item).
 to_list({In,Out}) when is_list(In), is_list(Out) ->
-    Out++lists:reverse(In, []);
+    Out++lists:reverse(In);
 to_list(Q) ->
     erlang:error(badarg, [Q]).
 
@@ -191,7 +191,7 @@ from_list(L) ->
     erlang:error(badarg, [L]).
 
 %% Return true or false depending on if element is in queue
-%% 
+%%
 %% O(length(Q)) worst case
 -doc "Returns `true` if `Item` matches some element in `Q`, otherwise `false`.".
 -doc(#{title => <<"Original API">>}).
@@ -286,7 +286,7 @@ out({[],[]}=Q) ->
 out({[V],[]}) ->
     {{value,V},{[],[]}};
 out({[Y|In],[]}) ->
-    [V|Out] = lists:reverse(In, []),
+    [V|Out] = lists:reverse(In),
     {{value,V},{[Y],Out}};
 out({In,[V]}) when is_list(In) ->
     {{value,V},r2f(In)};
@@ -323,7 +323,7 @@ out_r({[],[]}=Q) ->
 out_r({[],[V]}) ->
     {{value,V},{[],[]}};
 out_r({[],[Y|Out]}) ->
-    [V|In] = lists:reverse(Out, []),
+    [V|In] = lists:reverse(Out),
     {{value,V},{In,[Y]}};
 out_r({[V],Out}) when is_list(Out) ->
     {{value,V},f2r(Out)};
@@ -487,7 +487,7 @@ drop({[],[]}=Q) ->
 drop({[_],[]}) ->
     {[],[]};
 drop({[Y|R],[]}) ->
-    [_|F] = lists:reverse(R, []),
+    [_|F] = lists:reverse(R),
     {[Y],F};
 drop({R, [_]}) when is_list(R) ->
     r2f(R);
@@ -522,7 +522,7 @@ drop_r({[],[]}=Q) ->
 drop_r({[],[_]}) ->
     {[],[]};
 drop_r({[],[Y|F]}) ->
-    [_|R] = lists:reverse(F, []),
+    [_|R] = lists:reverse(F),
     {R,[Y]};
 drop_r({[_], F}) when is_list(F) ->
     f2r(F);
@@ -620,7 +620,7 @@ split_r1_to_f2(N, [X|R1], F1, R2, F2) ->
     split_r1_to_f2(N-1, R1, F1, R2, [X|F2]).
 
 %% filter, or rather filtermap with insert, traverses in queue order
-%% 
+%%
 %% Fun(_) -> List: O(length(List) * len(Q))
 %% else:           O(len(Q)
 -doc """
@@ -1048,16 +1048,16 @@ delete_with_rear(_, []) ->
     false.
 
 %%--------------------------------------------------------------------------
-%% Okasaki API inspired by an Erlang user contribution "deque.erl" 
+%% Okasaki API inspired by an Erlang user contribution "deque.erl"
 %% by Claes Wikstrom <klacke@kaja.klacke.net> 1999.
 %%
 %% This implementation does not use the internal data format from Klacke's
-%% doubly ended queues that was "shamelessly stolen" from 
+%% doubly ended queues that was "shamelessly stolen" from
 %% "Purely Functional Data structures" by Chris Okasaki, since the data
 %% format of this module must remain the same in case some application
 %% has saved a queue in external format or sends it to an old node.
 %%
-%% This implementation tries to do the best of the situation and should 
+%% This implementation tries to do the best of the situation and should
 %% be almost as efficient as Okasaki's queues, except for len/1 that
 %% is O(n) in this implementation instead of O(1).
 %%
@@ -1068,15 +1068,15 @@ delete_with_rear(_, []) ->
 %% and the reversed lists to ensure that i.e head/1 or last/1 will
 %% not have to reverse a list to find the element.
 %%
-%% To be compatible with the old version of this module, as much data as 
+%% To be compatible with the old version of this module, as much data as
 %% possible is moved to the receiving side using lists:reverse/2 when data
 %% is needed, except for two elements (when possible). These two elements
-%% are kept to prevent alternating tail/1 and init/1 operations from 
+%% are kept to prevent alternating tail/1 and init/1 operations from
 %% moving data back and forth between the sides.
 %%
 %% An alternative would be to balance for equal list length when one side
 %% is exhausted. Although this could be better for a general double
-%% ended queue, it would more han double the amortized cost for 
+%% ended queue, it would more han double the amortized cost for
 %% the normal case (one way queue).
 
 %% Cons to head
@@ -1260,4 +1260,4 @@ f2r([X,Y]) ->
     {[Y],[X]};
 f2r(List) ->
     {FF,RR} = lists:split(length(List) div 2, List),
-    {lists:reverse(RR, []),FF}.
+    {lists:reverse(RR),FF}.

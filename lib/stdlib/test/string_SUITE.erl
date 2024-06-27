@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 2004-2023. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 %%%----------------------------------------------------------------
@@ -24,7 +24,7 @@
 -include_lib("common_test/include/ct.hrl").
 
 %% Test server specific exports
--export([all/0, suite/0,groups/0,init_per_suite/1, end_per_suite/1, 
+-export([all/0, suite/0,groups/0,init_per_suite/1, end_per_suite/1,
 	 init_per_group/2,end_per_group/2]).
 -export([init_per_testcase/2, end_per_testcase/2]).
 
@@ -1110,10 +1110,12 @@ type(Bin) when is_binary(Bin) ->
 type([]) ->
     {list, undefined};
 type(List) when is_list(List) ->
-    Deep = fun(L) when is_list(L) ->
-                   lists:any(fun(C) -> is_list(C) orelse is_binary(C) end, L);
-              (_) -> false
-           end,
+    Deep =
+        % Not using lists:any/1, since the input might be an improper list
+        fun IsDeep([Hd|Tl]) ->
+            is_list(Hd) orelse is_binary(Hd) orelse IsDeep(Tl);
+            IsDeep(_) -> false
+        end,
     case all(fun(C) -> not is_binary(C) end, List) of
         true ->
             case all(fun(C) -> is_integer(C) end, List) of

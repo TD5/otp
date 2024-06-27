@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 1996-2024. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 -module(erl_eval).
@@ -1664,7 +1664,7 @@ tokens_fixup([T|Ts]=Ts0) ->
 
 token_fixup(Ts) ->
     {AnnoL, NewTs, FixupTag} = unscannable(Ts),
-    String = lists:append([erl_anno:text(A) || A <- AnnoL]),
+    String = lists:flatmap(fun erl_anno:text/1, AnnoL),
     _ = validate_tag(FixupTag, String),
     NewAnno = erl_anno:set_text(fixup_text(FixupTag), hd(AnnoL)),
     {{string, NewAnno, String}, NewTs}.
@@ -1828,7 +1828,7 @@ normalise_list([]) ->
 %%----------------------------------------------------------------------------
 %%
 %% Evaluate expressions:
-%% constants and 
+%% constants and
 %% op A
 %% L op R
 %% Things that evaluate to constants are accepted
