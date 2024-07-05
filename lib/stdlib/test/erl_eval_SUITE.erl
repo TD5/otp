@@ -2046,13 +2046,13 @@ check1(F, String, Result) ->
         {value, Result, Bs} when is_list(Bs) ->
             ok;
         Other1 ->
-            ct:fail({eval, Other1, Result})
+            ct:fail({eval, {evaluating, String}, {got, Other1}, {expected, Result}})
     end,
     case catch erl_eval:expr(Expr, #{}) of
         {value, Result, MapBs} when is_map(MapBs) ->
             ok;
         Other2 ->
-            ct:fail({eval, Other2, Result})
+            ct:fail({eval, {evaluating, String}, {got, Other2}, {expected, Result}})
     end.
 
 check(F, String, Result, BoundVars, LFH, EFH) ->

@@ -458,7 +458,7 @@ expr({record,Anno,_,Name,_}, Bs, _Lf, Ef, RBs, _FUVs) ->
 expr({map,Anno,Binding,Es}, Bs0, Lf, Ef, RBs, FUVs) ->
     {value, Map0, Bs1} = expr(Binding, Bs0, Lf, Ef, none, FUVs),
     {Vs,Bs2} = eval_map_fields(Es, Bs0, Lf, Ef, FUVs),
-    _ = maps:put(k, v, Map0),			%Validate map.
+    _ = Map0#{k => v},			%Validate map.
     Map1 = lists:foldl(fun ({map_assoc,K,V}, Mi) ->
 			       Mi#{K => V};
 			   ({map_exact,K,V}, Mi) ->
@@ -1598,7 +1598,7 @@ del_binding(Name, Bs) when is_list(Bs) -> orddict:erase(Name, Bs).
 add_bindings(Bs1, Bs2) when is_map(Bs1), is_map(Bs2) ->
     maps:merge(Bs2, Bs1);
 add_bindings(Bs1, Bs2) ->
-    orddict:merge(Bs1, Bs2).
+    orddict:merge(Bs2, Bs1).
 
 merge_bindings(Bs1, Bs2, Anno, Ef) when is_map(Bs1), is_map(Bs2) ->
     maps:merge_with(fun
@@ -1615,7 +1615,7 @@ merge_bindings(Bs1, Bs2, Anno, Ef) ->
 		  end end,
 	  Bs2, orddict:to_list(Bs1)).
 
-new_bindings(#{}) -> #{};
+new_bindings(Bs) when is_map(Bs) -> #{};
 new_bindings(Bs) when is_list(Bs) -> orddict:new().
 
 filter_bindings(Fun, #{}=Bs) -> maps:filter(Fun, Bs);

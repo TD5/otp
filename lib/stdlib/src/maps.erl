@@ -262,11 +262,11 @@ intersect_with(Combiner, Map1, Map2) ->
                     [Combiner, Map1, Map2]).
 
 intersect_with_small_map_first(Combiner, SmallMap, BigMap) ->
-    Next = maps:next(maps:iterator(SmallMap)),
+    Next = next(iterator(SmallMap)),
     intersect_with_iterate(Next, [], BigMap, Combiner).
 
 intersect_with_iterate({K, V1, Iterator}, Keep, BigMap, Combiner) ->
-    Next = maps:next(Iterator),
+    Next = next(Iterator),
     case BigMap of
         #{ K := V2 } ->
             V = Combiner(K, V1, V2),
@@ -381,14 +381,14 @@ merge_with(Combiner, Map1, Map2) when is_map(Map1),
                                  is_function(Combiner, 3) ->
     case map_size(Map1) > map_size(Map2) of
         true ->
-            Iterator = maps:iterator(Map2),
-            merge_with_1(maps:next(Iterator),
+            Iterator = iterator(Map2),
+            merge_with_1(next(Iterator),
                          Map1,
                          Map2,
                          Combiner);
         false ->
-            Iterator = maps:iterator(Map1),
-            merge_with_1(maps:next(Iterator),
+            Iterator = iterator(Map1),
+            merge_with_1(next(Iterator),
                          Map2,
                          Map1,
                          fun(K, V1, V2) -> Combiner(K, V2, V1) end)
@@ -401,9 +401,9 @@ merge_with_1({K, V2, Iterator}, Map1, Map2, Combiner) ->
     case Map1 of
         #{ K := V1 } ->
             NewMap1 = Map1#{ K := Combiner(K, V1, V2) },
-            merge_with_1(maps:next(Iterator), NewMap1, Map2, Combiner);
+            merge_with_1(next(Iterator), NewMap1, Map2, Combiner);
         #{ } ->
-            merge_with_1(maps:next(Iterator), Map1#{K => V2}, Map2, Combiner)
+            merge_with_1(next(Iterator), Map1#{K => V2}, Map2, Combiner)
     end;
 merge_with_1(none, Result, _, _) ->
     Result.

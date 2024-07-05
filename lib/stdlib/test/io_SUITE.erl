@@ -2780,18 +2780,18 @@ trunc_string() ->
                    rpc:call(UNode,
                             ?MODULE, trf, [Format, Args, CharsLimit])
            end,
-    "str кир" = UFun("str ~3ts", [U], 7),
-    "str ..." = UFun("str ~3ts", [U], 6),
-    "str ..." = UFun("str ~30ts", [U], 6),
-    "str кир..." = UFun("str ~30ts", [U], 10),
-    "str кирилл..." = UFun("str ~30ts", [U], 13),
-    "str кирилли́..." = UFun("str ~30ts", [U], 14),
-    "str кирилли́ч..." = UFun("str ~30ts", [U], 15),
-    "\"кирилли́ческ\"..." = UFun("~tp", [U], 13),
+    ?assertMatch("str кир", UFun("str ~3ts", [U], 7)),
+    ?assertMatch("str ...", UFun("str ~3ts", [U], 6)),
+    ?assertMatch("str ...", UFun("str ~30ts", [U], 6)),
+    ?assertMatch("str кир...", UFun("str ~30ts", [U], 10)),
+    ?assertMatch("str кирилл...", UFun("str ~30ts", [U], 13)),
+    ?assertMatch("str кирилли́...", UFun("str ~30ts", [U], 14)),
+    ?assertMatch("str кирилли́ч...", UFun("str ~30ts", [U], 15)),
+    ?assertMatch("\"кирилли́ческ\"...", UFun("~tp", [U], 13)),
     BU = <<"кирилли́ческий атом"/utf8>>,
-    "<<\"кирилли́\"/utf8...>>" = UFun("~tp", [BU], 20),
-    "<<\"кирилли́\"/utf8...>>" = UFun("~tp", [BU], 21),
-    "<<\"кирилли́ческ\"/utf8...>>" = UFun("~tp", [BU], 22),
+    ?assertMatch("<<\"кирилли́\"/utf8...>>", UFun("~tp", [BU], 20)),
+    ?assertMatch("<<\"кирилли́\"/utf8...>>", UFun("~tp", [BU], 21)),
+    ?assertMatch("<<\"кирилли́ческ\"/utf8...>>", UFun("~tp", [BU], 22)),
     peer:stop(UPeer).
 
 trunc_depth(D, Fun) ->
@@ -2965,11 +2965,11 @@ otp_15705(_Config) ->
     "äp..." = trf("~ts", [A], 5),
     "äppleplusäpple" = trf("~ts", [A], 14),
     U = [["ки"],"рилл","и́ческий атом"],
-    "ки..." = trf("~ts", [U], 5),
-    "кирилли́ческий..." = trf("~ts", [U], 16),
-    "кирилли́ческий атом" = trf("~ts", [U], 20),
+    ?assertMatch("ки...", trf("~ts", [U], 5)),
+    ?assertMatch("кирилли́ческий...", trf("~ts", [U], 16)),
+    ?assertMatch("кирилли́ческий атом", trf("~ts", [U], 20)),
 
-    "|кирилли́чес|" = trf("|~10ts|", [U], -1),
+    ?assertMatch("|кирилли́чес|", trf("|~10ts|", [U], -1)),
     ok.
 
 otp_15847(_Config) ->

@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 2007-2018. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 
@@ -23,7 +23,7 @@
 -include_lib("common_test/include/ct.hrl").
 
 %% Test server specific exports
--export([all/0, suite/0,groups/0,init_per_suite/1, end_per_suite/1, 
+-export([all/0, suite/0,groups/0,init_per_suite/1, end_per_suite/1,
 	 init_per_group/2,end_per_group/2]).
 -export([init_per_testcase/2, end_per_testcase/2]).
 
@@ -50,7 +50,7 @@
 
 -export([t/0,t/1,extract_tests/0]).
 
--import(array, 
+-import(array,
 	[new/0, new/1, new/2, is_array/1, set/3, get/2, %size/1,
 	 sparse_size/1, default/1, reset/2, to_list/1, sparse_to_list/1,
 	 from_list/1, from_list/2, to_orddict/1, sparse_to_orddict/1,
@@ -65,7 +65,7 @@ suite() ->
     [{ct_hooks,[ts_install_cth]},
      {timetrap,{minutes,1}}].
 
-all() -> 
+all() ->
     [new_test, fix_test, relax_test, resize_test,
      set_get_test, to_list_test, sparse_to_list_test,
      from_list_test, to_orddict_test, sparse_to_orddict_test,
@@ -73,7 +73,7 @@ all() ->
      foldl_test, sparse_foldl_test, foldr_test,
      sparse_foldr_test].
 
-groups() -> 
+groups() ->
     [].
 
 init_per_suite(Config) ->
@@ -104,19 +104,19 @@ end_per_testcase(_Case, _Config) ->
 		 elements	%% the tuple tree
 		}).
 
--define(_assert(What), 
+-define(_assert(What),
 	begin true = What end
        ).
--define(_assertNot(What), 
+-define(_assertNot(What),
 	begin false = What end
        ).
 
--define(_assertMatch(Res,What), 
-	begin 
+-define(_assertMatch(Res,What),
+	begin
 	    case What of Res -> ok end
 	end
        ).
--define(_assertError(Reas,What), 
+-define(_assertError(Reas,What),
 	begin fun() ->
 			    try What of
 				A_Success -> exit({test_error, A_Success})
@@ -139,21 +139,21 @@ t(What) when not is_list(What) ->
 t(What) ->
     lists:foreach(fun(T) ->
 			  io:format("Test ~p ~n",[T]),
-			  try 
+			  try
 			      ?MODULE:T([])
 			  catch _E:_R:_S ->
 				  Line = get(test_server_loc),
-				  io:format("Failed ~p:~p ~p ~p~n   ~p~n", 
+				  io:format("Failed ~p:~p ~p ~p~n   ~p~n",
 					    [T,Line,_E,_R,_S])
 			  end
 		  end, What).
 
-%%%%% extract tests 
+%%%%% extract tests
 
 extract_tests() ->
     {ok, In} = file:open("../src/array.erl", [read]),
     {ok, Out} = file:open("array_temp.erl", [write]),
-    try 
+    try
 	Tests = extract_tests(In,Out,[]),
 	Call = fun(Test) ->
 		       io:format(Out, "~s(Config) when is_list(Config) -> ~s_(), ok.~n",
@@ -183,7 +183,7 @@ write_test(In,Out) ->
     [$_|Test] = lists:dropwhile(fun($_) -> false;(_) -> true end,lists:reverse(Line)),
     write_test_1(In,Out),
     lists:reverse(Test).
-   
+
 write_test_1(In,Out) ->
     case io:get_line(In,"") of
 	"-endif" ++ _ ->
@@ -192,7 +192,7 @@ write_test_1(In,Out) ->
 	Line ->
 	    io:put_chars(Out, Line),
 	    write_test_1(In,Out)
-    end.	   
+    end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Actual tests
@@ -395,13 +395,13 @@ to_list_test_() ->
      ?_assert(lists:duplicate(666,6) =:= to_list(new(666,{default,6}))),
      ?_assert([1,2,3] =:= to_list(set(2,3,set(1,2,set(0,1,new()))))),
      ?_assert([3,2,1] =:= to_list(set(0,3,set(1,2,set(2,1,new()))))),
-     ?_assert([1|lists:duplicate(N0-2,0)++[1]] =:= 
+     ?_assert([1|lists:duplicate(N0-2,0)++[1]] =:=
 	      to_list(set(N0-1,1,set(0,1,new({default,0}))))),
-     ?_assert([1|lists:duplicate(N0-1,0)++[1]] =:= 
+     ?_assert([1|lists:duplicate(N0-1,0)++[1]] =:=
 	      to_list(set(N0,1,set(0,1,new({default,0}))))),
-     ?_assert([1|lists:duplicate(N0,0)++[1]] =:= 
+     ?_assert([1|lists:duplicate(N0,0)++[1]] =:=
 	      to_list(set(N0+1,1,set(0,1,new({default,0}))))),
-     ?_assert([1|lists:duplicate(N0*3,0)++[1]] =:= 
+     ?_assert([1|lists:duplicate(N0*3,0)++[1]] =:=
 	      to_list(set((N0*3)+1,1,set(0,1,new({default,0}))))),
      ?_assertError(badarg, to_list(no_array))
     ].
@@ -445,7 +445,7 @@ from_list_test_() ->
      ?_assert(to_list(from_list(lists:seq(0,N3))) =:= lists:seq(0,N3)),
      ?_assert(to_list(from_list(lists:seq(0,N4))) =:= lists:seq(0,N4)),
      ?_assertError(badarg, from_list([a,b,a,c|d])),
-     ?_assertError(badarg, from_list(no_array))     
+     ?_assertError(badarg, from_list(no_array))
     ].
 
 to_orddict_test_() ->
@@ -471,11 +471,11 @@ to_orddict_test_() ->
 	      =:= to_orddict(set(N0,1,set(0,1,new({default,0}))))),
      ?_assert([{0,1}|[{N,0}||N<-lists:seq(1,N0)]++[{N0+1,1}]]
 	      =:= to_orddict(set(N0+1,1,set(0,1,new({default,0}))))),
-     ?_assert([{0,0} | [{N,undefined}||N<-lists:seq(1,N0*2)]] ++ 
+     ?_assert([{0,0} | [{N,undefined}||N<-lists:seq(1,N0*2)]] ++
 	      [{N0*2+1,1} | [{N,undefined}||N<-lists:seq(N0*2+2,N0*10)]] ++
-	      [{N0*10+1,2}] =:= 
+	      [{N0*10+1,2}] =:=
 	      to_orddict(set(N0*10+1,2,set(N0*2+1,1,set(0,0,new()))))),
-     ?_assertError(badarg, to_orddict(no_array))     
+     ?_assertError(badarg, to_orddict(no_array))
     ].
 
 sparse_to_orddict_test_() ->
@@ -499,9 +499,9 @@ sparse_to_orddict_test_() ->
 	      sparse_to_orddict(set(N0,1,set(0,1,new({default,0}))))),
      ?_assert([{0,1},{N0+1,1}] =:=
 	      sparse_to_orddict(set(N0+1,1,set(0,1,new({default,0}))))),
-     ?_assert([{0,0},{N0*2+1,1},{N0*10+1,2}] =:= 
+     ?_assert([{0,0},{N0*2+1,1},{N0*10+1,2}] =:=
 	      sparse_to_orddict(set(N0*10+1,2,set(N0*2+1,1,set(0,0,new()))))),
-     ?_assertError(badarg, sparse_to_orddict(no_array))     
+     ?_assertError(badarg, sparse_to_orddict(no_array))
     ].
 
 from_orddict_test_() ->
@@ -556,8 +556,8 @@ from_orddict_test_() ->
      ?_assert(?LET(L, [{N4-1,0}],
 		   L =:= sparse_to_orddict(from_orddict(L)))),
 
-     %% Hole in middle 
-     
+     %% Hole in middle
+
      ?_assert(?LET(L, [{0,0},{N0,0}],
 		   L =:= sparse_to_orddict(from_orddict(L)))),
      ?_assert(?LET(L, [{0,0},{N1,0}],
@@ -574,7 +574,7 @@ from_orddict_test_() ->
 		   L =:= sparse_to_orddict(from_orddict(L)))),
      ?_assert(?LET(L, [{0,0},{N4-1,0}],
 		   L =:= sparse_to_orddict(from_orddict(L))))
-     
+
     ].
 
 map_test_() ->
@@ -595,8 +595,8 @@ map_test_() ->
 	      =:= lists:seq(0,10)),
      ?_assert(to_list(map(Plus(11), from_list(lists:seq(0,99999))))
 	      =:= lists:seq(11,100010)),
-     ?_assert([{0,0},{N0*2+1,N0*2+1+1},{N0*100+1,N0*100+1+2}] =:= 
-	      sparse_to_orddict((map(Default, 
+     ?_assert([{0,0},{N0*2+1,N0*2+1+1},{N0*100+1,N0*100+1+2}] =:=
+	      sparse_to_orddict((map(Default,
 				     set(N0*100+1,2,
 					 set(N0*2+1,1,
 					     set(0,0,new())))))#array{default = no_value}))
@@ -627,8 +627,8 @@ sparse_map_test_() ->
      ?_assert(to_list(sparse_map(Plus(1),
 				 set(9,9,set(1,1,new({default,0})))))
 	      =:= [0,2,0,0,0,0,0,0,0,10]),
-     ?_assert([{0,0},{N0*2+1,N0*2+1+1},{N0*100+1,N0*100+1+2}] =:= 
-	      sparse_to_orddict(sparse_map(KeyPlus, 
+     ?_assert([{0,0},{N0*2+1,N0*2+1+1},{N0*100+1,N0*100+1+2}] =:=
+	      sparse_to_orddict(sparse_map(KeyPlus,
 					   set(N0*100+1,2,
 					       set(N0*2+1,1,
 						   set(0,0,new()))))))
@@ -641,7 +641,7 @@ foldl_test_() ->
     Sum = fun (_,X,N) -> N+X end,
     Reverse = fun (_,X,L) -> [X|L] end,
     Vals = fun(_K,undefined,{C,L}) -> {C+1,L};
-	      (K,X,{C,L}) -> {C,[K+X|L]} 
+	      (K,X,{C,L}) -> {C,[K+X|L]}
 	   end,
     [?_assertError(badarg, foldl([], 0, new())),
      ?_assertError(badarg, foldl([], 0, new(10))),
@@ -654,12 +654,12 @@ foldl_test_() ->
      ?_assert(foldl(Sum, 0, from_list(lists:seq(0,10))) =:= 55),
      ?_assert(foldl(Reverse, [], from_list(lists:seq(0,1000)))
 	      =:= lists:reverse(lists:seq(0,1000))),
-     ?_assert({999,[N0*100+1+2,N0*2+1+1,0]} =:= 
-	      foldl(Vals, {0,[]}, 
+     ?_assert({999,[N0*100+1+2,N0*2+1+1,0]} =:=
+	      foldl(Vals, {0,[]},
 		    set(N0*100+1,2,
 			set(N0*2+1,1,
 			    set(0,0,new())))))
-     
+
     ].
 
 sparse_foldl_test_() ->
@@ -668,7 +668,7 @@ sparse_foldl_test_() ->
     Sum = fun (_,X,N) -> N+X end,
     Reverse = fun (_,X,L) -> [X|L] end,
     Vals = fun(_K,undefined,{C,L}) -> {C+1,L};
-	      (K,X,{C,L}) -> {C,[K+X|L]} 
+	      (K,X,{C,L}) -> {C,[K+X|L]}
 	   end,
     [?_assertError(badarg, sparse_foldl([], 0, new())),
      ?_assertError(badarg, sparse_foldl([], 0, new(10))),
@@ -683,8 +683,8 @@ sparse_foldl_test_() ->
      ?_assert(sparse_foldl(Sum, 0, from_list(lists:seq(0,10), 5)) =:= 50),
      ?_assert(sparse_foldl(Reverse, [], from_list(lists:seq(0,1000), 0))
 	      =:= lists:reverse(lists:seq(1,1000))),
-     ?_assert({0,[N0*100+1+2,N0*2+1+1,0]} =:= 
-	      sparse_foldl(Vals, {0,[]}, 
+     ?_assert({0,[N0*100+1+2,N0*2+1+1,0]} =:=
+	      sparse_foldl(Vals, {0,[]},
 			   set(N0*100+1,2,
 			       set(N0*2+1,1,
 				   set(0,0,new())))))
@@ -696,7 +696,7 @@ foldr_test_() ->
     Sum = fun (_,X,N) -> N+X end,
     List = fun (_,X,L) -> [X|L] end,
     Vals = fun(_K,undefined,{C,L}) -> {C+1,L};
-	      (K,X,{C,L}) -> {C,[K+X|L]} 
+	      (K,X,{C,L}) -> {C,[K+X|L]}
 	   end,
     [?_assertError(badarg, foldr([], 0, new())),
      ?_assertError(badarg, foldr([], 0, new(10))),
@@ -709,12 +709,12 @@ foldr_test_() ->
      ?_assert(foldr(Sum, 0, from_list(lists:seq(0,10))) =:= 55),
      ?_assert(foldr(List, [], from_list(lists:seq(0,1000)))
  	      =:= lists:seq(0,1000)),
-     ?_assert({999,[0,N0*2+1+1,N0*100+1+2]} =:= 
-	      foldr(Vals, {0,[]}, 
+     ?_assert({999,[0,N0*2+1+1,N0*100+1+2]} =:=
+	      foldr(Vals, {0,[]},
 		    set(N0*100+1,2,
 			set(N0*2+1,1,
 			    set(0,0,new())))))
-     
+
     ].
 
 sparse_foldr_test_() ->
@@ -723,7 +723,7 @@ sparse_foldr_test_() ->
     Sum = fun (_,X,N) -> N+X end,
     List = fun (_,X,L) -> [X|L] end,
     Vals = fun(_K,undefined,{C,L}) -> {C+1,L};
-	      (K,X,{C,L}) -> {C,[K+X|L]} 
+	      (K,X,{C,L}) -> {C,[K+X|L]}
 	   end,
     [?_assertError(badarg, sparse_foldr([], 0, new())),
      ?_assertError(badarg, sparse_foldr([], 0, new(10))),
@@ -749,11 +749,11 @@ sparse_foldr_test_() ->
      ?_assert(sparse_size(array:from_list([1,2,3,undefined])) =:= 3),
      ?_assert(sparse_size(array:from_orddict([{3,0},{17,0},{99,undefined}]))
 			  =:= 18),
-     ?_assert({0,[0,N0*2+1+1,N0*100+1+2]} =:= 
-	      sparse_foldr(Vals, {0,[]}, 
+     ?_assert({0,[0,N0*2+1+1,N0*100+1+2]} =:=
+	      sparse_foldr(Vals, {0,[]},
 			   set(N0*100+1,2,
 			       set(N0*2+1,1,
-				   set(0,0,new())))))     
+				   set(0,0,new())))))
     ].
 
 new_test(Config) when is_list(Config) -> new_test_(), ok.

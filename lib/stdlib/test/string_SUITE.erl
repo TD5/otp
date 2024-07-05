@@ -991,13 +991,9 @@ test_1(Line, Func, Str, Args, Exp) ->
             true -> ok;
             {Res1,Exp1} when is_tuple(Exp1); is_float(Exp1) ->
                 io:format("~p~n",[Args]),
-                io:format("~p:~p: ~ts~w =>~n  :~w:~w~n",
-                          [Func,Line, Str,Str,Res1,Exp1]),
-                exit({error, Func});
+                exit({error, Func, {res, Res1, exp, Exp1}});
             {Res1,Exp1} ->
-                io:format("~p:~p: ~ts~w =>~n  :~ts~w:~ts~w~n",
-                          [Func,Line, Str,Str, Res1,Res1, Exp1,Exp1]),
-                exit({error, Func})
+                exit({error, Func, {res, Res1, exp, Exp1}})
         end
     catch
         error:Exp ->

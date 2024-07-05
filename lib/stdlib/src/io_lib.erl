@@ -550,8 +550,6 @@ write1([], _D, _E, _O, Tl) ->
     [$[,$]|Tl];
 write1({}, _D, _E, _O, Tl) ->
     [${,$}|Tl];
-write1(<<_/bitstring>>=Term, D, _E, _O, Tl) ->
-    write_binary_acc(Term, D, Tl);
 write1([H], D, E, O, Tl) ->
     case D of
         1 -> pre_static("[...]",Tl);
@@ -575,7 +573,7 @@ write1(#{}=Term, D, E, O, Tl) ->
         true ->
             write_map(Term, D, E, O, Tl)
     end;
-write1(Term, _D, _E, _O, Tl) when is_integer(Term) -> pre_dynamic(integer_to_list(Term), Tl);
+write1(Term, _D, _E, _O, Tl) when is_integer(Term) -> pre_dynamic(int_to_str(Term), Tl);
 write1(Term, _D, _E, _O, Tl) when is_float(Term) -> pre_dynamic(io_lib_format:fwrite_g(Term), Tl);
 write1(Atom, _D, latin1, _O, Tl) when is_atom(Atom) -> write_atom_as_latin1_acc(Atom, Tl);
 write1(Atom, _D, _E, _O, Tl) when is_atom(Atom) -> write_atom_acc(Atom, Tl);
@@ -585,6 +583,8 @@ write1(T, D, E, O, Tl) when is_tuple(T) ->
         _ when D < 0 -> write_tuple_unlimited_depth(T, E, O, Tl);
         _ -> write_tuple(T, D, E, O, Tl)
     end;
+write1(Term, D, _E, _O, Tl) when is_bitstring(Term) ->
+    write_binary_acc(Term, D, Tl);
 write1(Term, _D, _E, _O, Tl) when is_port(Term) -> pre_dynamic(write_port(Term), Tl);
 write1(Term, _D, _E, _O, Tl) when is_pid(Term) -> pre_dynamic(pid_to_list(Term), Tl);
 write1(Term, _D, _E, _O, Tl) when is_reference(Term) -> pre_dynamic(write_ref(Term), Tl);
@@ -980,14 +980,14 @@ write_binary_body(<<>> = B, _D, _T, Acc) ->
 write_binary_body(B, D, T, Acc) when D =:= 1; T =:= 0->
     {pre_static("...",Acc), B};
 write_binary_body(<<X:8>>, _D, _T, Acc) ->
-    {[integer_to_list(X)|Acc], <<>>};
+    {[int_to_str(X)|Acc], <<>>};
 write_binary_body(<<X:8,Rest/bitstring>>, D, T, Acc) ->
-    S = integer_to_list(X),
+    S = int_to_str(X),
     write_binary_body(Rest, D-1, tsub(T, length(S) + 1), [$,,S|Acc]);
 write_binary_body(B, _D, _T, Acc) ->
     L = bit_size(B),
     <<X:L>> = B,
-    {[integer_to_list(L),$:,integer_to_list(X)|Acc], <<>>}.
+    {[int_to_str(L),$:,int_to_str(X)|Acc], <<>>}.
 
 %% Make sure T does not change sign.
 tsub(T, _) when T < 0 -> T;
@@ -1032,7 +1032,7 @@ write_atom_as_latin1_acc(Atom, Tl) ->
     write_possibly_quoted_atom_acc(Atom, true, Tl).
 
 write_possibly_quoted_atom(Atom, Latin1) ->
-    Chars = atom_to_list(Atom),
+    Chars = atom_to_str(Atom),
     case quote_atom(Atom, Chars) of
         true ->
             case Latin1 of
@@ -1044,7 +1044,7 @@ write_possibly_quoted_atom(Atom, Latin1) ->
     end.
 
 write_possibly_quoted_atom_acc(Atom, Latin1, Tl) ->
-    Chars = atom_to_list(Atom),
+    Chars = atom_to_str(Atom),
     case quote_atom(Atom, Chars) of
         true ->
             case Latin1 of
@@ -1186,7 +1186,7 @@ string_char(unicode_as_unicode,C, _, Tail) when C >= $\240 ->
 string_char(unicode_as_latin1,C, _, Tail) when C >= $\240, C =< $\377 ->
     [C|Tail];
 string_char(unicode_as_latin1,C, _, Tail) when C >= $\377 ->
-    [$\\, $x, ${ | erlang:integer_to_list(C, 16)++[$} | Tail]];
+    [$\\, $x, ${ | erlang:integer_to_list(C,16)++[$} | Tail]];
 string_char(_,C, _, Tail) when C < $\240 ->	%Other control characters.
     C1 = (C bsr 6) + $0,
     C2 = ((C bsr 3) band 7) + $0,
@@ -1816,3 +1816,114 @@ chars_length(S) ->
         _:_ ->
             string:length(S)
     end.
+
+int_to_str(0) -> "0";
+int_to_str(1) -> "1";
+int_to_str(2) -> "2";
+int_to_str(3) -> "3";
+int_to_str(4) -> "4";
+int_to_str(5) -> "5";
+int_to_str(6) -> "6";
+int_to_str(7) -> "7";
+int_to_str(8) -> "8";
+int_to_str(9) -> "9";
+int_to_str(10) -> "10";
+int_to_str(11) -> "11";
+int_to_str(12) -> "12";
+int_to_str(13) -> "13";
+int_to_str(14) -> "14";
+int_to_str(15) -> "15";
+int_to_str(16) -> "16";
+int_to_str(17) -> "17";
+int_to_str(18) -> "18";
+int_to_str(19) -> "19";
+int_to_str(20) -> "20";
+int_to_str(21) -> "21";
+int_to_str(22) -> "22";
+int_to_str(23) -> "23";
+int_to_str(24) -> "24";
+int_to_str(25) -> "25";
+int_to_str(26) -> "26";
+int_to_str(27) -> "27";
+int_to_str(28) -> "28";
+int_to_str(29) -> "29";
+int_to_str(30) -> "30";
+int_to_str(31) -> "31";
+int_to_str(32) -> "32";
+int_to_str(33) -> "33";
+int_to_str(34) -> "34";
+int_to_str(35) -> "35";
+int_to_str(36) -> "36";
+int_to_str(37) -> "37";
+int_to_str(38) -> "38";
+int_to_str(39) -> "39";
+int_to_str(40) -> "40";
+int_to_str(41) -> "41";
+int_to_str(42) -> "42";
+int_to_str(43) -> "43";
+int_to_str(44) -> "44";
+int_to_str(45) -> "45";
+int_to_str(46) -> "46";
+int_to_str(47) -> "47";
+int_to_str(48) -> "48";
+int_to_str(49) -> "49";
+int_to_str(50) -> "50";
+int_to_str(51) -> "51";
+int_to_str(52) -> "52";
+int_to_str(53) -> "53";
+int_to_str(54) -> "54";
+int_to_str(55) -> "55";
+int_to_str(56) -> "56";
+int_to_str(57) -> "57";
+int_to_str(58) -> "58";
+int_to_str(59) -> "59";
+int_to_str(60) -> "60";
+int_to_str(61) -> "61";
+int_to_str(62) -> "62";
+int_to_str(63) -> "63";
+int_to_str(64) -> "64";
+int_to_str(65) -> "65";
+int_to_str(66) -> "66";
+int_to_str(67) -> "67";
+int_to_str(68) -> "68";
+int_to_str(69) -> "69";
+int_to_str(70) -> "70";
+int_to_str(71) -> "71";
+int_to_str(72) -> "72";
+int_to_str(73) -> "73";
+int_to_str(74) -> "74";
+int_to_str(75) -> "75";
+int_to_str(76) -> "76";
+int_to_str(77) -> "77";
+int_to_str(78) -> "78";
+int_to_str(79) -> "79";
+int_to_str(80) -> "80";
+int_to_str(81) -> "81";
+int_to_str(82) -> "82";
+int_to_str(83) -> "83";
+int_to_str(84) -> "84";
+int_to_str(85) -> "85";
+int_to_str(86) -> "86";
+int_to_str(87) -> "87";
+int_to_str(88) -> "88";
+int_to_str(89) -> "89";
+int_to_str(90) -> "90";
+int_to_str(91) -> "91";
+int_to_str(92) -> "92";
+int_to_str(93) -> "93";
+int_to_str(94) -> "94";
+int_to_str(95) -> "95";
+int_to_str(96) -> "96";
+int_to_str(97) -> "97";
+int_to_str(98) -> "98";
+int_to_str(99) -> "99";
+int_to_str(I) -> erlang:integer_to_list(I).
+
+atom_to_str(ok) -> "ok";
+atom_to_str(error) -> "error";
+atom_to_str(true) -> "true";
+atom_to_str(false) -> "false";
+atom_to_str(value) -> "value";
+atom_to_str(undefined) -> "undefined";
+atom_to_str('EXIT') -> "EXIT";
+atom_to_str(A) -> erlang:atom_to_list(A).

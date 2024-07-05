@@ -136,7 +136,7 @@ Equivalent to [`encode(Data, Options)`](`encode/2`), but returns a `t:byte_strin
       Options :: encode_options(),
       Base64String :: base64_string().
 
-encode_to_string(<<_/binary>>=Bin, #{}=Options) ->
+encode_to_string(Bin, #{}=Options) when is_binary(Bin) ->
     encode_to_string(binary_to_list(Bin), Options);
 encode_to_string(List, #{}=Options) when is_list(List) ->
     encode_list_to_string(get_encoding_offset(Options), get_padding(Options), List).
@@ -160,7 +160,7 @@ See `t:encode_options/0` for details on which options can be passed.
       Options :: encode_options(),
       Base64 :: base64_binary().
 
-encode(<<_/binary>>=Bin, #{}=Options) ->
+encode(Bin, #{}=Options) when is_binary(Bin) ->
     encode_binary(get_encoding_offset(Options), get_padding(Options), Bin, <<>>);
 encode(List, Options) when is_list(List) ->
     encode_list(get_encoding_offset(Options), get_padding(Options), List, <<>>).
@@ -361,7 +361,7 @@ _Example_:
       Options :: decode_options(),
       Data :: binary().
 
-decode(<<_/binary>>=Bin, Options) ->
+decode(Bin, Options) when is_binary(Bin) ->
     decode_binary(get_decoding_offset(Options), get_padding(Options), Bin, <<>>);
 decode(List, Options) when is_list(List) ->
     decode_list(get_decoding_offset(Options), get_padding(Options), List, <<>>).
@@ -399,7 +399,7 @@ _Example_:
       Options :: decode_options(),
       Data :: binary().
 
-mime_decode(<<_/binary>>=Bin, Options) ->
+mime_decode(Bin, Options) when is_binary(Bin) ->
     mime_decode_binary(get_decoding_offset(Options), get_padding(Options), Bin, <<>>);
 mime_decode(List, Options) when is_list(List) ->
     mime_decode_list(get_decoding_offset(Options), get_padding(Options), List, <<>>).
@@ -423,7 +423,7 @@ decode_to_string(Base64) ->
       Options :: decode_options(),
       DataString :: byte_string().
 
-decode_to_string(<<_/binary>>=Bin, Options) ->
+decode_to_string(Bin, Options) when is_binary(Bin) ->
     decode_to_string(binary_to_list(Bin), Options);
 decode_to_string(List, Options) when is_list(List) ->
     decode_list_to_string(get_decoding_offset(Options), get_padding(Options), List).
@@ -449,7 +449,7 @@ but returns a `t:byte_string/0`.
       Options :: decode_options(),
       DataString :: byte_string().
 
-mime_decode_to_string(<<_/binary>>=Bin, Options) ->
+mime_decode_to_string(Bin, Options) when is_binary(Bin) ->
     mime_decode_to_string(binary_to_list(Bin), Options);
 mime_decode_to_string(List, Options) when is_list(List) ->
     mime_decode_list_to_string(get_decoding_offset(Options), get_padding(Options), List).

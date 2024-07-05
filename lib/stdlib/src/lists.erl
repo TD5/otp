@@ -668,6 +668,8 @@ _Example:_
       List :: [T],
       T :: term().
 
+duplicate(N, X) when is_integer(N), N >= 100 ->
+    duplicate_2(N, X);
 duplicate(N, X) when is_integer(N), N >= 0 ->
     duplicate_1(N, X).
 
@@ -691,6 +693,16 @@ duplicate_1(8, X) ->
     [X, X, X, X, X, X, X, X];
 duplicate_1(N, X) -> % We know N > 8
     [X, X, X, X, X, X, X, X | duplicate_1(N - 8, X)].
+
+duplicate_2(N, X) when N < 100 ->
+    duplicate_1(N, X);
+duplicate_2(N, X) ->
+    HalfN = N bsr 1,
+    HalfL = duplicate_2(HalfN, X),
+    case HalfN + HalfN of
+        N -> HalfL ++ HalfL;
+        _ -> [X | (HalfL ++ HalfL)]
+    end.
 
 %% min(L) -> returns the minimum element of the list L
 

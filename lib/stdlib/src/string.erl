@@ -295,7 +295,7 @@ to_graphemes(CD0) ->
 -spec equal(A, B) -> boolean() when
       A::unicode:chardata(),
       B::unicode:chardata().
-equal(<<_/binary>>=A,<<_/binary>>=B) ->
+equal(A,B) when is_binary(A), is_binary(B) ->
     A =:= B;
 equal(A,B) ->
     equal_1(A,B).
@@ -475,10 +475,10 @@ pad(CD, Length, both, Char) when is_integer(Length) ->
     Size = max(0, Length-Len),
     Pre = lists:duplicate(Size div 2, Char),
     Post = case Size rem 2 of
-               1 -> [Char];
-               _ -> []
+               1 -> [Char|Pre];
+               _ -> Pre
            end,
-    [Pre, CD, Pre|Post].
+    [Pre, CD, Post].
 
 %%  Strip characters from whitespace or Separator in Direction
 -doc(#{equiv => trim(String, both)}).

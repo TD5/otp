@@ -146,7 +146,7 @@ print_field_width(F, right) -> integer_to_list(F).
 
 print_precision(none, $\s) -> "";
 print_precision(none, _Pad) -> ".";  % pad must be second dot
-print_precision(P, _Pad) -> [$. | integer_to_list(P)].
+print_precision(P, _Pad) -> [$. | int_to_str(P)].
 
 print_pad_char($\s) -> ""; % default, no need to make explicit
 print_pad_char(Pad) -> [$., Pad].
@@ -554,11 +554,11 @@ control_small($X, [A,Prefix], F, Adj, P, Pad, _Enc) when is_integer(A) ->
     prefixed_integer(A, F, Adj, base(P), Pad, Prefix, false);
 control_small($+, [A], F, Adj, P, Pad, _Enc) when is_integer(A) ->
     Base = base(P),
-    Prefix = [integer_to_list(Base), $#],
+    Prefix = [int_to_str(Base), $#],
     prefixed_integer(A, F, Adj, Base, Pad, Prefix, true);
 control_small(C=$#, [A], F, Adj, P, Pad, _Enc) when is_integer(A) ->
     Base = base(P),
-    Prefix = [integer_to_list(Base), C],
+    Prefix = [int_to_str(Base), C],
     prefixed_integer(A, F, Adj, Base, Pad, Prefix, false);
 control_small($c, [A], F, Adj, P, Pad, unicode) when is_integer(A) ->
     char(A, F, Adj, P, Pad);
@@ -716,12 +716,12 @@ control_unlimited_small($X, [A,Prefix], F, Adj, P, Pad, _Enc) ->
 control_unlimited_small($+, [A], F, Adj, P, Pad, _Enc) ->
     ?validate_arg(is_integer,A),
     Base = base(P),
-    Prefix = [integer_to_list(Base), $#],
+    Prefix = [int_to_str(Base), $#],
     prefixed_integer(A, F, Adj, Base, Pad, Prefix, true);
 control_unlimited_small(C=$#, [A], F, Adj, P, Pad, _Enc) ->
     ?validate_arg(is_integer,A),
     Base = base(P),
-    Prefix = [integer_to_list(Base), C],
+    Prefix = [int_to_str(Base), C],
     prefixed_integer(A, F, Adj, Base, Pad, Prefix, false);
 control_unlimited_small($c, [A], F, Adj, P, Pad, unicode) ->
     ?validate_arg(is_integer,A),
@@ -846,9 +846,9 @@ float_man([], Dc) -> {lists:duplicate(Dc, $0),false}.	%Pad with 0's
 %%  Generate the exponent of a floating point number. Always include sign.
 
 float_exp(E) when E >= 0 ->
-    [$e,$+|integer_to_list(E)];
+    [$e,$+|int_to_str(E)];
 float_exp(E) ->
-    [$e|integer_to_list(E)].
+    [$e|int_to_str(E)].
 
 %% fwrite_f(FloatData, Field, Adjust, Precision, PadChar)
 
@@ -1237,3 +1237,105 @@ flatten_chars([C1,C2,C3,C4,C5,C6,C7,C8]=L)
     L;
 flatten_chars(L) ->
     lists:flatten(L).
+
+int_to_str(0) -> "0";
+int_to_str(1) -> "1";
+int_to_str(2) -> "2";
+int_to_str(3) -> "3";
+int_to_str(4) -> "4";
+int_to_str(5) -> "5";
+int_to_str(6) -> "6";
+int_to_str(7) -> "7";
+int_to_str(8) -> "8";
+int_to_str(9) -> "9";
+int_to_str(10) -> "10";
+int_to_str(11) -> "11";
+int_to_str(12) -> "12";
+int_to_str(13) -> "13";
+int_to_str(14) -> "14";
+int_to_str(15) -> "15";
+int_to_str(16) -> "16";
+int_to_str(17) -> "17";
+int_to_str(18) -> "18";
+int_to_str(19) -> "19";
+int_to_str(20) -> "20";
+int_to_str(21) -> "21";
+int_to_str(22) -> "22";
+int_to_str(23) -> "23";
+int_to_str(24) -> "24";
+int_to_str(25) -> "25";
+int_to_str(26) -> "26";
+int_to_str(27) -> "27";
+int_to_str(28) -> "28";
+int_to_str(29) -> "29";
+int_to_str(30) -> "30";
+int_to_str(31) -> "31";
+int_to_str(32) -> "32";
+int_to_str(33) -> "33";
+int_to_str(34) -> "34";
+int_to_str(35) -> "35";
+int_to_str(36) -> "36";
+int_to_str(37) -> "37";
+int_to_str(38) -> "38";
+int_to_str(39) -> "39";
+int_to_str(40) -> "40";
+int_to_str(41) -> "41";
+int_to_str(42) -> "42";
+int_to_str(43) -> "43";
+int_to_str(44) -> "44";
+int_to_str(45) -> "45";
+int_to_str(46) -> "46";
+int_to_str(47) -> "47";
+int_to_str(48) -> "48";
+int_to_str(49) -> "49";
+int_to_str(50) -> "50";
+int_to_str(51) -> "51";
+int_to_str(52) -> "52";
+int_to_str(53) -> "53";
+int_to_str(54) -> "54";
+int_to_str(55) -> "55";
+int_to_str(56) -> "56";
+int_to_str(57) -> "57";
+int_to_str(58) -> "58";
+int_to_str(59) -> "59";
+int_to_str(60) -> "60";
+int_to_str(61) -> "61";
+int_to_str(62) -> "62";
+int_to_str(63) -> "63";
+int_to_str(64) -> "64";
+int_to_str(65) -> "65";
+int_to_str(66) -> "66";
+int_to_str(67) -> "67";
+int_to_str(68) -> "68";
+int_to_str(69) -> "69";
+int_to_str(70) -> "70";
+int_to_str(71) -> "71";
+int_to_str(72) -> "72";
+int_to_str(73) -> "73";
+int_to_str(74) -> "74";
+int_to_str(75) -> "75";
+int_to_str(76) -> "76";
+int_to_str(77) -> "77";
+int_to_str(78) -> "78";
+int_to_str(79) -> "79";
+int_to_str(80) -> "80";
+int_to_str(81) -> "81";
+int_to_str(82) -> "82";
+int_to_str(83) -> "83";
+int_to_str(84) -> "84";
+int_to_str(85) -> "85";
+int_to_str(86) -> "86";
+int_to_str(87) -> "87";
+int_to_str(88) -> "88";
+int_to_str(89) -> "89";
+int_to_str(90) -> "90";
+int_to_str(91) -> "91";
+int_to_str(92) -> "92";
+int_to_str(93) -> "93";
+int_to_str(94) -> "94";
+int_to_str(95) -> "95";
+int_to_str(96) -> "96";
+int_to_str(97) -> "97";
+int_to_str(98) -> "98";
+int_to_str(99) -> "99";
+int_to_str(I) -> erlang:integer_to_list(I).
