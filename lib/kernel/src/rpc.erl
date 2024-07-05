@@ -186,7 +186,7 @@ handle_call({call, Mod, Fun, Args, Gleader}, To, S) ->
                end,
     try
         {_,Mon} = spawn_monitor(ExecCall),
-        {noreply, maps:put(Mon, To, S)}
+        {noreply, S#{Mon => To}}
     catch
         error:system_limit ->
             {reply, {badrpc, {'EXIT', system_limit}}, S}
@@ -315,11 +315,11 @@ execute_call(Mod, Fun, Args) ->
             end
     end.
 
-set_group_leader(Gleader) when is_pid(Gleader) -> 
+set_group_leader(Gleader) when is_pid(Gleader) ->
     group_leader(Gleader, self());
 set_group_leader({send_stdout_to_caller, CallerPid}) ->
     group_leader(cnode_call_group_leader_start(CallerPid), self());
-set_group_leader(user) -> 
+set_group_leader(user) ->
     %% For example, hidden C nodes doesn't want any I/O.
     Gleader = case whereis(user) of
 		  Pid when is_pid(Pid) -> Pid;
@@ -526,7 +526,7 @@ block_call(N,M,F,A,Timeout) when is_atom(N),
                                  is_list(A),
                                  ?IS_VALID_TMO(Timeout) ->
     do_srv_call(N, {block_call,M,F,A,group_leader()}, Timeout).
-    
+
 
 %% call() implementation utilizing erpc:call()...
 
@@ -572,7 +572,7 @@ do_srv_call(Node, Request, Timeout) ->
 	{'DOWN',Mref,_,_,{Receiver,Tag,Result}} ->
 	    rpc_check(Result);
 	{'DOWN',Mref,_,_,Reason} ->
-	    %% The middleman code failed. Or someone did 
+	    %% The middleman code failed. Or someone did
 	    %% exit(_, kill) on the middleman process => Reason==killed
 	    rpc_check_t({'EXIT',Reason})
     end.
@@ -580,7 +580,7 @@ do_srv_call(Node, Request, Timeout) ->
 rpc_check_t({'EXIT', {timeout,_}}) -> {badrpc, timeout};
 rpc_check_t({'EXIT', {timeout_value,_}}) -> error(badarg);
 rpc_check_t(X) -> rpc_check(X).
-	    
+
 rpc_check({'EXIT', {{nodedown,_},_}}) ->
     {badrpc, nodedown};
 rpc_check({'EXIT', _}=Exit) ->
@@ -595,7 +595,7 @@ rpc_check(X) -> X.
 %% Receives messages on the form {From, Request} and replies on the
 %% form From ! {ReplyWrapper, Node, Reply}.
 %% This function makes such a server call and ensures that that
-%% The entire call is packed into an atomic transaction which 
+%% The entire call is packed into an atomic transaction which
 %% either succeeds or fails, i.e. never hangs (unless the server itself hangs).
 
 -doc """
@@ -617,7 +617,7 @@ The function returns the answer `Reply` as produced by the server `Name`, or
       Reply :: term(),
       Reason :: nodedown.
 
-server_call(Node, Name, ReplyWrapper, Msg) 
+server_call(Node, Name, ReplyWrapper, Msg)
   when is_atom(Node), is_atom(Name) ->
     if node() =:= nonode@nohost, Node =/= nonode@nohost ->
 	    {error, nodedown};
@@ -762,7 +762,7 @@ send_nodes([Node|Tail], Name, Msg, Monitors) when is_atom(Node) ->
 send_nodes([_Node|Tail], Name, Msg, Monitors) ->
     %% Skip non-atom _Node
     send_nodes(Tail, Name, Msg, Monitors);
-send_nodes([], _Name,  _Req, Monitors) -> 
+send_nodes([], _Name,  _Req, Monitors) ->
     Monitors.
 
 %% Starts a monitor, either the new way, or the old.
@@ -788,7 +788,7 @@ Equivalent to
       ResL :: [Res :: term() | {'badrpc', Reason :: term()}],
       BadNodes :: [node()].
 
-multicall(M, F, A) -> 
+multicall(M, F, A) ->
     multicall(M, F, A, infinity).
 
 
@@ -901,10 +901,10 @@ rpcmulticallify([_N|Ns], [{Class, Reason}|Rlts], Ok, Err) ->
 %% Send Msg to Name on all nodes, and collect the answers.
 %% Return {Replies, Badnodes} where Badnodes is a list of the nodes
 %% that failed during the timespan of the call.
-%% This function assumes that if we send a request to a server 
+%% This function assumes that if we send a request to a server
 %% called Name, the server will reply with a reply
 %% on the form {Name, Node, Reply}, otherwise this function will
-%% hang forever. 
+%% hang forever.
 %% It also assumes that the server receives messages on the form
 %% {From, Msg} and then replies as From ! {Name, node(), Reply}.
 %%
@@ -942,13 +942,13 @@ following:
       Replies :: [Reply :: term()],
       BadNodes :: [node()].
 
-multi_server_call(Nodes, Name, Msg) 
+multi_server_call(Nodes, Name, Msg)
   when is_list(Nodes), is_atom(Name) ->
     Monitors = send_nodes(Nodes, Name, Msg, []),
     rec_nodes(Name, Monitors).
 
 
-rec_nodes(Name, Nodes) -> 
+rec_nodes(Name, Nodes) ->
     rec_nodes(Name, Nodes, [], []).
 
 rec_nodes(_Name, [],  Badnodes, Replies) ->
@@ -957,7 +957,7 @@ rec_nodes(Name, [{N,R} | Tail], Badnodes, Replies) ->
     receive
 	{'DOWN', R, _, _, _} ->
 	    rec_nodes(Name, Tail, [N|Badnodes], Replies);
-	{?NAME, N, {nonexisting_name, _}} ->  
+	{?NAME, N, {nonexisting_name, _}} ->
 	    %% used by sbcast()
 	    erlang:demonitor(R, [flush]),
 	    rec_nodes(Name, Tail, [N|Badnodes], Replies);
@@ -968,7 +968,7 @@ rec_nodes(Name, [{N,R} | Tail], Badnodes, Replies) ->
 
 %% Now for an asynchronous rpc.
 %% An asynchronous version of rpc that is faster for series of
-%% rpc's towards the same node. I.e. it returns immediately and 
+%% rpc's towards the same node. I.e. it returns immediately and
 %% it returns a Key that can be used in a subsequent yield(Key).
 
 -doc "Opaque value returned by `async_call/4`.".
@@ -1077,7 +1077,7 @@ nb_yield(Key) ->
 
 %% A parallel network evaluator
 %% ArgL === [{M,F,Args},........]
-%% Returns a lists of the evaluations in the same order as 
+%% Returns a lists of the evaluations in the same order as
 %% given to ArgL
 -doc """
 Evaluates, for every tuple in `FuncCalls`,
@@ -1096,14 +1096,14 @@ parallel_eval(ArgL) ->
     Keys = map_nodes(ArgL,Nodes,Nodes),
     [yield(K) || K <- Keys].
 
-map_nodes([],_,_) -> [];
+map_nodes([]=Nil,_,_) -> Nil;
 map_nodes(ArgL,[],Original) ->
-    map_nodes(ArgL,Original,Original); 
+    map_nodes(ArgL,Original,Original);
 map_nodes([{M,F,A}|Tail],[Node|MoreNodes], Original) ->
-    [?MODULE:async_call(Node,M,F,A) | 
+    [?MODULE:async_call(Node,M,F,A) |
      map_nodes(Tail,MoreNodes,Original)].
 
-%% Parallel version of lists:map/3 with exactly the same 
+%% Parallel version of lists:map/3 with exactly the same
 %% arguments and return value as lists:map/3,
 %% except that it calls exit/1 if a network error occurs.
 -doc """

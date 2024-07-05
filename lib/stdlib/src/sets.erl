@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 2000-2024. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 
@@ -250,12 +250,12 @@ set is also a member of the respective other set, otherwise `false`.
       Set2 :: set().
 is_equal(S1, S2) ->
     case size(S1) =:= size(S2) of
+        false ->
+            false;
         true when S1 =:= S2 ->
             true;
         true ->
-            canonicalize_v2(S1) =:= canonicalize_v2(S2);
-        false ->
-            false
+            canonicalize_v2(S1) =:= canonicalize_v2(S2)
     end.
 
 canonicalize_v2(S) ->
@@ -273,7 +273,7 @@ undefined.
 to_list(#{}=S) ->
     maps:keys(S);
 to_list(#set{} = S) ->
-    fold(fun (Elem, List) -> [Elem|List] end, [], S).
+    fold_set(fun (Elem, List) -> [Elem|List] end, [], S).
 
 %% is_element(Element, Set) -> boolean().
 %%  Return 'true' if Element is an element of Set, else 'false'.
@@ -351,12 +351,26 @@ update_bucket(Set, Slot, NewBucket) ->
       Set3 :: set(Element).
 union(#{}=S1, #{}=S2) ->
     maps:merge(S1,S2);
+union(#{}=S1, S2) ->
+    case map_size(S1) < size(S2) of
+        true ->
+            add_all_map_to_set(S2, S1);
+        false ->
+            add_all_set_to_map(S1, S2)
+    end;
+union(S1, #{}=S2) ->
+    case size(S1) < map_size(S2) of
+        true ->
+            add_all_set_to_map(S2, S1);
+        false ->
+            add_all_map_to_set(S1, S2)
+    end;
 union(S1, S2) ->
     case size(S1) < size(S2) of
-	true ->
-	    fold(fun (E, S) -> add_element(E, S) end, S2, S1);
-	false ->
-	    fold(fun (E, S) -> add_element(E, S) end, S1, S2)
+        true ->
+            fold_set(fun (E, S) -> add_element(E,S) end, S2, S1);
+        false ->
+            fold_set(fun (E, S) -> add_element(E,S) end, S1, S2)
     end.
 
 %% union([Set]) -> Set
@@ -394,9 +408,9 @@ intersection(#{}=S1, #{}=S2) ->
 intersection(S1, S2) ->
     case size(S1) < size(S2) of
         true ->
-	    filter(fun (E) -> is_element(E, S2) end, S1);
+            filter(fun (E) -> is_element(E, S2) end, S1);
         false ->
-	    filter(fun (E) -> is_element(E, S1) end, S2)
+            filter(fun (E) -> is_element(E, S1) end, S2)
     end.
 
 %% If we are keeping more than 75% of the keys, then it is
@@ -598,6 +612,20 @@ fold_1(Fun, Acc, Iter) ->
             Acc
     end.
 
+add_all_set_to_map(Map, Set) ->
+    fold_set(fun (E, S) -> S#{E=>?VALUE} end, Map, Set).
+
+add_all_map_to_set(Set, Map) ->
+    add_all_map_to_set_1(Set, maps:iterator(Map)).
+
+add_all_map_to_set_1(Acc, Iter) ->
+    case maps:next(Iter) of
+        {K, _, NextIter} ->
+            add_all_map_to_set_1(add_element(K, Acc), NextIter);
+        none ->
+            Acc
+    end.
+
 %% filter(Fun, Set) -> Set.
 %%  Filter Set with Fun.
 -doc "Filters elements in `Set1` with boolean function `Pred`.".
@@ -638,7 +666,7 @@ map(F, #set{}=D) when is_function(F, 1) ->
       Set1 :: set(Element1),
       Set2 :: set(Element1 | Element2).
 filtermap(F, #{}=D) when is_function(F, 1) ->
-    maps:from_keys(lists:filtermap(F, to_list(D)), ?VALUE);
+    maps:from_keys(lists:filtermap(F, maps:keys(D)), ?VALUE);
 filtermap(F, #set{}=D) when is_function(F, 1) ->
     fold(fun(E0, Acc) ->
              case F(E0) of
@@ -699,8 +727,8 @@ filter_seg_list(F, [Seg|Segs], Fss, Fc0) ->
     Bkts0 = tuple_to_list(Seg),
     {Bkts1,Fc1} = filter_bkt_list(F, Bkts0, [], Fc0),
     filter_seg_list(F, Segs, [list_to_tuple(Bkts1)|Fss], Fc1);
-filter_seg_list(_, [], Fss, Fc) ->
-    {lists:reverse(Fss, []),Fc}.
+filter_seg_list(_, []=Nil, Fss, Fc) ->
+    {lists:reverse(Fss, Nil),Fc}.
 
 filter_bkt_list(F, [Bkt0|Bkts], Fbs, Fc0) ->
     {Bkt1,Fc1} = filter_bucket(F, Bkt0, [], Fc0),
@@ -788,7 +816,7 @@ rehash([E|T], Slot1, Slot2, MaxN) ->
 	Slot1 -> {[E|L1],L2};
 	Slot2 -> {L1,[E|L2]}
     end;
-rehash([], _, _, _) -> {[],[]}.
+rehash([]=Nil, _, _, _) -> {Nil,Nil}.
 
 %% mk_seg(Size) -> Segment.
 -spec mk_seg(16) -> seg().
@@ -815,7 +843,7 @@ expand_segs({B1,B2,B3,B4,B5,B6,B7,B8,B9,B10,B11,B12,B13,B14,B15,B16}, Empty) ->
      Empty,Empty,Empty,Empty,Empty,Empty,Empty,Empty,
      Empty,Empty,Empty,Empty,Empty,Empty,Empty,Empty};
 expand_segs(Segs, Empty) ->
-    list_to_tuple(tuple_to_list(Segs) 
+    list_to_tuple(tuple_to_list(Segs)
     ++ lists:duplicate(tuple_size(Segs), Empty)).
 
 -spec contract_segs(segs(E)) -> segs(E).

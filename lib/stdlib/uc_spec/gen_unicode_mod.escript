@@ -279,7 +279,7 @@ gen_static(Fd) ->
     io:put_chars(Fd, "                {Upper,_} -> [Upper|Str];\n"),
     io:put_chars(Fd, "                {Upper,_,_,_} -> [Upper|Str]\n"),
     io:put_chars(Fd, "            end;\n"),
-    io:put_chars(Fd, "        [] -> [];\n"),
+    io:put_chars(Fd, "        []=Nil -> Nil;\n"),
     io:put_chars(Fd, "        {error,Err} -> error({badarg, Err})\n"),
     io:put_chars(Fd, "    end.\n\n"),
     io:put_chars(Fd, "-spec lowercase(unicode:chardata()) -> "
@@ -291,7 +291,7 @@ gen_static(Fd) ->
     io:put_chars(Fd, "                {_,Lower} -> [Lower|Str];\n"),
     io:put_chars(Fd, "                {_,Lower,_,_} -> [Lower|Str]\n"),
     io:put_chars(Fd, "            end;\n"),
-    io:put_chars(Fd, "        [] -> [];\n"),
+    io:put_chars(Fd, "        []=Nil -> Nil;\n"),
     io:put_chars(Fd, "        {error,Err} -> error({badarg, Err})\n"),
     io:put_chars(Fd, "    end.\n\n"),
 
@@ -304,7 +304,7 @@ gen_static(Fd) ->
     io:put_chars(Fd, "                {_,_,Title,_} -> [Title|Str];\n"),
     io:put_chars(Fd, "                {Upper,_} -> [Upper|Str]\n"),
     io:put_chars(Fd, "            end;\n"),
-    io:put_chars(Fd, "        [] -> [];\n"),
+    io:put_chars(Fd, "        []=Nil -> Nil;\n"),
     io:put_chars(Fd, "        {error,Err} -> error({badarg, Err})\n"),
     io:put_chars(Fd, "    end.\n\n"),
 
@@ -317,19 +317,19 @@ gen_static(Fd) ->
     io:put_chars(Fd, "                {_,_,_,Fold} -> [Fold|Str];\n"),
     io:put_chars(Fd, "                {_,Lower} -> [Lower|Str]\n"),
     io:put_chars(Fd, "            end;\n"),
-    io:put_chars(Fd, "        [] -> [];\n"),
+    io:put_chars(Fd, "        []=Nil -> Nil;\n"),
     io:put_chars(Fd, "        {error,Err} -> error({badarg, Err})\n"),
     io:put_chars(Fd, "    end.\n\n"),
 
     io:put_chars(Fd, "%% Returns true if the character is considered wide in non east asian context.\n"),
     io:put_chars(Fd, "-spec is_wide(gc()) -> boolean().\n"),
-    io:put_chars(Fd, "is_wide(C) when ?IS_CP(C) ->\n"),
-    io:put_chars(Fd, "    is_wide_cp(C);\n"),
+    io:put_chars(Fd, "is_wide([]) ->\n    false;\n"),
     io:put_chars(Fd, "is_wide([_, 16#FE0E|Cs]) -> true; %% Presentation sequence\n"),
     io:put_chars(Fd, "is_wide([_, 16#FE0F|Cs]) -> true; %% Presentation sequence\n"),
+    io:put_chars(Fd, "is_wide(C) when ?IS_CP(C) ->\n"),
+    io:put_chars(Fd, "    is_wide_cp(C);\n"),
     io:put_chars(Fd, "is_wide([C|Cs]) when ?IS_CP(C) ->\n"),
-    io:put_chars(Fd, "    is_wide_cp(C) orelse is_wide(Cs);\n"),
-    io:put_chars(Fd, "is_wide([]) ->\n    false.\n\n"),
+    io:put_chars(Fd, "    is_wide_cp(C) orelse is_wide(Cs).\n\n"),
 
     io:put_chars(Fd, "category(CP, lookup_category) ->\n"
                  "    cat_translate(lookup_category(CP));\n"
@@ -341,9 +341,9 @@ gen_norm(Fd) ->
                  "-spec nfd(unicode:chardata()) -> maybe_improper_list(gc(),unicode:chardata()) | {error, unicode:chardata()}.\n"
                  "nfd(Str0) ->\n"
                  "    case gc(Str0) of\n"
-                 "        [GC|R] when is_integer(GC), 0 =< GC, GC < 128 -> [GC|R];\n"
+                 "        []=Nil -> Nil;\n"
+                 "        [GC|R]=S when is_integer(GC), 0 =< GC, GC < 128 -> S;\n"
                  "        [GC|Str] -> [decompose(GC)|Str];\n"
-                 "        [] -> [];\n"
                  "        {error,_}=Error -> Error\n    end.\n\n"
                 ),
 
@@ -351,9 +351,9 @@ gen_norm(Fd) ->
                  "-spec nfkd(unicode:chardata()) -> maybe_improper_list(gc(),unicode:chardata()) | {error, unicode:chardata()}.\n"
                  "nfkd(Str0) ->\n"
                  "    case gc(Str0) of\n"
-                 "        [GC|R] when is_integer(GC), 0 =< GC, GC < 128 -> [GC|R];\n"
+                 "        []=Nil -> Nil;\n"
+                 "        [GC|R]=S when is_integer(GC), 0 =< GC, GC < 128 -> S;\n"
                  "        [GC|Str] -> [decompose_compat(GC)|Str];\n"
-                 "        [] -> [];\n"
                  "        {error,_}=Error -> Error\n    end.\n\n"
                 ),
 
@@ -361,9 +361,9 @@ gen_norm(Fd) ->
                  "-spec nfc(unicode:chardata()) -> maybe_improper_list(gc(),unicode:chardata()) | {error, unicode:chardata()}.\n"
                  "nfc(Str0) ->\n"
                  "    case gc(Str0) of\n"
-                 "        [GC|R] when is_integer(GC), 0 =< GC, GC < 256 -> [GC|R];\n"
+                 "        []=Nil -> Nil;\n"
+                 "        [GC|R]=S when is_integer(GC), 0 =< GC, GC < 256 -> S;\n"
                  "        [GC|Str] -> [compose(decompose(GC))|Str];\n"
-                 "        [] -> [];\n"
                  "        {error,_}=Error -> Error\n    end.\n\n"
                 ),
 
@@ -371,9 +371,9 @@ gen_norm(Fd) ->
                  "-spec nfkc(unicode:chardata()) -> maybe_improper_list(gc(),unicode:chardata()) | {error, unicode:chardata()}.\n"
                  "nfkc(Str0) ->\n"
                  "    case gc(Str0) of\n"
-                 "        [GC|R] when is_integer(GC), 0 =< GC, GC < 128 -> [GC|R];\n"
+                 "        []=Nil -> Nil;\n"
+                 "        [GC|R]=S when is_integer(GC), 0 =< GC, GC < 128 -> S;\n"
                  "        [GC|Str] -> [compose_compat_0(decompose_compat(GC))|Str];\n"
-                 "        [] -> [];\n"
                  "        {error,_}=Error -> Error\n    end.\n\n"
                 ),
 
@@ -403,7 +403,7 @@ gen_norm(Fd) ->
                  "    end;\n"
                  "decompose_1([CP|CPs]) ->\n"
                  "    decompose_1(CP) ++ decompose_1(CPs);\n"
-                 "decompose_1([]) -> [].\n"
+                 "decompose_1([]=Nil) -> Nil.\n"
                  "\n"
                  "canonical_order([{_,CP}]) -> CP;\n"
                  "canonical_order(CPs) ->\n"
@@ -413,7 +413,7 @@ gen_norm(Fd) ->
                  "    [CP|canonical_order_1(TaggedCPs)];\n"
                  "canonical_order_1([_|_]=TaggedCPs) ->\n"
                  "    canonical_order_2(TaggedCPs, []);\n"
-                 "canonical_order_1([]) -> [].\n"
+                 "canonical_order_1([]=Nil) -> Nil.\n"
                  "\n"
                  "canonical_order_2([{CCC,_}=First|Cont], Seq) when CCC > 0 ->\n"
                  "    canonical_order_2(Cont, [First|Seq]);\n"
@@ -448,7 +448,7 @@ gen_norm(Fd) ->
                  "    end;\n"
                  "decompose_compat_1([CP|CPs]) ->\n"
                  "    decompose_compat_1(CP) ++ decompose_compat_1(CPs);\n"
-                 "decompose_compat_1([]) -> [].\n\n"),
+                 "decompose_compat_1([]=Nil) -> Nil.\n\n"),
 
 
     io:put_chars(Fd,
@@ -497,7 +497,7 @@ gen_norm(Fd) ->
                  "                [_|_] = GC -> GC ++ compose_compat_0(Rest);\n"
                  "                CP -> [CP|compose_compat_0(Rest)]\n"
                  "            end;\n"
-                 "        [] -> []\n"
+                 "        []=Nil -> Nil\n"
                  "    end.\n\n"
                  "compose_compat(CP) when is_integer(CP) -> CP;\n"
                  "compose_compat([Lead,Vowel|Trail]) %% Hangul\n"
@@ -556,42 +556,42 @@ gen_ws(Fd, Props) ->
 gen_cp(Fd) ->
     io:put_chars(Fd, "-spec cp(String::unicode:chardata()) ->"
                  " maybe_improper_list() | {error, unicode:chardata()}.\n"),
+    io:put_chars(Fd, "cp([]=Nil) -> Nil;\n"),
+    io:put_chars(Fd, "cp(<<>>) -> [];\n"),
+    io:put_chars(Fd, "cp(<<C/utf8, R/binary>>) -> [C|R];\n"),
     io:put_chars(Fd, "cp([C|_]=L) when ?IS_CP(C) -> L;\n"),
     io:put_chars(Fd, "cp([List]) -> cp(List);\n"),
     io:put_chars(Fd, "cp([List|R]) -> cpl(List, R);\n"),
-    io:put_chars(Fd, "cp([]) -> [];\n"),
-    io:put_chars(Fd, "cp(<<C/utf8, R/binary>>) -> [C|R];\n"),
-    io:put_chars(Fd, "cp(<<>>) -> [];\n"),
     io:put_chars(Fd, "cp(<<R/binary>>) -> {error,R}.\n"),
     io:put_chars(Fd, "\n"),
+    io:put_chars(Fd, "cpl([], R) -> cp(R);\n"),
+    io:put_chars(Fd, "cpl(<<>>, R) -> cp(R);\n"),
+    io:put_chars(Fd, "cpl(<<C/utf8, T/binary>>, R) -> [C,T|R];\n"),
     io:put_chars(Fd, "cpl([C], R) when ?IS_CP(C) -> [C|cpl_1_cont(R)];\n"),
     io:put_chars(Fd, "cpl([C|T], R) when ?IS_CP(C) -> [C|cpl_cont(T, R)];\n"),
     io:put_chars(Fd, "cpl([List], R) -> cpl(List, R);\n"),
     io:put_chars(Fd, "cpl([List|T], R) -> cpl(List, [T|R]);\n"),
-    io:put_chars(Fd, "cpl([], R) -> cp(R);\n"),
-    io:put_chars(Fd, "cpl(<<C/utf8, T/binary>>, R) -> [C,T|R];\n"),
-    io:put_chars(Fd, "cpl(<<>>, R) -> cp(R);\n"),
     io:put_chars(Fd, "cpl(<<B/binary>>, R) -> {error,[B|R]}.\n"),
     io:put_chars(Fd, "\n"),
     io:put_chars(Fd, "%%%\n"),
     io:put_chars(Fd, "\n"),
+    io:put_chars(Fd, "cpl_cont([], R) -> cpl_1_cont(R);\n"),
     io:put_chars(Fd, "cpl_cont([C|T], R) when is_integer(C) -> [C|cpl_cont2(T, R)];\n"),
     io:put_chars(Fd, "cpl_cont([L], R) -> cpl_cont(L, R);\n"),
     io:put_chars(Fd, "cpl_cont([L|T], R) -> cpl_cont(L, [T|R]);\n"),
-    io:put_chars(Fd, "cpl_cont([], R) -> cpl_1_cont(R);\n"),
     io:put_chars(Fd, "cpl_cont(T, R) -> [T|R].\n"),
     io:put_chars(Fd, "\n"),
+    io:put_chars(Fd, "cpl_cont2([], R) -> cpl_1_cont2(R);\n"),
     io:put_chars(Fd, "cpl_cont2([C|T], R) when is_integer(C) -> [C|cpl_cont3(T, R)];\n"),
     io:put_chars(Fd, "cpl_cont2([L], R) -> cpl_cont2(L, R);\n"),
     io:put_chars(Fd, "cpl_cont2([L|T], R) -> cpl_cont2(L, [T|R]);\n"),
-    io:put_chars(Fd, "cpl_cont2([], R) -> cpl_1_cont2(R);\n"),
     io:put_chars(Fd, "cpl_cont2(T, R) -> [T|R].\n"),
     io:put_chars(Fd, "\n"),
+    io:put_chars(Fd, "cpl_cont3([], R) -> cpl_1_cont3(R);\n"),
     io:put_chars(Fd, "cpl_cont3([C], R) when is_integer(C) -> [C|R];\n"),
     io:put_chars(Fd, "cpl_cont3([C|T], R) when is_integer(C) -> [C,T|R];\n"),
     io:put_chars(Fd, "cpl_cont3([L], R) -> cpl_cont3(L, R);\n"),
     io:put_chars(Fd, "cpl_cont3([L|T], R) -> cpl_cont3(L, [T|R]);\n"),
-    io:put_chars(Fd, "cpl_cont3([], R) -> cpl_1_cont3(R);\n"),
     io:put_chars(Fd, "cpl_cont3(T, R) -> [T|R].\n"),
     io:put_chars(Fd, "\n"),
     io:put_chars(Fd, "%%%\n"),
@@ -613,17 +613,17 @@ gen_cp(Fd) ->
     io:put_chars(Fd, "\n"),
     io:put_chars(Fd, "%%%\n"),
     io:put_chars(Fd, "\n"),
+    io:put_chars(Fd, "cp_no_bin([]=Nil) -> Nil;\n"),
     io:put_chars(Fd, "cp_no_bin([C|_]=L) when is_integer(C) -> L;\n"),
     io:put_chars(Fd, "cp_no_bin([List]) -> cp_no_bin(List);\n"),
     io:put_chars(Fd, "cp_no_bin([List|R]) -> cp_no_binl(List, R);\n"),
-    io:put_chars(Fd, "cp_no_bin([]) -> [];\n"),
     io:put_chars(Fd, "cp_no_bin(_) -> binary_found.\n"),
     io:put_chars(Fd, "\n"),
+    io:put_chars(Fd, "cp_no_binl([], R) -> cp_no_bin(R);\n"),
     io:put_chars(Fd, "cp_no_binl([C], R) when is_integer(C) -> [C|cpl_1_cont(R)];\n"),
     io:put_chars(Fd, "cp_no_binl([C|T], R) when is_integer(C) -> [C|cpl_cont(T, R)];\n"),
     io:put_chars(Fd, "cp_no_binl([List], R) -> cp_no_binl(List, R);\n"),
     io:put_chars(Fd, "cp_no_binl([List|T], R) -> cp_no_binl(List, [T|R]);\n"),
-    io:put_chars(Fd, "cp_no_binl([], R) -> cp_no_bin(R);\n"),
     io:put_chars(Fd, "cp_no_binl(_, _) -> binary_found.\n\n"),
     ok.
 
@@ -636,6 +636,7 @@ gen_gc(Fd, GBP) ->
                  " maybe_improper_list() | {error, unicode:chardata()}.\n"),
     io:put_chars(Fd,
                  "gc([]=R) -> R;\n"
+                 "gc(<<>>) -> [];\n"
                  "gc([CP]=R) when ?IS_CP(CP) -> R;\n"
                  "gc([$\\r=CP|R0]) ->\n"
                  "    case cp(R0) of % Don't break CRLF\n"
@@ -652,7 +653,6 @@ gen_gc(Fd, GBP) ->
                  "                T4 -> gc_1([CP1|T4])\n"
                  "            end\n"
                  "    end;\n"
-                 "gc(<<>>) -> [];\n"
                  "gc(<<CP1/utf8, Rest/binary>>) ->\n"
                  "    if CP1 < 256, CP1 =/= $\\r ->\n"
                  "           case Rest of\n"
@@ -877,9 +877,9 @@ gen_gc(Fd, GBP) ->
                  "                _ -> gc_extend2(R1, R0, Acc)\n"
                  "            end\n    end.\n\n"),
     io:put_chars(Fd, "%% Handle Hangul LV\n"),
-    io:put_chars(Fd, "gc_h_lv_lvt([CP|_], _R0, _Acc) when not ?IS_CP(CP) -> error(badarg);\n"),
     GenHangulLV = fun(Range) -> io:format(Fd, "gc_h_lv_lvt~s gc_h_V(R1,[CP|Acc]);\n",
                                           [gen_clause2(Range)]) end,
+    io:put_chars(Fd, "gc_h_lv_lvt([CP|_], _R0, _Acc) when not ?IS_CP(CP) -> error(badarg);\n"),
     [GenHangulLV(CP) || CP <- merge_ranges(maps:get(lv,GBP))],
     io:put_chars(Fd, "%% Handle Hangul LVT\n"),
     GenHangulLVT = fun(Range) -> io:format(Fd, "gc_h_lv_lvt~s gc_h_T(R1,[CP|Acc]);\n",

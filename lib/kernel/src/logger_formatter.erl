@@ -349,10 +349,14 @@ linearize_template(Data,[{Key,IfExist,Else}|Format]) ->
     BranchForUse ++ linearize_template(Data,Format);
 linearize_template(Data,[StrOrKey|Format]) ->
     [StrOrKey|linearize_template(Data,Format)];
-linearize_template(_Data,[]) ->
-    [].
+linearize_template(_Data,[]=Nil) ->
+    Nil.
 
-trim([H|T],Rev) when H==$\s; H==$\r; H==$\n ->
+trim([$\s|T],Rev) ->
+    trim(T,Rev);
+trim([$\r|T],Rev) ->
+    trim(T,Rev);
+trim([$\n|T],Rev) ->
     trim(T,Rev);
 trim([H|T],false) when is_list(H) ->
     case trim(H,false) of
@@ -384,8 +388,8 @@ do_format(Level,Data,[Key|Format],Config)
     [String|do_format(Level,Data,Format,Config)];
 do_format(Level,Data,[Str|Format],Config) ->
     [Str|do_format(Level,Data,Format,Config)];
-do_format(_Level,_Data,[],_Config) ->
-    [].
+do_format(_Level,_Data,[]=Nil,_Config) ->
+    Nil.
 
 value(Key,Meta) when is_map_key(Key,Meta) ->
     {ok,maps:get(Key,Meta)};
@@ -493,9 +497,9 @@ format_msg({Format0,Args},Depth,Opts,Single) ->
 
 reformat(Format,unlimited,false) ->
     Format;
-reformat([#{control_char:=C}=M|T], Depth, true) when C =:= $p ->
+reformat([#{control_char:=$p}=M|T], Depth, true) ->
     [limit_depth(M#{width => 0}, Depth)|reformat(T, Depth, true)];
-reformat([#{control_char:=C}=M|T], Depth, true) when C =:= $P ->
+reformat([#{control_char:=$P}=M|T], Depth, true) ->
     [M#{width => 0}|reformat(T, Depth, true)];
 reformat([#{control_char:=C}=M|T], Depth, Single) when C =:= $p; C =:= $w ->
     [limit_depth(M, Depth)|reformat(T, Depth, Single)];
@@ -689,7 +693,11 @@ get_utc_config() ->
             end
     end.
 
-offset_to_utc(Z) when Z=:=0; Z=:="z"; Z=:="Z" ->
+offset_to_utc(0) ->
+    true;
+offset_to_utc("z") ->
+    true;
+offset_to_utc("Z") ->
     true;
 offset_to_utc([$+|Tz]) ->
     case io_lib:fread("~d:~d", Tz) of
@@ -769,18 +777,8 @@ check_limit(unlimited) ->
 check_limit(_) ->
     error.
 
-check_template([Key|T]) when is_atom(Key) ->
-    check_template(T);
-check_template([Key|T]) when is_list(Key), is_atom(hd(Key)) ->
-    case lists:all(fun(X) when is_atom(X) -> true;
-                      (_) -> false
-                   end,
-                   Key) of
-        true ->
-            check_template(T);
-        false ->
-            error
-    end;
+check_template([]) ->
+    ok;
 check_template([{Key,IfExist,Else}|T])
   when is_atom(Key) orelse
        (is_list(Key) andalso is_atom(hd(Key))) ->
@@ -795,6 +793,18 @@ check_template([{Key,IfExist,Else}|T])
         error ->
             error
     end;
+check_template([Key|T]) when is_atom(Key) ->
+    check_template(T);
+check_template([Key|T]) when is_list(Key), is_atom(hd(Key)) ->
+    case lists:all(fun(X) when is_atom(X) -> true;
+                      (_) -> false
+                   end,
+                   Key) of
+        true ->
+            check_template(T);
+        false ->
+            error
+    end;
 check_template([Str|T]) when is_list(Str) ->
     case io_lib:printable_unicode_list(Str) of
         true -> check_template(T);
@@ -805,8 +815,6 @@ check_template([Bin|T]) when is_binary(Bin) ->
         Str when is_list(Str) -> check_template([Str|T]);
         _Error -> error
     end;
-check_template([]) ->
-    ok;
 check_template(_) ->
     error.
 

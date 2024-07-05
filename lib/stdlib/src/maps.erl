@@ -164,6 +164,48 @@ _Example:_
 
 from_list(_) -> erlang:nif_error(undef).
 
+-spec from_list_local(List) -> Map when
+    List :: [{Key,Value}],
+    Key :: term(),
+    Value :: term(),
+    Map :: map().
+from_list_local([]) ->
+    #{};
+from_list_local([{K1,V1}]) ->
+    #{K1=>V1};
+from_list_local([{K1,V1},{K2,V2}]) ->
+    #{K1 => V1, K2 => V2};
+from_list_local([{K1,V1},{K2,V2},{K3,V3}]) ->
+    #{K1 => V1, K2 => V2, K3 => V3};
+from_list_local([{K1,V1},{K2,V2},{K3,V3},{K4,V4}]) ->
+    #{K1 => V1, K2 => V2, K3 => V3, K4 => V4};
+from_list_local([{K1,V1},{K2,V2},{K3,V3},{K4,V4},{K5,V5}]) ->
+    #{K1 => V1, K2 => V2, K3 => V3, K4 => V4, K5 => V5};
+from_list_local([{K1,V1},{K2,V2},{K3,V3},{K4,V4},{K5,V5},{K6,V6}]) ->
+    #{K1 => V1, K2 => V2, K3 => V3, K4 => V4, K5 => V5, K6 => V6};
+from_list_local([{K1,V1},{K2,V2},{K3,V3},{K4,V4},{K5,V5},{K6,V6},{K7,V7}]) ->
+    #{K1 => V1, K2 => V2, K3 => V3, K4 => V4, K5 => V5, K6 => V6, K7 => V7};
+from_list_local([{K1,V1},{K2,V2},{K3,V3},{K4,V4},{K5,V5},{K6,V6},{K7,V7},{K8,V8}]) ->
+    #{K1 => V1, K2 => V2, K3 => V3, K4 => V4, K5 => V5, K6 => V6, K7 => V7, K8 => V8};
+from_list_local([{K1,V1},{K2,V2},{K3,V3},{K4,V4},{K5,V5},{K6,V6},{K7,V7},{K8,V8},{K9,V9}]) ->
+    #{K1 => V1, K2 => V2, K3 => V3, K4 => V4, K5 => V5, K6 => V6, K7 => V7, K8 => V8, K9 => V9};
+from_list_local([{K1,V1},{K2,V2},{K3,V3},{K4,V4},{K5,V5},{K6,V6},{K7,V7},{K8,V8},{K9,V9},{K10,V10}]) ->
+    #{K1 => V1, K2 => V2, K3 => V3, K4 => V4, K5 => V5, K6 => V6, K7 => V7, K8 => V8, K9 => V9, K10 => V10};
+from_list_local([{K1,V1},{K2,V2},{K3,V3},{K4,V4},{K5,V5},{K6,V6},{K7,V7},{K8,V8},{K9,V9},{K10,V10},{K11,V11}]) ->
+    #{K1 => V1, K2 => V2, K3 => V3, K4 => V4, K5 => V5, K6 => V6, K7 => V7, K8 => V8, K9 => V9, K10 => V10, K11 => V11};
+from_list_local([{K1,V1},{K2,V2},{K3,V3},{K4,V4},{K5,V5},{K6,V6},{K7,V7},{K8,V8},{K9,V9},{K10,V10},{K11,V11},{K12,V12}]) ->
+    #{K1 => V1, K2 => V2, K3 => V3, K4 => V4, K5 => V5, K6 => V6, K7 => V7, K8 => V8, K9 => V9, K10 => V10, K11 => V11, K12 => V12};
+from_list_local([{K1,V1},{K2,V2},{K3,V3},{K4,V4},{K5,V5},{K6,V6},{K7,V7},{K8,V8},{K9,V9},{K10,V10},{K11,V11},{K12,V12},{K13,V13}]) ->
+    #{K1 => V1, K2 => V2, K3 => V3, K4 => V4, K5 => V5, K6 => V6, K7 => V7, K8 => V8, K9 => V9, K10 => V10, K11 => V11, K12 => V12, K13 => V13};
+from_list_local([{K1,V1},{K2,V2},{K3,V3},{K4,V4},{K5,V5},{K6,V6},{K7,V7},{K8,V8},{K9,V9},{K10,V10},{K11,V11},{K12,V12},{K13,V13},{K14,V14}]) ->
+    #{K1 => V1, K2 => V2, K3 => V3, K4 => V4, K5 => V5, K6 => V6, K7 => V7, K8 => V8, K9 => V9, K10 => V10, K11 => V11, K12 => V12, K13 => V13, K14 => V14};
+from_list_local([{K1,V1},{K2,V2},{K3,V3},{K4,V4},{K5,V5},{K6,V6},{K7,V7},{K8,V8},{K9,V9},{K10,V10},{K11,V11},{K12,V12},{K13,V13},{K14,V14},{K15,V15}]) ->
+    #{K1 => V1, K2 => V2, K3 => V3, K4 => V4, K5 => V5, K6 => V6, K7 => V7, K8 => V8, K9 => V9, K10 => V10, K11 => V11, K12 => V12, K13 => V13, K14 => V14, K15 => V15};
+from_list_local([{K1,V1},{K2,V2},{K3,V3},{K4,V4},{K5,V5},{K6,V6},{K7,V7},{K8,V8},{K9,V9},{K10,V10},{K11,V11},{K12,V12},{K13,V13},{K14,V14},{K15,V15},{K16,V16}]) ->
+    #{K1 => V1, K2 => V2, K3 => V3, K4 => V4, K5 => V5, K6 => V6, K7 => V7, K8 => V8, K9 => V9, K10 => V10, K11 => V11, K12 => V12, K13 => V13, K14 => V14, K15 => V15, K16 => V16};
+from_list_local(L) ->
+    maps:from_list(L).
+
 %% Shadowed by erl_bif_types: maps:from_keys/2
 -doc """
 Takes a list of keys and a value and builds a map where all keys point to the
@@ -262,11 +304,11 @@ intersect_with(Combiner, Map1, Map2) ->
                     [Combiner, Map1, Map2]).
 
 intersect_with_small_map_first(Combiner, SmallMap, BigMap) ->
-    Next = maps:next(maps:iterator(SmallMap)),
+    Next = next(iterator(SmallMap)),
     intersect_with_iterate(Next, [], BigMap, Combiner).
 
 intersect_with_iterate({K, V1, Iterator}, Keep, BigMap, Combiner) ->
-    Next = maps:next(Iterator),
+    Next = next(Iterator),
     case BigMap of
         #{ K := V2 } ->
             V = Combiner(K, V1, V2),
@@ -275,7 +317,7 @@ intersect_with_iterate({K, V1, Iterator}, Keep, BigMap, Combiner) ->
             intersect_with_iterate(Next, Keep, BigMap, Combiner)
     end;
 intersect_with_iterate(none, Keep, _BigMap2, _Combiner) ->
-    maps:from_list(Keep).
+    from_list_local(Keep).
 
 %% Shadowed by erl_bif_types: maps:is_key/2
 -doc """
@@ -381,14 +423,14 @@ merge_with(Combiner, Map1, Map2) when is_map(Map1),
                                  is_function(Combiner, 3) ->
     case map_size(Map1) > map_size(Map2) of
         true ->
-            Iterator = maps:iterator(Map2),
-            merge_with_1(maps:next(Iterator),
+            Iterator = iterator(Map2),
+            merge_with_1(next(Iterator),
                          Map1,
                          Map2,
                          Combiner);
         false ->
-            Iterator = maps:iterator(Map1),
-            merge_with_1(maps:next(Iterator),
+            Iterator = iterator(Map1),
+            merge_with_1(next(Iterator),
                          Map2,
                          Map1,
                          fun(K, V1, V2) -> Combiner(K, V2, V1) end)
@@ -401,9 +443,9 @@ merge_with_1({K, V2, Iterator}, Map1, Map2, Combiner) ->
     case Map1 of
         #{ K := V1 } ->
             NewMap1 = Map1#{ K := Combiner(K, V1, V2) },
-            merge_with_1(maps:next(Iterator), NewMap1, Map2, Combiner);
+            merge_with_1(next(Iterator), NewMap1, Map2, Combiner);
         #{ } ->
-            merge_with_1(maps:next(Iterator), maps:put(K, V2, Map1), Map2, Combiner)
+            merge_with_1(next(Iterator), Map1#{K => V2}, Map2, Combiner)
     end;
 merge_with_1(none, Result, _, _) ->
     Result.
@@ -711,12 +753,12 @@ _Example:_
       Map :: #{Key => Value}.
 
 filter(Pred, Map) when is_map(Map), is_function(Pred, 2) ->
-    maps:from_list(filter_1(Pred, next(iterator(Map)), undefined));
+    from_list_local(filter_1(Pred, next(iterator(Map)), undefined));
 filter(Pred, Iter) when is_function(Pred, 2) ->
     ErrorTag = make_ref(),
     try filter_1(Pred, try_next(Iter, ErrorTag), ErrorTag) of
         Result ->
-            maps:from_list(Result)
+            from_list_local(Result)
     catch
         error:ErrorTag ->
             error_with_info({badmap, Iter}, [Pred, Iter])
@@ -762,12 +804,12 @@ _Example:_
       Map :: #{Key => Value1 | Value2}.
 
 filtermap(Fun, Map) when is_map(Map), is_function(Fun, 2) ->
-    maps:from_list(filtermap_1(Fun, next(iterator(Map)), undefined));
+    from_list_local(filtermap_1(Fun, next(iterator(Map)), undefined));
 filtermap(Fun, Iter) when is_function(Fun, 2) ->
     ErrorTag = make_ref(),
     try filtermap_1(Fun, try_next(Iter, ErrorTag), ErrorTag) of
         Result ->
-            maps:from_list(Result)
+            from_list_local(Result)
     catch
         error:ErrorTag ->
             error_with_info({badmap, Iter}, [Fun, Iter])
@@ -886,12 +928,12 @@ _Example:_
     Map :: #{Key => Value2}.
 
 map(Fun, Map) when is_map(Map), is_function(Fun, 2) ->
-    maps:from_list(map_1(Fun, next(iterator(Map)), undefined));
+    from_list_local(map_1(Fun, next(iterator(Map)), undefined));
 map(Fun, Iter) when is_function(Fun, 2) ->
     ErrorTag = make_ref(),
     try map_1(Fun, try_next(Iter, ErrorTag), ErrorTag) of
         Result ->
-            maps:from_list(Result)
+            from_list_local(Result)
     catch
         error:ErrorTag ->
             error_with_info({badmap, Iter}, [Fun, Iter])
@@ -1018,17 +1060,17 @@ ok
       Order :: iterator_order(Key),
       Iterator :: iterator(Key, Value).
 
-iterator(M, undefined) when is_map(M) ->
+iterator(#{}=M, undefined) ->
     [0 | M];
-iterator(M, ordered) when is_map(M) ->
+iterator(#{}=M, ordered) ->
     CmpFun = fun(A, B) -> erts_internal:cmp_term(A, B) =< 0 end,
     Keys = lists:sort(CmpFun, maps:keys(M)),
     [Keys | M];
-iterator(M, reversed) when is_map(M) ->
+iterator(#{}=M, reversed) ->
     CmpFun = fun(A, B) -> erts_internal:cmp_term(B, A) =< 0 end,
     Keys = lists:sort(CmpFun, maps:keys(M)),
     [Keys | M];
-iterator(M, CmpFun) when is_map(M), is_function(CmpFun, 2) ->
+iterator(#{}=M, CmpFun) when is_function(CmpFun, 2) ->
     Keys = lists:sort(CmpFun, maps:keys(M)),
     [Keys | M];
 iterator(M, Order) ->
@@ -1096,7 +1138,9 @@ _Example:_
     Map2 :: map(),
     K :: term().
 
-without(Ks,M) when is_list(Ks), is_map(M) ->
+without([],#{}=M) ->
+    M;
+without([_|_]=Ks,#{}=M) ->
     lists:foldl(fun maps:remove/2, M, Ks);
 without(Ks,M) ->
     error_with_info(error_type(M), [Ks,M]).
@@ -1122,7 +1166,7 @@ _Example:_
     Map2 :: #{K => V}.
 
 with(Ks,Map1) when is_list(Ks), is_map(Map1) ->
-    maps:from_list(with_1(Ks, Map1));
+    from_list_local(with_1(Ks, Map1));
 with(Ks,M) ->
     error_with_info(error_type(M), [Ks,M]).
 

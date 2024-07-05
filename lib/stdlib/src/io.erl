@@ -1284,7 +1284,7 @@ format(Io, Format, Args) ->
 -spec scan_erl_exprs(Prompt) -> Result when
       Prompt :: prompt(),
       Result :: erl_scan:tokens_result() | server_no_data().
- 
+
 scan_erl_exprs(Prompt) ->
     scan_erl_exprs(default_input(), Prompt, 1).
 
@@ -1657,7 +1657,7 @@ io_requests(Pid, [R|Rs], Cont, Tail) ->
     {Conv,[Request|Requests]};
 io_requests(Pid, [], [Rs|Cont], Tail) ->
     io_requests(Pid, Rs, Cont, Tail);
-io_requests(_Pid, [], [], _Tail) -> 
+io_requests(_Pid, [], [], _Tail) ->
     {false,[]}.
 
 bc_req(Pid, Req0, MaybeConvert) ->
@@ -1684,7 +1684,7 @@ io_request(Pid, {fwrite,Format,Args}) ->
     bc_req(Pid,{put_chars,unicode,io_lib,fwrite,[Format,Args]},false);
 io_request(Pid, nl) ->
     bc_req(Pid,{put_chars,unicode,io_lib:nl()},false);
-io_request(Pid, {put_chars,Enc,Chars}=Request0) 
+io_request(Pid, {put_chars,Enc,Chars}=Request0)
   when is_list(Chars), node(Pid) =:= node() ->
     %% Convert to binary data if the I/O server is guaranteed to be new
     Request =
@@ -1695,7 +1695,7 @@ io_request(Pid, {put_chars,Enc,Chars}=Request0)
 		Request0
 	end,
     {false,Request};
-io_request(Pid, {put_chars,Enc,Chars}=Request0) 
+io_request(Pid, {put_chars,Enc,Chars}=Request0)
   when is_list(Chars) ->
     case net_kernel:dflag_unicode_io(Pid) of
 	true ->

@@ -87,16 +87,19 @@
                   ordtype = type :: term()}).
 
 -define(LIST(S), (S)#?TAG.data).
+-define(SET_LIST_PAT(L), #?TAG{data=L}).
 -define(TYPE(S), (S)#?TAG.type).
+-define(SET_TYPE_PAT(T), #?TAG{type=T}).
 -define(SET(L, T), #?TAG{data = L, type = T}).
--define(IS_SET(S), is_record(S, ?TAG)).
--define(IS_UNTYPED_SET(S), ?TYPE(S) =:= ?ANYTYPE).
+-define(IS_SET_PAT, #?TAG{}).
 
 %% Ordered sets and atoms:
 -define(ORDDATA(S), (S)#?ORDTAG.orddata).
+-define(ORDSET_DATA_PAT(D), #?ORDTAG{orddata=D}).
 -define(ORDTYPE(S), (S)#?ORDTAG.ordtype).
+-define(ORDSET_TYPE_PAT(T), #?ORDTAG{ordtype=T}).
 -define(ORDSET(L, T), #?ORDTAG{orddata = L, ordtype = T}).
--define(IS_ORDSET(S), is_record(S, ?ORDTAG)).
+-define(IS_ORDSET_PAT, #?ORDTAG{}).
 -define(ATOM_TYPE, atom).
 -define(IS_ATOM_TYPE(T), is_atom(T)). % true for ?ANYTYPE...
 
@@ -433,18 +436,18 @@ unordered set.
 -spec(to_external(AnySet) -> ExternalSet when
       ExternalSet :: external_set(),
       AnySet :: anyset()).
-to_external(S) when ?IS_SET(S) ->
-    ?LIST(S);
-to_external(S) when ?IS_ORDSET(S) ->
-    ?ORDDATA(S).
+to_external(?SET_LIST_PAT(L)) ->
+    L;
+to_external(?ORDSET_DATA_PAT(D)) ->
+    D.
 
 -doc "Returns the [type](`m:sofs#type`) of an atomic, ordered, or unordered set.".
 -spec(type(AnySet) -> Type when
       AnySet :: anyset(),
       Type :: type()).
-type(S) when ?IS_SET(S) ->
+type(S=?IS_SET_PAT) ->
     ?SET_OF(?TYPE(S));
-type(S) when ?IS_ORDSET(S) ->
+type(S=?IS_ORDSET_PAT) ->
     ?ORDTYPE(S).
 
 -doc """
@@ -456,25 +459,25 @@ duplicates.
       ASet :: a_set() | ordset(),
       Sets :: tuple_of(AnySet) | [AnySet],
       AnySet :: anyset()).
-to_sets(S) when ?IS_SET(S) ->
+to_sets(S=?IS_SET_PAT) ->
     case ?TYPE(S) of
         ?SET_OF(Type) -> list_of_sets(?LIST(S), Type, []);
         Type -> list_of_ordsets(?LIST(S), Type, [])
     end;
-to_sets(S) when ?IS_ORDSET(S), is_tuple(?ORDTYPE(S)) ->
+to_sets(S=?IS_ORDSET_PAT) when is_tuple(?ORDTYPE(S)) ->
     tuple_of_sets(tuple_to_list(?ORDDATA(S)), tuple_to_list(?ORDTYPE(S)), []);
-to_sets(S) when ?IS_ORDSET(S) ->
+to_sets(?IS_ORDSET_PAT) ->
     erlang:error(badarg).
 
 -doc "Returns the number of elements of the ordered or unordered set `ASet`.".
 -spec(no_elements(ASet) -> NoElements when
       ASet :: a_set() | ordset(),
       NoElements :: non_neg_integer()).
-no_elements(S) when ?IS_SET(S) ->
-    length(?LIST(S));
-no_elements(S) when ?IS_ORDSET(S), is_tuple(?ORDTYPE(S)) ->
+no_elements(?SET_LIST_PAT(L)) ->
+    length(L);
+no_elements(S=?IS_ORDSET_PAT) when is_tuple(?ORDTYPE(S)) ->
     tuple_size(?ORDDATA(S));
-no_elements(S) when ?IS_ORDSET(S) ->
+no_elements(?IS_ORDSET_PAT) ->
     erlang:error(badarg).
 
 -doc """
@@ -496,7 +499,7 @@ sofs:to_external(S2).
       Fun :: spec_fun(),
       Set1 :: a_set(),
       Set2 :: a_set()).
-specification(Fun, S) when ?IS_SET(S) ->
+specification(Fun, S=?IS_SET_PAT) ->
     Type = ?TYPE(S),
     R = case external_fun(Fun) of
 	    false ->
@@ -516,10 +519,10 @@ specification(Fun, S) when ?IS_SET(S) ->
       Set1 :: a_set(),
       Set2 :: a_set(),
       Set3 :: a_set()).
-union(S1, S2) when ?IS_SET(S1), ?IS_SET(S2) ->
-    case unify_types(?TYPE(S1), ?TYPE(S2)) of
+union(?SET(L1,T1), ?SET(L2,T2)) ->
+    case unify_types(T1, T2) of
         [] -> erlang:error(type_mismatch);
-        Type ->  ?SET(umerge(?LIST(S1), ?LIST(S2)), Type)
+        Type ->  ?SET(umerge(L1, L2), Type)
     end.
 
 -doc "Returns the [intersection](`m:sofs#intersection`) of `Set1` and `Set2`.".
@@ -527,10 +530,10 @@ union(S1, S2) when ?IS_SET(S1), ?IS_SET(S2) ->
       Set1 :: a_set(),
       Set2 :: a_set(),
       Set3 :: a_set()).
-intersection(S1, S2) when ?IS_SET(S1), ?IS_SET(S2) ->
-    case unify_types(?TYPE(S1), ?TYPE(S2)) of
+intersection(?SET(L1,T1), ?SET(L2,T2)) ->
+    case unify_types(T1, T2) of
         [] -> erlang:error(type_mismatch);
-        Type ->  ?SET(intersection(?LIST(S1), ?LIST(S2), []), Type)
+        Type ->  ?SET(intersection(L1, L2, []), Type)
     end.
 
 -doc "Returns the [difference](`m:sofs#difference`) of the sets `Set1` and `Set2`.".
@@ -538,10 +541,10 @@ intersection(S1, S2) when ?IS_SET(S1), ?IS_SET(S2) ->
       Set1 :: a_set(),
       Set2 :: a_set(),
       Set3 :: a_set()).
-difference(S1, S2) when ?IS_SET(S1), ?IS_SET(S2) ->
-    case unify_types(?TYPE(S1), ?TYPE(S2)) of
+difference(?SET(L1,T1), ?SET(L2,T2)) ->
+    case unify_types(T1, T2) of
         [] -> erlang:error(type_mismatch);
-        Type ->  ?SET(difference(?LIST(S1), ?LIST(S2), []), Type)
+        Type ->  ?SET(difference(L1, L2, []), Type)
     end.
 
 -doc """
@@ -560,10 +563,10 @@ sofs:to_external(P).
       Set1 :: a_set(),
       Set2 :: a_set(),
       Set3 :: a_set()).
-symdiff(S1, S2) when ?IS_SET(S1), ?IS_SET(S2) ->
-    case unify_types(?TYPE(S1), ?TYPE(S2)) of
+symdiff(?SET(L1,T1), ?SET(L2,T2)) ->
+    case unify_types(T1, T2) of
         [] -> erlang:error(type_mismatch);
-        Type ->  ?SET(symdiff(?LIST(S1), ?LIST(S2), []), Type)
+        Type ->  ?SET(symdiff(L1, L2, []), Type)
     end.
 
 -doc """
@@ -579,10 +582,10 @@ Returns a triple of sets:
       Set3 :: a_set(),
       Set4 :: a_set(),
       Set5 :: a_set()).
-symmetric_partition(S1, S2) when ?IS_SET(S1), ?IS_SET(S2) ->
-    case unify_types(?TYPE(S1), ?TYPE(S2)) of
+symmetric_partition(?SET(L1,T1), ?SET(L2,T2)) ->
+    case unify_types(T1, T2) of
         [] -> erlang:error(type_mismatch);
-        Type ->  sympart(?LIST(S1), ?LIST(S2), [], [], [], Type)
+        Type ->  sympart(L1, L2, [], [], [], Type)
     end.
 
 -doc """
@@ -604,14 +607,14 @@ sofs:to_external(R).
       BinRel :: binary_relation(),
       Set1 :: a_set(),
       Set2 :: a_set()).
-product(S1, S2) when ?IS_SET(S1), ?IS_SET(S2) ->
+product(S1=?SET(L1,T1), S2=?SET(L2,T2)) ->
     if
-        ?TYPE(S1) =:= ?ANYTYPE -> S1;
-        ?TYPE(S2) =:= ?ANYTYPE -> S2;
+        T1 =:= ?ANYTYPE -> S1;
+        T2 =:= ?ANYTYPE -> S2;
         true ->
 	    F = fun(E) -> {0, E} end,
-	    T = ?BINREL(?TYPE(S1), ?TYPE(S2)),
-	    ?SET(relprod(map(F, ?LIST(S1)), map(F, ?LIST(S2))), T)
+	    T = ?BINREL(T1, T2),
+	    ?SET(relprod(map(F, L1), map(F, L2)), T)
     end.
 
 -doc """
@@ -666,7 +669,7 @@ sofs:to_external(R).
       AnySet :: anyset(),
       Function :: a_function(),
       Set :: a_set()).
-constant_function(S, E) when ?IS_SET(S) ->
+constant_function(S=?IS_SET_PAT, E) ->
     case {?TYPE(S), is_sofs_set(E)} of
 	{?ANYTYPE, true} -> S;
 	{Type, true} ->
@@ -674,7 +677,7 @@ constant_function(S, E) when ?IS_SET(S) ->
 	    ?SET(constant_function(?LIST(S), to_external(E), []), NType);
 	_ -> erlang:error(badarg)
     end;
-constant_function(S, _) when ?IS_ORDSET(S) ->
+constant_function(?IS_ORDSET_PAT, _) ->
     erlang:error(badarg).
 
 -doc """
@@ -693,19 +696,19 @@ true
       AnySet1 :: anyset(),
       AnySet2 :: anyset(),
       Bool :: boolean()).
-is_equal(S1, S2) when ?IS_SET(S1), ?IS_SET(S2) ->
+is_equal(S1=?IS_SET_PAT, S2=?IS_SET_PAT) ->
     case match_types(?TYPE(S1), ?TYPE(S2)) of
         true  -> ?LIST(S1) == ?LIST(S2);
         false -> erlang:error(type_mismatch)
     end;
-is_equal(S1, S2) when ?IS_ORDSET(S1), ?IS_ORDSET(S2) ->
+is_equal(S1=?IS_ORDSET_PAT, S2=?IS_ORDSET_PAT) ->
     case match_types(?ORDTYPE(S1), ?ORDTYPE(S2)) of
         true  -> ?ORDDATA(S1) == ?ORDDATA(S2);
         false -> erlang:error(type_mismatch)
     end;
-is_equal(S1, S2) when ?IS_SET(S1), ?IS_ORDSET(S2) ->
+is_equal(?IS_SET_PAT, ?IS_ORDSET_PAT) ->
     erlang:error(type_mismatch);
-is_equal(S1, S2) when ?IS_ORDSET(S1), ?IS_SET(S2) ->
+is_equal(?IS_ORDSET_PAT, ?IS_SET_PAT) ->
     erlang:error(type_mismatch).
 
 -doc """
@@ -716,7 +719,7 @@ Returns `true` if `Set1` is a [subset](`m:sofs#subset`) of `Set2`, otherwise
       Bool :: boolean(),
       Set1 :: a_set(),
       Set2 :: a_set()).
-is_subset(S1, S2) when ?IS_SET(S1), ?IS_SET(S2) ->
+is_subset(S1=?IS_SET_PAT, S2=?IS_SET_PAT) ->
     case match_types(?TYPE(S1), ?TYPE(S2)) of
         true  -> subset(?LIST(S1), ?LIST(S2));
         false -> erlang:error(type_mismatch)
@@ -734,9 +737,9 @@ coincides with the representation of a `sofs` set. See also note on
 -spec(is_sofs_set(Term) -> Bool when
       Bool :: boolean(),
       Term :: term()).
-is_sofs_set(S) when ?IS_SET(S) ->
+is_sofs_set(?IS_SET_PAT) ->
     true;
-is_sofs_set(S) when ?IS_ORDSET(S) ->
+is_sofs_set(?IS_ORDSET_PAT) ->
     true;
 is_sofs_set(_S) ->
     false.
@@ -753,18 +756,18 @@ that coincides with the representation of an unordered set. See also note on
 -spec(is_set(AnySet) -> Bool when
       AnySet :: anyset(),
       Bool :: boolean()).
-is_set(S) when ?IS_SET(S) ->
+is_set(?IS_SET_PAT) ->
     true;
-is_set(S) when ?IS_ORDSET(S) ->
+is_set(?IS_ORDSET_PAT) ->
     false.
 
 -doc "Returns `true` if `AnySet` is an empty unordered set, otherwise `false`.".
 -spec(is_empty_set(AnySet) -> Bool when
       AnySet :: anyset(),
       Bool :: boolean()).
-is_empty_set(S) when ?IS_SET(S) ->
-    ?LIST(S) =:= [];
-is_empty_set(S) when ?IS_ORDSET(S) ->
+is_empty_set(?SET_LIST_PAT([])) -> true;
+is_empty_set(?SET(_,_)) -> false;
+is_empty_set(?IS_ORDSET_PAT) ->
     false.
 
 -doc """
@@ -775,7 +778,7 @@ Returns `true` if `Set1` and `Set2` are [disjoint](`m:sofs#disjoint`), otherwise
       Bool :: boolean(),
       Set1 :: a_set(),
       Set2 :: a_set()).
-is_disjoint(S1, S2) when ?IS_SET(S1), ?IS_SET(S2) ->
+is_disjoint(S1=?IS_SET_PAT, S2=?IS_SET_PAT) ->
     case match_types(?TYPE(S1), ?TYPE(S2)) of
         true ->
             case ?LIST(S1) of
@@ -793,7 +796,7 @@ is_disjoint(S1, S2) when ?IS_SET(S1), ?IS_SET(S2) ->
 -spec(union(SetOfSets) -> Set when
       Set :: a_set(),
       SetOfSets :: set_of_sets()).
-union(Sets) when ?IS_SET(Sets) ->
+union(Sets=?IS_SET_PAT) ->
     case ?TYPE(Sets) of
         ?SET_OF(Type) -> ?SET(lunion(?LIST(Sets)), Type);
         ?ANYTYPE -> Sets;
@@ -809,7 +812,7 @@ Intersecting an empty set of sets exits the process with a `badarg` message.
 -spec(intersection(SetOfSets) -> Set when
       Set :: a_set(),
       SetOfSets :: set_of_sets()).
-intersection(Sets) when ?IS_SET(Sets) ->
+intersection(Sets=?IS_SET_PAT) ->
     case ?LIST(Sets) of
         [] -> erlang:error(badarg);
         [L | Ls] ->
@@ -839,7 +842,7 @@ sofs:to_external(CR).
 -spec(canonical_relation(SetOfSets) -> BinRel when
       BinRel :: binary_relation(),
       SetOfSets :: set_of_sets()).
-canonical_relation(Sets) when ?IS_SET(Sets) ->
+canonical_relation(Sets=?IS_SET_PAT) ->
     ST = ?TYPE(Sets),
     case ST of
         ?SET_OF(?ANYTYPE) -> empty_set();
@@ -876,7 +879,7 @@ sofs:to_external(F).
       Family :: family(),
       BinRel :: binary_relation()).
 %% Inlined.
-relation_to_family(R) when ?IS_SET(R) ->
+relation_to_family(R=?IS_SET_PAT) ->
     case ?TYPE(R) of
         ?BINREL(DT, RT) ->
             ?SET(rel2family(?LIST(R)), ?FAMILY(DT, RT));
@@ -897,7 +900,7 @@ sofs:to_external(S).
 -spec(domain(BinRel) -> Set when
       BinRel :: binary_relation(),
       Set :: a_set()).
-domain(R) when ?IS_SET(R) ->
+domain(R=?IS_SET_PAT) ->
     case ?TYPE(R) of
         ?BINREL(DT, _)  -> ?SET(dom(?LIST(R)), DT);
         ?ANYTYPE -> R;
@@ -917,7 +920,7 @@ sofs:to_external(S).
 -spec(range(BinRel) -> Set when
       BinRel :: binary_relation(),
       Set :: a_set()).
-range(R) when ?IS_SET(R) ->
+range(R=?IS_SET_PAT) ->
     case ?TYPE(R) of
         ?BINREL(_, RT)  -> ?SET(ran(?LIST(R),  []), RT);
         ?ANYTYPE -> R;
@@ -998,13 +1001,13 @@ relations `BinRel1` and `BinRel2`.
       BinRel1 :: binary_relation(),
       BinRel2 :: binary_relation(),
       BinRel3 :: binary_relation()).
-relative_product(R1, R2) when ?IS_SET(R1), ?IS_SET(R2) ->
+relative_product(R1=?IS_SET_PAT, R2=?IS_SET_PAT) ->
     relative_product1(converse(R1), R2);
 %% The following clause is kept for backward compatibility.
 %% The list is due to Dialyzer's specs.
-relative_product(RT, R) when is_tuple(RT), ?IS_SET(R) ->
+relative_product(RT, R=?IS_SET_PAT) when is_tuple(RT) ->
     relative_product(tuple_to_list(RT), R);
-relative_product(RL, R) when is_list(RL), ?IS_SET(R) ->
+relative_product(RL, R=?IS_SET_PAT) when is_list(RL) ->
     EmptyR = case ?TYPE(R) of
                  ?BINREL(_, _) -> ?LIST(R) =:= [];
                  ?ANYTYPE -> true;
@@ -1037,7 +1040,7 @@ sofs:to_external(R3).
       BinRel1 :: binary_relation(),
       BinRel2 :: binary_relation(),
       BinRel3 :: binary_relation()).
-relative_product1(R1, R2) when ?IS_SET(R1), ?IS_SET(R2) ->
+relative_product1(R1=?IS_SET_PAT, R2=?IS_SET_PAT) ->
     {DTR1, RTR1} = case ?TYPE(R1) of
                      ?BINREL(_, _) = R1T -> R1T;
                      ?ANYTYPE -> {?ANYTYPE, ?ANYTYPE};
@@ -1068,8 +1071,8 @@ sofs:to_external(R2).
 -spec(converse(BinRel1) -> BinRel2 when
       BinRel1 :: binary_relation(),
       BinRel2 :: binary_relation()).
-converse(R) when ?IS_SET(R) ->
-    case ?TYPE(R) of
+converse(R=?SET_TYPE_PAT(Type)) ->
+    case Type of
         ?BINREL(DT, RT) -> ?SET(converse(?LIST(R), []), ?BINREL(RT, DT));
         ?ANYTYPE -> R;
         _ -> erlang:error(badarg)
@@ -1091,7 +1094,7 @@ sofs:to_external(S2).
       BinRel :: binary_relation(),
       Set1 :: a_set(),
       Set2 :: a_set()).
-image(R, S) when ?IS_SET(R), ?IS_SET(S) ->
+image(R=?IS_SET_PAT, S=?IS_SET_PAT) ->
     case ?TYPE(R) of
         ?BINREL(DT, RT) ->
 	    case match_types(DT, ?TYPE(S)) of
@@ -1120,7 +1123,7 @@ sofs:to_external(S2).
       BinRel :: binary_relation(),
       Set1 :: a_set(),
       Set2 :: a_set()).
-inverse_image(R, S) when ?IS_SET(R), ?IS_SET(S) ->
+inverse_image(R=?IS_SET_PAT, S=?IS_SET_PAT) ->
     case ?TYPE(R) of
         ?BINREL(DT, RT) ->
 	    case match_types(RT, ?TYPE(S)) of
@@ -1148,7 +1151,7 @@ sofs:to_external(R2).
 -spec(strict_relation(BinRel1) -> BinRel2 when
       BinRel1 :: binary_relation(),
       BinRel2 :: binary_relation()).
-strict_relation(R) when ?IS_SET(R) ->
+strict_relation(R=?IS_SET_PAT) ->
     case ?TYPE(R) of
         Type = ?BINREL(_, _) ->
             ?SET(strict(?LIST(R), []), Type);
@@ -1172,8 +1175,8 @@ sofs:to_external(R2).
 -spec(weak_relation(BinRel1) -> BinRel2 when
       BinRel1 :: binary_relation(),
       BinRel2 :: binary_relation()).
-weak_relation(R) when ?IS_SET(R) ->
-    case ?TYPE(R) of
+weak_relation(R=?SET_TYPE_PAT(T)) ->
+    case T of
         ?BINREL(DT, RT) ->
             case unify_types(DT, RT) of
                 [] ->
@@ -1204,8 +1207,8 @@ sofs:to_external(X).
       BinRel1 :: binary_relation(),
       BinRel2 :: binary_relation(),
       Set :: a_set()).
-extension(R, S, E) when ?IS_SET(R), ?IS_SET(S) ->
-    case {?TYPE(R), ?TYPE(S), is_sofs_set(E)} of
+extension(R=?SET_TYPE_PAT(TR), S=?SET_TYPE_PAT(TS), E) ->
+    case {TR, TS, is_sofs_set(E)} of
 	{T=?BINREL(DT, RT), ST, true} ->
 	    case match_types(DT, ST) and match_types(RT, type(E)) of
 		false ->
@@ -1239,8 +1242,8 @@ Returns `true` if the binary relation `BinRel` is a
 -spec(is_a_function(BinRel) -> Bool when
       Bool :: boolean(),
       BinRel :: binary_relation()).
-is_a_function(R) when ?IS_SET(R) ->
-    case ?TYPE(R) of
+is_a_function(R=?SET_TYPE_PAT(T)) ->
+    case T of
         ?BINREL(_, _) ->
             case ?LIST(R) of
                 [] -> true;
@@ -1311,13 +1314,13 @@ sofs:to_external(F).
       Function1 :: a_function(),
       Function2 :: a_function(),
       Function3 :: a_function()).
-composite(Fn1, Fn2) when ?IS_SET(Fn1), ?IS_SET(Fn2) ->
-    ?BINREL(DTF1, RTF1) = case ?TYPE(Fn1)of
+composite(Fn1=?SET_TYPE_PAT(T1), Fn2=?SET_TYPE_PAT(T2)) ->
+    ?BINREL(DTF1, RTF1) = case T1 of
 			      ?BINREL(_, _) = F1T -> F1T;
 			      ?ANYTYPE -> {?ANYTYPE, ?ANYTYPE};
 			      _ -> erlang:error(badarg)
 			  end,
-    ?BINREL(DTF2, RTF2) = case ?TYPE(Fn2) of
+    ?BINREL(DTF2, RTF2) = case T2 of
 			      ?BINREL(_, _) = F2T -> F2T;
 			      ?ANYTYPE -> {?ANYTYPE, ?ANYTYPE};
 			      _ -> erlang:error(badarg)
@@ -1348,8 +1351,8 @@ sofs:to_external(R2).
 -spec(inverse(Function1) -> Function2 when
       Function1 :: a_function(),
       Function2 :: a_function()).
-inverse(Fn) when ?IS_SET(Fn) ->
-    case ?TYPE(Fn) of
+inverse(Fn=?SET_TYPE_PAT(T)) ->
+    case T of
         ?BINREL(DT, RT) ->
 	    case inverse1(?LIST(Fn)) of
 		SL when is_list(SL) ->
@@ -1383,9 +1386,7 @@ sofs:to_external(S3).
       Set2 :: a_set(),
       Set3 :: a_set()).
 %% Equivalent to range(restriction(inverse(substitution(Fun, S1)), S2)).
-restriction(I, R, S) when is_integer(I), ?IS_SET(R), ?IS_SET(S) ->
-    RT = ?TYPE(R),
-    ST = ?TYPE(S),
+restriction(I, R=?SET_TYPE_PAT(RT), S=?SET_TYPE_PAT(ST)) when is_integer(I) ->
     case check_for_sort(RT, I) of
 	empty ->
 	    R;
@@ -1406,10 +1407,7 @@ restriction(I, R, S) when is_integer(I), ?IS_SET(R), ?IS_SET(S) ->
 		    erlang:error(type_mismatch)
 	    end
     end;
-restriction(SetFun, S1, S2) when ?IS_SET(S1), ?IS_SET(S2) ->
-    Type1 = ?TYPE(S1),
-    Type2 = ?TYPE(S2),
-    SL1 = ?LIST(S1),
+restriction(SetFun, S1=?SET(SL1,Type1), S2=?SET_TYPE_PAT(Type2)) ->
     case external_fun(SetFun) of
 	false when Type2 =:= ?ANYTYPE ->
 	    S2;
@@ -1466,9 +1464,7 @@ sofs:to_external(R3).
       Set1 :: a_set(),
       Set2 :: a_set(),
       Set3 :: a_set()).
-drestriction(I, R, S) when is_integer(I), ?IS_SET(R), ?IS_SET(S) ->
-    RT = ?TYPE(R),
-    ST = ?TYPE(S),
+drestriction(I, R=?SET_TYPE_PAT(RT), S=?SET_TYPE_PAT(ST)) when is_integer(I) ->
     case check_for_sort(RT, I) of
 	empty ->
 	    R;
@@ -1489,10 +1485,7 @@ drestriction(I, R, S) when is_integer(I), ?IS_SET(R), ?IS_SET(S) ->
 		    erlang:error(type_mismatch)
 	    end
     end;
-drestriction(SetFun, S1, S2) when ?IS_SET(S1), ?IS_SET(S2) ->
-    Type1 = ?TYPE(S1),
-    Type2 = ?TYPE(S2),
-    SL1 = ?LIST(S1),
+drestriction(SetFun, S1=?SET(SL1,Type1), S2=?SET_TYPE_PAT(Type2)) ->
     case external_fun(SetFun) of
 	false when Type2 =:= ?ANYTYPE ->
 	    S1;
@@ -1548,8 +1541,7 @@ sofs:to_external(S2).
       SetFun :: set_fun(),
       Set1 :: a_set(),
       Set2 :: a_set()).
-projection(I, Set) when is_integer(I), ?IS_SET(Set) ->
-    Type = ?TYPE(Set),
+projection(I, Set=?SET_TYPE_PAT(Type)) when is_integer(I) ->
     case check_for_sort(Type, I) of
         empty ->
             Set;
@@ -1615,8 +1607,7 @@ images2(SetOfSets, BinRel) ->
       SetFun :: set_fun(),
       Set1 :: a_set(),
       Set2 :: a_set()).
-substitution(I, Set) when is_integer(I), ?IS_SET(Set) ->
-    Type = ?TYPE(Set),
+substitution(I, Set=?SET_TYPE_PAT(Type)) when is_integer(I) ->
     case check_for_sort(Type, I) of
 	empty ->
 	    Set;
@@ -1627,8 +1618,7 @@ substitution(I, Set) when is_integer(I), ?IS_SET(Set) ->
 	    NSL = substitute_element(?LIST(Set), I, []),
 	    ?SET(NSL, ?BINREL(Type, NType))
     end;
-substitution(SetFun, Set) when ?IS_SET(Set) ->
-    Type = ?TYPE(Set),
+substitution(SetFun, Set=?SET_TYPE_PAT(Type)) ->
     L = ?LIST(Set),
     case external_fun(SetFun) of
 	false when L =/= [] ->
@@ -1691,8 +1681,7 @@ sofs:to_external(P).
       SetFun :: set_fun(),
       Partition :: a_set(),
       Set :: a_set()).
-partition(I, Set) when is_integer(I), ?IS_SET(Set) ->
-    Type = ?TYPE(Set),
+partition(I, Set=?SET_TYPE_PAT(Type)) when is_integer(I) ->
     case check_for_sort(Type, I) of
         empty ->
             Set;
@@ -1729,9 +1718,7 @@ S = sofs:set([2,4,6]),
       Set2 :: a_set(),
       Set3 :: a_set(),
       Set4 :: a_set()).
-partition(I, R, S) when is_integer(I), ?IS_SET(R), ?IS_SET(S) ->
-    RT = ?TYPE(R),
-    ST = ?TYPE(S),
+partition(I, R=?SET_TYPE_PAT(RT), S=?SET_TYPE_PAT(ST)) when is_integer(I) ->
     case check_for_sort(RT, I) of
 	empty ->
 	    {R, R};
@@ -1754,9 +1741,7 @@ partition(I, R, S) when is_integer(I), ?IS_SET(R), ?IS_SET(S) ->
 		    erlang:error(type_mismatch)
 	    end
     end;
-partition(SetFun, S1, S2) when ?IS_SET(S1), ?IS_SET(S2) ->
-    Type1 = ?TYPE(S1),
-    Type2 = ?TYPE(S2),
+partition(SetFun, S1=?SET_TYPE_PAT(Type1), S2=?SET_TYPE_PAT(Type2)) ->
     SL1 = ?LIST(S1),
     case external_fun(SetFun) of
 	false when Type2 =:= ?ANYTYPE ->
@@ -1814,7 +1799,7 @@ sofs:to_external(sofs:range(MP)).
       BinRel :: binary_relation(),
       BinRel1 :: binary_relation(),
       BinRel2 :: binary_relation()).
-multiple_relative_product(T, R) when is_tuple(T), ?IS_SET(R) ->
+multiple_relative_product(T, R=?IS_SET_PAT) when is_tuple(T) ->
     case test_rel(R, tuple_size(T), eq) of
 	true when ?TYPE(R) =:= ?ANYTYPE ->
 	    empty_set();
@@ -1843,8 +1828,8 @@ sofs:to_external(J).
       Relation3 :: relation(),
       I :: pos_integer(),
       J :: pos_integer()).
-join(R1, I1, R2, I2)
-  when ?IS_SET(R1), ?IS_SET(R2), is_integer(I1), is_integer(I2) ->
+join(R1=?IS_SET_PAT, I1, R2=?IS_SET_PAT, I2)
+  when is_integer(I1), is_integer(I2) ->
     case test_rel(R1, I1, lte) and test_rel(R2, I2, lte) of
         false -> erlang:error(badarg);
         true when ?TYPE(R1) =:= ?ANYTYPE -> R1;
@@ -1901,8 +1886,8 @@ sofs:to_external(R).
       Family :: family(),
       BinRel :: binary_relation()).
 %% Inlined.
-family_to_relation(F) when ?IS_SET(F) ->
-    case ?TYPE(F) of
+family_to_relation(F=?SET_TYPE_PAT(T)) ->
+    case T of
         ?FAMILY(DT, RT) ->
 	    ?SET(family2rel(?LIST(F), []), ?BINREL(DT, RT));
         ?ANYTYPE -> F;
@@ -1929,8 +1914,8 @@ sofs:to_external(F2).
       Fun :: spec_fun(),
       Family1 :: family(),
       Family2 :: family()).
-family_specification(Fun, F) when ?IS_SET(F) ->
-    case ?TYPE(F) of
+family_specification(Fun, F=?SET_TYPE_PAT(T)) ->
+    case T of
         ?FAMILY(_DT, Type) = FType ->
 	    R = case external_fun(Fun) of
 		    false ->
@@ -1961,8 +1946,8 @@ sofs:to_external(S).
 -spec(union_of_family(Family) -> Set when
       Family :: family(),
       Set :: a_set()).
-union_of_family(F) when ?IS_SET(F) ->
-    case ?TYPE(F) of
+union_of_family(F=?SET_TYPE_PAT(T)) ->
+    case T of
         ?FAMILY(_DT, Type) ->
 	    ?SET(un_of_fam(?LIST(F), []), Type);
         ?ANYTYPE -> F;
@@ -1984,8 +1969,8 @@ sofs:to_external(S).
 -spec(intersection_of_family(Family) -> Set when
       Family :: family(),
       Set :: a_set()).
-intersection_of_family(F) when ?IS_SET(F) ->
-    case ?TYPE(F) of
+intersection_of_family(F=?SET_TYPE_PAT(T)) ->
+    case T of
         ?FAMILY(_DT, Type) ->
             case int_of_fam(?LIST(F)) of
                 FU when is_list(FU) ->
@@ -2015,8 +2000,8 @@ sofs:to_external(F2).
 -spec(family_union(Family1) -> Family2 when
       Family1 :: family(),
       Family2 :: family()).
-family_union(F) when ?IS_SET(F) ->
-    case ?TYPE(F) of
+family_union(F=?SET_TYPE_PAT(T)) ->
+    case T of
         ?FAMILY(DT, ?SET_OF(Type)) ->
 	    ?SET(fam_un(?LIST(F), []), ?FAMILY(DT, Type));
         ?ANYTYPE -> F;
@@ -2042,8 +2027,8 @@ sofs:to_external(F2).
 -spec(family_intersection(Family1) -> Family2 when
       Family1 :: family(),
       Family2 :: family()).
-family_intersection(F) when ?IS_SET(F) ->
-    case ?TYPE(F) of
+family_intersection(F=?SET_TYPE_PAT(T)) ->
+    case T of
         ?FAMILY(DT, ?SET_OF(Type)) ->
             case fam_int(?LIST(F), []) of
                 FU when is_list(FU) ->
@@ -2071,8 +2056,8 @@ sofs:to_external(F).
 -spec(family_domain(Family1) -> Family2 when
       Family1 :: family(),
       Family2 :: family()).
-family_domain(F) when ?IS_SET(F) ->
-    case ?TYPE(F) of
+family_domain(F=?SET_TYPE_PAT(T)) ->
+    case T of
         ?FAMILY(FDT, ?BINREL(DT, _)) ->
             ?SET(fam_dom(?LIST(F), []), ?FAMILY(FDT, DT));
         ?ANYTYPE -> F;
@@ -2096,8 +2081,8 @@ sofs:to_external(F).
 -spec(family_range(Family1) -> Family2 when
       Family1 :: family(),
       Family2 :: family()).
-family_range(F) when ?IS_SET(F) ->
-    case ?TYPE(F) of
+family_range(F=?SET_TYPE_PAT(T)) ->
+    case T of
         ?FAMILY(DT, ?BINREL(_, RT)) ->
             ?SET(fam_ran(?LIST(F), []), ?FAMILY(DT, RT));
         ?ANYTYPE -> F;
@@ -2191,8 +2176,8 @@ family_difference(F1, F2) ->
     fam_binop(F1, F2, fun fam_difference/3).
 
 %% Inlined.
-fam_binop(F1, F2, FF) when ?IS_SET(F1), ?IS_SET(F2) ->
-    case unify_types(?TYPE(F1), ?TYPE(F2)) of
+fam_binop(F1=?SET_TYPE_PAT(T1), F2=?SET_TYPE_PAT(T2), FF) ->
+    case unify_types(T1, T2) of
         [] ->
             erlang:error(type_mismatch);
         ?ANYTYPE ->
@@ -2221,8 +2206,7 @@ sofs:to_external(F).
       Family :: family(),
       SetFun :: set_fun(),
       Set :: a_set()).
-partition_family(I, Set) when is_integer(I), ?IS_SET(Set) ->
-    Type = ?TYPE(Set),
+partition_family(I, Set=?SET_TYPE_PAT(Type)) when is_integer(I) ->
     case check_for_sort(Type, I) of
         empty ->
             Set;
@@ -2235,9 +2219,7 @@ partition_family(I, Set) when is_integer(I), ?IS_SET(Set) ->
 	    ?SET(fam_partition_n(I, keysort(I, ?LIST(Set))),
 		 ?BINREL(?REL_TYPE(I, Type), ?SET_OF(Type)))
     end;
-partition_family(SetFun, Set) when ?IS_SET(Set) ->
-    Type = ?TYPE(Set),
-    SL = ?LIST(Set),
+partition_family(SetFun, Set=?SET(SL,Type)) ->
     case external_fun(SetFun) of
 	false when SL =/= [] ->
 	    case subst(SL, SetFun, element_type(Type)) of
@@ -2280,8 +2262,8 @@ sofs:to_external(F2).
       SetFun :: set_fun(),
       Family1 :: family(),
       Family2 :: family()).
-family_projection(SetFun, F) when ?IS_SET(F) ->
-    case ?TYPE(F) of
+family_projection(SetFun, F=?SET_TYPE_PAT(T)) ->
+    case T of
         ?FAMILY(_, _) when [] =:= ?LIST(F) ->
 	    empty_set();
         ?FAMILY(DT, Type) ->
@@ -2308,8 +2290,8 @@ family_projection(SetFun, F) when ?IS_SET(F) ->
 -spec(family_to_digraph(Family) -> Graph when
       Graph :: digraph:graph(),
       Family :: family()).
-family_to_digraph(F) when ?IS_SET(F) ->
-    case ?TYPE(F) of
+family_to_digraph(F=?SET_TYPE_PAT(T)) ->
+    case T of
         ?FAMILY(_, _) -> fam2digraph(F, digraph:new());
         ?ANYTYPE -> digraph:new();
         _Else -> erlang:error(badarg)
@@ -2333,8 +2315,8 @@ Creating a cycle in an acyclic graph exits the process with a `cyclic` message.
       Graph :: digraph:graph(),
       Family :: family(),
       GraphType :: [digraph:d_type()]).
-family_to_digraph(F, Type) when ?IS_SET(F) ->
-    case ?TYPE(F) of
+family_to_digraph(F=?SET_TYPE_PAT(T), Type) ->
+    case T of
         ?FAMILY(_, _) -> ok;
         ?ANYTYPE -> ok;
         _Else  -> erlang:error(badarg)
@@ -2411,13 +2393,13 @@ is_element_type(?ANYTYPE) ->
 is_element_type(T) ->
     is_type(T).
 
-set_of_sets([S | Ss], L, T0) when ?IS_SET(S) ->
-    case unify_types([?TYPE(S)], T0) of
+set_of_sets([S=?SET_TYPE_PAT(T) | Ss], L, T0) ->
+    case unify_types([T], T0) of
         [] -> {error, type_mismatch};
         Type ->  set_of_sets(Ss, [?LIST(S) | L], Type)
     end;
-set_of_sets([S | Ss], L, T0) when ?IS_ORDSET(S) ->
-    case unify_types(?ORDTYPE(S), T0) of
+set_of_sets([S=?ORDSET_TYPE_PAT(T) | Ss], L, T0) ->
+    case unify_types(T, T0) of
         [] -> {error, type_mismatch};
         Type ->  set_of_sets(Ss, [?ORDDATA(S) | L], Type)
     end;
@@ -2426,12 +2408,12 @@ set_of_sets([], L, T) ->
 set_of_sets(_, _L, _T) ->
     {error, badarg}.
 
-ordset_of_sets([S | Ss], L, T) when ?IS_SET(S) ->
-    ordset_of_sets(Ss, [?LIST(S) | L], [[?TYPE(S)] | T]);
-ordset_of_sets([S | Ss], L, T) when ?IS_ORDSET(S) ->
-    ordset_of_sets(Ss, [?ORDDATA(S) | L], [?ORDTYPE(S) | T]);
+ordset_of_sets([?SET(SL,ST) | Ss], L, T) ->
+    ordset_of_sets(Ss, [SL | L], [[ST] | T]);
+ordset_of_sets([?ORDSET(SD,ST) | Ss], L, T) ->
+    ordset_of_sets(Ss, [SD | L], [ST | T]);
 ordset_of_sets([], L, T) ->
-    ?ORDSET(list_to_tuple(reverse(L)), list_to_tuple(reverse(T)));
+    ?ORDSET(list_to_tuple_rev(L), list_to_tuple_rev(T));
 ordset_of_sets(_, _L, _T) ->
     error.
 
@@ -2587,7 +2569,7 @@ make_tuple([E | Es], [T | Ts], NT, L, [T0 | T0s]) ->
     {ET, ES} = make_element(E, T, T0),
     make_tuple(Es, Ts, [ET | NT], [ES | L], T0s);
 make_tuple([], [], NT, L, _T0s) when NT =/= [] ->
-    {list_to_tuple(reverse(NT)), list_to_tuple(reverse(L))}.
+    {list_to_tuple_rev(NT), list_to_tuple_rev(L)}.
 
 %% Derive type.
 make_element(C) when not is_list(C), not is_tuple(C) ->
@@ -2601,7 +2583,7 @@ make_tuple([E | Es], T, L) ->
     {ET, ES} = make_element(E),
     make_tuple(Es, [ET | T], [ES | L]);
 make_tuple([], T, L) when T =/= [] ->
-    {list_to_tuple(reverse(T)),  list_to_tuple(reverse(L))}.
+    {list_to_tuple_rev(T),  list_to_tuple_rev(L)}.
 
 make_oset([T | Ts], Szs, L, Type) ->
     true = test_oset(Szs, T, T),
@@ -2636,7 +2618,7 @@ tuple_of_sets([S | Ss], [?SET_OF(Type) | Types], L) ->
 tuple_of_sets([S | Ss], [Type | Types], L) ->
     tuple_of_sets(Ss, Types, [?ORDSET(S, Type) | L]);
 tuple_of_sets([], [], L) ->
-    list_to_tuple(reverse(L)).
+    list_to_tuple_rev(L).
 
 spec([E | Es], Fun, Type, L) ->
     case Fun(term2set(E, Type)) of
@@ -2780,7 +2762,7 @@ sympart2(T1, _, L1, L12, L2, T, H1) ->
 prod([[E | Es] | Xs], T, L) ->
     prod(Es, Xs, T, prod(Xs, [E | T], L));
 prod([], T, L) ->
-    [list_to_tuple(reverse(T)) | L].
+    [list_to_tuple_rev(T) | L].
 
 prod([E | Es], Xs, T, L) ->
     prod(Es, Xs, T, prod(Xs, [E | T], L));
@@ -2958,8 +2940,8 @@ flat(1, A, L) ->
 flat(N, {T,A}, L) ->
     flat(N-1, T, [A | L]).
 
-domain_type([T | Ts], T0) when ?IS_SET(T) ->
-    case ?TYPE(T) of
+domain_type([?SET_TYPE_PAT(Type) | Ts], T0) ->
+    case Type of
         ?BINREL(DT, _RT) ->
             case unify_types(DT, T0) of
                 [] -> {error, type_mismatch};
@@ -2980,10 +2962,18 @@ range_type([T | Ts], L) ->
             ?ANYTYPE
     end;
 range_type([], L) ->
-    list_to_tuple(reverse(L)).
+    list_to_tuple_rev(L).
 
-converse([{A,B} | X], L) ->
-    converse(X, [{B,A} | L]);
+converse([{A1,B1},{A2,B2},{A3,B3},{A4,B4}], L) ->
+    sort([{B4,A4},{B3,A3},{B2,A2},{B1,A1} | L]);
+converse([{A1,B1},{A2,B2},{A3,B3},{A4,B4}| X], L) ->
+    converse(X, [{B4,A4},{B3,A3},{B2,A2},{B1,A1} | L]);
+converse([{A1,B1},{A2,B2},{A3,B3}], L) ->
+    sort([{B3,A3},{B2,A2},{B1,A1} | L]);
+converse([{A1,B1},{A2,B2}], L) ->
+    sort([{B2,A2},{B1,A1} | L]);
+converse([{A1,B1}], L) ->
+    sort([{B1,A1} | L]);
 converse([], L) ->
     sort(L).
 
@@ -2998,6 +2988,10 @@ weak(Es) ->
     %% Not very efficient...
     weak(Es, ran(Es, []), []).
 
+weak([]=Nil, [Y | Ys], L) ->
+    weak(Nil, Ys, [{Y,Y} | L]);
+weak([], [], L) ->
+    reverse(L);
 weak(Es=[{X,_} | _], [Y | Ys], L) when X > Y ->
     weak(Es, Ys, [{Y,Y} | L]);
 weak(Es=[{X,_} | _], [Y | Ys], L) when X == Y ->
@@ -3007,11 +3001,7 @@ weak([E={X,Y} | Es], Ys, L) when X > Y ->
 weak([E={X,Y} | Es], Ys, L) when X == Y ->
     weak2(Es, Ys, [E | L], X);
 weak([E={X,_Y} | Es], Ys, L) -> % when X < _Y
-    weak2(Es, Ys, [E, {X,X} | L], X);
-weak([], [Y | Ys], L) ->
-    weak([], Ys, [{Y,Y} | L]);
-weak([], [], L) ->
-    reverse(L).
+    weak2(Es, Ys, [E, {X,X} | L], X).
 
 weak1([E={X,Y} | Es], Ys, L, X0) when X > Y, X == X0 ->
     weak1(Es, Ys, [E | L], X);
@@ -3157,8 +3147,8 @@ diff_restrict_tail([{_K,E} | Ts], L) ->
 diff_restrict_tail(_Ts, L) ->
     L.
 
-comp([], B) ->
-    check_function(B, []);
+comp([]=Nil, B) ->
+    check_function(B, Nil);
 comp(_A, []) ->
     bad_function;
 comp(A0, [{Bx,By} | B]) ->
@@ -3183,8 +3173,8 @@ comp2(_A, _B, _L, _Bx0, _Ay, _Ax) ->
 
 inverse1([{A,B} | X]) ->
     inverse(X, A, [{B,A}]);
-inverse1([]) ->
-    [].
+inverse1([]=Nil) ->
+    Nil.
 
 inverse([{A,B} | X], A0, L) when A0 /= A ->
     inverse(X, A, [{B,A} | L]);
@@ -3250,8 +3240,8 @@ substitute(_, _Fun, L) ->
 
 partition_n(I, [E | Ts]) ->
     partition_n(I, Ts, element(I, E), [E], []);
-partition_n(_I, []) ->
-    [].
+partition_n(_I, []=Nil) ->
+    Nil.
 
 partition_n(I, [E | Ts], K, Es, P) ->
     case {element(I, E), Es} of
@@ -3327,12 +3317,12 @@ replace([E | Es], F, L) ->
 replace(_, _F, L) ->
     sort(L).
 
-mul_relprod([T | Ts], I, R) when ?IS_SET(T) ->
+mul_relprod([T=?IS_SET_PAT | Ts], I, R) ->
     P = raise_element(R, I),
     F = relative_product1(P, T),
     [F | mul_relprod(Ts, I+1, R)];
-mul_relprod([], _I, _R) ->
-    [].
+mul_relprod([]=Nil, _I, _R) ->
+    Nil.
 
 raise_element(R, I) ->
     L = sort(I =/= 1, rearr(?LIST(R), I, [])),
@@ -3468,8 +3458,8 @@ check_function(_X0, [], R) ->
 
 fam_partition_n(I, [E | Ts]) ->
     fam_partition_n(I, Ts, element(I, E), [E], []);
-fam_partition_n(_I, []) ->
-    [].
+fam_partition_n(_I, []=Nil) ->
+    Nil.
 
 fam_partition_n(I, [E | Ts], K, Es, P) ->
     case {element(I, E), Es} of
@@ -3487,8 +3477,8 @@ fam_partition_n(_I, [], K, Es, P) ->
 
 fam_partition([{K,Vs} | Ts], Sort) ->
     fam_partition(Ts, K, [Vs], [], Sort);
-fam_partition([], _Sort) ->
-    [].
+fam_partition([]=Nil, _Sort) ->
+    Nil.
 
 fam_partition([{K1,V} | Ts], K, Vs, P, S) when K1 == K ->
     fam_partition(Ts, K, [V | Vs], P, S);
@@ -3511,12 +3501,12 @@ fam_proj([], _Fun, _Type, NType, L) ->
 
 setfun(T, Fun, Type, NType) ->
     case Fun(term2set(T, Type)) of
-	NS when ?IS_SET(NS) ->
+	NS=?IS_SET_PAT ->
 	    case unify_types(NType, ?SET_OF(?TYPE(NS))) of
 		[] -> type_mismatch;
 		NT -> {?LIST(NS), NT}
 	    end;
-	NS when ?IS_ORDSET(NS) ->
+	NS=?IS_ORDSET_PAT ->
 	    case unify_types(NType, NT = ?ORDTYPE(NS)) of
 		[] -> type_mismatch;
 		NT -> {?ORDDATA(NS), NT}
@@ -3599,10 +3589,10 @@ fun_rearr([], _Fun, L) ->
     L.
 
 sets_to_list(Ss) ->
-    map(fun(S) when ?IS_SET(S) -> ?LIST(S) end, Ss).
+    map(fun(?SET_LIST_PAT(L)) -> L end, Ss).
 
 types([], L) ->
-    list_to_tuple(reverse(L));
+    list_to_tuple_rev(L);
 types([S | _Ss], _L) when ?TYPE(S) =:= ?ANYTYPE ->
     ?ANYTYPE;
 types([S | Ss], L) ->
@@ -3661,3 +3651,34 @@ sort(true, L) ->
     sort(L);
 sort(false, L) ->
     reverse(L).
+
+% Optimised version of list_to_tuple(lists:reverse(Foo))
+% By placing the function definition in this file, we also
+% save on remote function calls.
+-compile({inline, [{list_to_tuple_rev,1}]}).
+list_to_tuple_rev([]) ->
+    {};
+list_to_tuple_rev([A,B]) ->
+    {B,A};
+list_to_tuple_rev([A,B,C]) ->
+    {C,B,A};
+list_to_tuple_rev([A,B,C,D]) ->
+    {D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E]) ->
+    {E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F]) ->
+    {F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G]) ->
+    {G,F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G,H]) ->
+    {H,G,F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G,H,I]) ->
+    {I,H,G,F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G,H,I,J]) ->
+    {J,I,H,G,F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G,H,I,J,K]) ->
+    {K,J,I,H,G,F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G,H,I,J,K,L]) ->
+    {L,K,J,I,H,G,F,E,D,C,B,A};
+list_to_tuple_rev(L) ->
+    list_to_tuple(lists:reverse(L, [])).

@@ -337,11 +337,11 @@ For a description of the options, see `string/3`.
       Options :: options(),
       Return :: {'done',Result :: tokens_result(),LeftOverChars :: char_spec()}
               | {'more', Continuation1 :: return_cont()}.
-tokens([], CharSpec, Line, Options) when ?ALINE(Line) ->
-    tokens1(CharSpec, options(Options), Line, no_col, [], fun scan/6, []);
-tokens([], CharSpec, {Line,Column}, Options) when ?ALINE(Line),
+tokens([]=Nil, CharSpec, Line, Options) when ?ALINE(Line) ->
+    tokens1(CharSpec, options(Options), Line, no_col, Nil, fun scan/6, Nil);
+tokens([]=Nil, CharSpec, {Line,Column}, Options) when ?ALINE(Line),
                                                   ?COLUMN(Column) ->
-    tokens1(CharSpec, options(Options), Line, Column, [], fun scan/6, []);
+    tokens1(CharSpec, options(Options), Line, Column, Nil, fun scan/6, []);
 tokens({erl_scan_continuation,Cs,Col,Toks,Line,St,Any,Fun},
        CharSpec, _Loc, _Opts) ->
     tokens1(Cs++CharSpec, St, Line, Col, Toks, Fun, Any).
@@ -554,14 +554,6 @@ string1(Cs, St, Line, Col, Toks) ->
 scan(Cs, #erl_scan{}=St, Line, Col, Toks, _) ->
     scan1(Cs, St, Line, Col, Toks).
 
-scan1([$\s|Cs], St, Line, Col, Toks) when St#erl_scan.ws ->
-    scan_spcs(Cs, St, Line, Col, Toks, 1);
-scan1([$\s|Cs], St, Line, Col, Toks) ->
-    skip_white_space(Cs, St, Line, Col, Toks, 1);
-scan1([$\n|Cs], St, Line, Col, Toks) when St#erl_scan.ws ->
-    scan_newline(Cs, St, Line, Col, Toks);
-scan1([$\n|Cs], St, Line, Col, Toks) ->
-    skip_white_space(Cs, St, Line+1, new_column(Col, 1), Toks, 0);
 %% Optimization: some very common punctuation characters:
 scan1([$,|Cs], St, Line, Col, Toks) ->
     tok2(Cs, St, Line, Col, Toks, ",", ',', 1);
@@ -581,6 +573,14 @@ scan1([$;|Cs], St, Line, Col, Toks) ->
     tok2(Cs, St, Line, Col, Toks, ";", ';', 1);
 scan1([$_=C|Cs], St, Line, Col, Toks) ->
     scan_variable(Cs, St, Line, Col, Toks, [C]);
+scan1([$\s|Cs], St, Line, Col, Toks) when St#erl_scan.ws ->
+    scan_spcs(Cs, St, Line, Col, Toks, 1);
+scan1([$\s|Cs], St, Line, Col, Toks) ->
+    skip_white_space(Cs, St, Line, Col, Toks, 1);
+scan1([$\n|Cs], St, Line, Col, Toks) when St#erl_scan.ws ->
+    scan_newline(Cs, St, Line, Col, Toks);
+scan1([$\n|Cs], St, Line, Col, Toks) ->
+    skip_white_space(Cs, St, Line+1, new_column(Col, 1), Toks, 0);
 scan1([$\%=C|Cs], St, Line, Col, Toks) when St#erl_scan.checks ->
     scan_check(Cs, St, Line, Col, Toks, [C]);
 scan1([$\%|Cs], St, Line, Col, Toks) when not St#erl_scan.comment ->
@@ -744,8 +744,8 @@ scan1([C|Cs], St, Line, Col, Toks) when ?UNI255(C) ->
 scan1([C|Cs], _St, Line, Col, _Toks) when ?CHAR(C) ->
     Ncol = incr_column(Col, 1),
     scan_error({illegal,character}, Line, Col, Line, Ncol, Cs);
-scan1([]=Cs, St, Line, Col, Toks) ->
-    {more,{Cs,St,Col,Toks,Line,[],fun scan/6}};
+scan1([]=Nil, St, Line, Col, Toks) ->
+    {more,{Nil,St,Col,Toks,Line,Nil,fun scan/6}};
 scan1(eof=Cs, _St, Line, Col, Toks) ->
     {ok,Toks,Cs,Line,Col}.
 
@@ -794,24 +794,24 @@ scan_variable(Cs0, St, Line, Col, Toks, Ncs0) ->
     end.
 
 
+scan_name([$_|Cs], Wcs) ->
+    scan_name(Cs, [$_|Wcs]);
+scan_name([$@|Cs], Wcs) ->
+    scan_name(Cs, [$@|Wcs]);
+scan_name([], Wcs) ->
+    {more,Wcs};
 scan_name([C|_]=Cs, Wcs) when not ?CHAR(C) ->
     {Wcs,Cs};
 scan_name([C|Cs], Wcs) when C >= $a, C =< $z ->
     scan_name(Cs, [C|Wcs]);
 scan_name([C|Cs], Wcs) when C >= $A, C =< $Z ->
     scan_name(Cs, [C|Wcs]);
-scan_name([$_=C|Cs], Wcs) ->
-    scan_name(Cs, [C|Wcs]);
 scan_name([C|Cs], Wcs) when ?DIGIT(C) ->
-    scan_name(Cs, [C|Wcs]);
-scan_name([$@=C|Cs], Wcs) ->
     scan_name(Cs, [C|Wcs]);
 scan_name([C|Cs], Wcs) when C >= $ß, C =< $ÿ, C =/= $÷ ->
     scan_name(Cs, [C|Wcs]);
 scan_name([C|Cs], Wcs) when C >= $À, C =< $Þ, C =/= $× ->
     scan_name(Cs, [C|Wcs]);
-scan_name([], Wcs) ->
-    {more,Wcs};
 scan_name(Cs, Wcs) ->
     {Wcs,Cs}.
 
@@ -878,8 +878,8 @@ scan_newline([$\r|Cs], St, Line, Col, Toks) ->
     newline_end(Cs, St, Line, Col, Toks, 2, "\n\r");
 scan_newline([$\f|Cs], St, Line, Col, Toks) ->
     newline_end(Cs, St, Line, Col, Toks, 2, "\n\f");
-scan_newline([], St, Line, Col, Toks) ->
-    {more,{[$\n],St,Col,Toks,Line,[],fun scan/6}};
+scan_newline([]=Nil, St, Line, Col, Toks) ->
+    {more,{[$\n],St,Col,Toks,Line,Nil,fun scan/6}};
 scan_newline(Cs, St, Line, Col, Toks) ->
     scan_nl_white_space(Cs, St, Line, Col, Toks, "\n").
 
@@ -1019,8 +1019,8 @@ scan_char([C|Cs], St, Line, Col, Toks) when ?UNICODE(C) ->
     scan1(Cs, St, Line, incr_column(Col, 2), [{char,Anno,C}|Toks]);
 scan_char([C|_Cs], _St, Line, Col, _Toks) when ?CHAR(C) ->
     scan_error({illegal,character}, Line, Col, Line, incr_column(Col, 1), eof);
-scan_char([], St, Line, Col, Toks) ->
-    {more,{[$$],St,Col,Toks,Line,[],fun scan/6}};
+scan_char([]=Nil, St, Line, Col, Toks) ->
+    {more,{[$$],St,Col,Toks,Line,Nil,fun scan/6}};
 scan_char(eof, _St, Line, Col, _Toks) ->
     scan_error({unterminated,char}, Line, Col, Line, incr_column(Col, 1), eof).
 
@@ -1127,9 +1127,9 @@ scan_tqstring(Cs, St, Line, Col, Toks, SigilType, Qs) ->
 %% Scan leading $" characters until we have them all, then scan lines
 scan_tqstring(Cs, St, Line, Col, Toks, {SigilType,Qs}) ->
     case scan_count(Cs, $", Qs) of %"
-        {[],Nqs} ->
+        {[]=Nil,Nqs} ->
             {more,
-             {[], St, Col, Toks, Line, {SigilType,Nqs},
+             {Nil, St, Col, Toks, Line, {SigilType,Nqs},
               fun scan_tqstring/6}};
         {Ncs,Nqs} ->
             Verbatim =
@@ -1294,12 +1294,6 @@ scan_tqstring_finish(Cs, St, Line, Col, Toks, Tqs) ->
     case
         tqstring_finish(lists:reverse(IndentR), NcontentR, Line-1)
     of
-        Content when is_list(Content) ->
-            #tqs{ str = Str, sigil_type = SigilType } = Tqs,
-            AnnoStr = ?STR(string, St, Text, lists:reverse(Str)),
-            Tok = {string,anno(Line0, Col0, St, AnnoStr),Content},
-            scan_sigil_suffix(
-              Cs, St, Line, new_column(Col0, Col), [Tok|Toks], SigilType);
         {Tag=indentation, ErrorLine, ErrorCol} ->
             scan_error(
               Tag, ErrorLine, new_column(Col0, ErrorCol),
@@ -1307,7 +1301,13 @@ scan_tqstring_finish(Cs, St, Line, Col, Toks, Tqs) ->
         {Tag=white_space, N} ->
             scan_error(
               Tag, Line0, incr_column(Col0, Tqs#tqs.qs+N),
-              Line, new_column(Col0, Col), Cs)
+              Line, new_column(Col0, Col), Cs);
+        Content when is_list(Content) ->
+            #tqs{ str = Str, sigil_type = SigilType } = Tqs,
+            AnnoStr = ?STR(string, St, Text, lists:reverse(Str)),
+            Tok = {string,anno(Line0, Col0, St, AnnoStr),Content},
+            scan_sigil_suffix(
+              Cs, St, Line, new_column(Col0, Col), [Tok|Toks], SigilType)
     end.
 
 %% Strip newline from the last line, but not if it is the only line
@@ -1370,7 +1370,11 @@ strip_indent(Indent, Cs) ->
         _ ->
             strip_indent(Indent, Cs, 1)
     end.
-%%
+
+strip_indent([C1,C2,C3|Indent], [C1,C2,C3|Cs], Col) ->
+    strip_indent(Indent, Cs, Col+3);    % Strip
+strip_indent([C1,C2|Indent], [C1,C2|Cs], Col) ->
+    strip_indent(Indent, Cs, Col+2);    % Strip
 strip_indent([C|Indent], [C|Cs], Col) ->
     strip_indent(Indent, Cs, Col+1);    % Strip
 strip_indent([], Cs, _) -> Cs;          % Done
@@ -2083,7 +2087,11 @@ int_column(Col) when is_integer(Col) ->
 
 %% lists:duplicate/3 (not exported)
 lists_duplicate(0, _, L) -> L;
-lists_duplicate(N, X, L) -> lists_duplicate(N-1, X, [X|L]).
+lists_duplicate(1, X, L) -> [X|L];
+lists_duplicate(2, X, L) -> [X,X|L];
+lists_duplicate(3, X, L) -> [X,X,X|L];
+lists_duplicate(4, X, L) -> [X,X,X,X|L];
+lists_duplicate(N, X, L) -> lists_duplicate(N-4, X, [X,X,X,X|L]).
 
 %% lists:foldl/3 over lists:reverse/2
 lists_foldl_reverse(Lists, Acc) ->

@@ -57,11 +57,11 @@ suite() ->
     [{ct_hooks,[ts_install_cth]},
      {timetrap,{minutes,20}}].
 
-all() -> 
+all() ->
     [{group, error}, iso88591, otp_7810, otp_10302, otp_10990, otp_10992,
      otp_11807, otp_16480, otp_17024, text_fun, triple_quoted_string].
 
-groups() -> 
+groups() ->
     [{error, [], [error_1, error_2]}].
 
 init_per_suite(Config) ->

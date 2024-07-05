@@ -139,9 +139,8 @@ valid_session(#session{time_stamp = TimeStamp}, LifeTime) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
-do_client_select_session({_, _, #{reuse_session := {SessionId, SessionData}}},
-                         _, _, NewSession, _) when is_binary(SessionId) andalso
-                                                   is_binary(SessionData) ->
+do_client_select_session({_, _, #{reuse_session := {<<_/binary>>=_SessionId, <<_/binary>>=SessionData}}},
+                         _, _, NewSession, _) ->
     try binary_to_term(SessionData, [safe]) of
         Session ->
             Session#session{is_resumable = true}
@@ -149,8 +148,8 @@ do_client_select_session({_, _, #{reuse_session := {SessionId, SessionData}}},
         _:_ ->
             NewSession#session{session_id = ?EMPTY_ID}
     end;
-do_client_select_session({Host, Port, #{reuse_session := SessionId}},
-                         Cache, CacheCb, NewSession, _) when is_binary(SessionId)->
+do_client_select_session({Host, Port, #{reuse_session := (<<_/binary>>=SessionId)}},
+                         Cache, CacheCb, NewSession, _) ->
     case CacheCb:lookup(Cache, {{Host, Port}, SessionId}) of
         undefined ->
 	    NewSession#session{session_id = ?EMPTY_ID};

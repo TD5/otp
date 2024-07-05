@@ -237,13 +237,13 @@ in the Standard Library.
 %% Behaviour is logarithmic (as it should be).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Some macros. 
+%% Some macros.
 
 -define(p, 2). % It seems that p = 2 is optimal for sorted keys
 
 -define(pow(A, _), A * A). % correct with exponent as defined above.
 
--define(div2(X), X bsr 1). 
+-define(div2(X), X bsr 1).
 
 -define(mul2(X), X bsl 1).
 
@@ -363,7 +363,7 @@ insert(Key, {S, T}) when is_integer(S), S >= 0 ->
     S1 = S + 1,
     {S1, insert_1(Key, T, ?pow(S1, ?p))}.
 
-insert_1(Key, {Key1, Smaller, Bigger}, S) when Key < Key1 -> 
+insert_1(Key, {Key1, Smaller, Bigger}, S) when Key < Key1 ->
     case insert_1(Key, Smaller, ?div2(S)) of
 	{T1, H1, S1} when is_integer(H1), is_integer(S1) ->
 	    T = {Key1, T1, Bigger},
@@ -372,7 +372,7 @@ insert_1(Key, {Key1, Smaller, Bigger}, S) when Key < Key1 ->
 	    SS = S1 + S2 + 1,
 	    P = ?pow(SS, ?p),
 	    if
-		H > P -> 
+		H > P ->
 		    balance(T, SS);
 		true ->
 		    {T, H, SS}
@@ -380,7 +380,7 @@ insert_1(Key, {Key1, Smaller, Bigger}, S) when Key < Key1 ->
 	T1 ->
 	    {Key1, T1, Bigger}
     end;
-insert_1(Key, {Key1, Smaller, Bigger}, S) when Key > Key1 -> 
+insert_1(Key, {Key1, Smaller, Bigger}, S) when Key > Key1 ->
     case insert_1(Key, Bigger, ?div2(S)) of
 	{T1, H1, S1} when is_integer(H1), is_integer(S1) ->
 	    T = {Key1, Smaller, T1},
@@ -389,7 +389,7 @@ insert_1(Key, {Key1, Smaller, Bigger}, S) when Key > Key1 ->
 	    SS = S1 + S2 + 1,
 	    P = ?pow(SS, ?p),
 	    if
-		H > P -> 
+		H > P ->
 		    balance(T, SS);
 		true ->
 		    {T, H, SS}
@@ -906,6 +906,8 @@ balance_revlist(L, S) when is_integer(S) ->
     {T, _} = balance_revlist_1(L, S),
     T.
 
+balance_revlist_1(L, 0) ->
+    {nil, L};
 balance_revlist_1(L, S) when S > 1 ->
     Sm = S - 1,
     S2 = Sm div 2,
@@ -915,9 +917,7 @@ balance_revlist_1(L, S) when S > 1 ->
     T = {K, T1, T2},
     {T, L2};
 balance_revlist_1([Key | L], 1) ->
-    {{Key, nil, nil}, L};
-balance_revlist_1(L, 0) ->
-    {nil, L}.
+    {{Key, nil, nil}, L}.
 
 -doc "Returns the merged (union) set of the list of sets.".
 -spec union(SetList) -> Set when
@@ -1080,16 +1080,16 @@ difference_1([], _, As, N) ->
 difference_2(Xs, Ys, S) ->
     difference_2(Xs, Ys, [], S).    % S is the size of the left set
 
+difference_2([], _Ys, As, S) ->
+    {S, balance_revlist(As, S)};
+difference_2(Xs, [], As, S) ->
+    {S, balance_revlist(push(Xs, As), S)};
 difference_2([X | Xs1], [Y | _] = Ys, As, S) when X < Y ->
     difference_2(Xs1, Ys, [X | As], S);
 difference_2([X | _] = Xs, [Y | Ys1], As, S) when X > Y ->
     difference_2(Xs, Ys1, As, S);
 difference_2([_X | Xs1], [_Y | Ys1], As, S) ->
-    difference_2(Xs1, Ys1, As, S - 1);
-difference_2([], _Ys, As, S) ->
-    {S, balance_revlist(As, S)};
-difference_2(Xs, [], As, S) ->
-    {S, balance_revlist(push(Xs, As), S)}.
+    difference_2(Xs1, Ys1, As, S - 1).
 
 
 %% Subset testing is much the same thing as set difference, but
@@ -1129,16 +1129,16 @@ is_subset_1([], _) ->
     true.
 
 
+is_subset_2([], _) ->
+    true;
+is_subset_2(_, []) ->
+    false;
 is_subset_2([X | _], [Y | _]) when X < Y ->
     false;
 is_subset_2([X | _] = Xs, [Y | Ys1]) when X > Y ->
     is_subset_2(Xs, Ys1);
 is_subset_2([_ | Xs1], [_ | Ys1]) ->
-    is_subset_2(Xs1, Ys1);
-is_subset_2([], _) ->
-    true;
-is_subset_2(_, []) ->
-    false.
+    is_subset_2(Xs1, Ys1).
 
 
 %% For compatibility with `sets':

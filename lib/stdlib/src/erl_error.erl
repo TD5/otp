@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 1996-2024. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 -module(erl_error).
@@ -219,7 +219,7 @@ format_exception(I, Class, Reason, StackTrace, StackFun, FormatFun, Encoding) ->
 -doc false.
 format_exception(I, Class, Reason, StackTrace, StackFun, FormatFun, Encoding,
                  CharsLimit)
-            when is_integer(I), I >= 1, is_function(StackFun, 3), 
+            when is_integer(I), I >= 1, is_function(StackFun, 3),
                  is_function(FormatFun, 3), is_integer(CharsLimit) ->
     S = n_spaces(I-1),
     {Term,Trace1,Trace} = analyze_exception(Class, Reason, StackTrace),
@@ -257,7 +257,7 @@ format_stacktrace(I, StackTrace, StackFun, FormatFun) ->
 %% -> iolist() | unicode:charlist()  (no \n at end)
 -doc false.
 format_stacktrace(I, StackTrace, StackFun, FormatFun, Encoding)
-            when is_integer(I), I >= 1, is_function(StackFun, 3), 
+            when is_integer(I), I >= 1, is_function(StackFun, 3),
                  is_function(FormatFun, 2) ->
     S = n_spaces(I-1),
     FF = wrap_format_fun_2(FormatFun),
@@ -403,7 +403,7 @@ explain_reason({unbound,V}, error, [], _PF, _S, _Enc, _CL) ->
 explain_reason({restricted_shell_bad_return, V}, exit=Cl, [], PF, S, _Enc, CL) ->
     Str = <<"restricted shell module returned bad value ">>,
     format_value(V, Str, Cl, PF, S, CL);
-explain_reason({restricted_shell_disallowed,{ForMF,As}}, 
+explain_reason({restricted_shell_disallowed,{ForMF,As}},
                exit=Cl, [], PF, S, Enc, CL) ->
     %% ForMF can be a fun, but not a shell fun.
     Str = <<"restricted shell does not allow ">>,
@@ -431,7 +431,7 @@ argss(1) ->
 argss(2) ->
     <<"two arguments">>;
 argss(I) ->
-    io_lib:fwrite(<<"~w arguments">>, [I]).
+    io_lib:fwrite(<<"~B arguments">>, [I]).
 
 format_stacktrace1(Sep, Stack, PF, SF, Enc, CL, Reason) ->
     format_stacktrace1(Sep, Stack, PF, SF, Enc, CL, Reason,
@@ -553,7 +553,7 @@ format_call(ErrStr, Pre1, ForMForFun, As, PF, Enc, CL) ->
     Arity = length(As),
     [ErrStr |
      case is_op(ForMForFun, Arity) of
-         {yes,Op} -> 
+         {yes,Op} ->
              format_op(ErrStr, Pre1, Op, As, PF, Enc, CL);
          no ->
              MFs = mf_to_string(ForMForFun, Arity, Enc),
@@ -582,7 +582,7 @@ format_op(ErrStr, Pre, Op, [A1, A2], PF, Enc, CL) ->
     OpS = atom_to_list(Op),
     Pre1 = [$\n | n_spaces(I1)],
     case count_nl(S1) > 0 of
-        true -> 
+        true ->
             [S1,Pre1,OpS,Pre1|S2];
         false ->
             OpS2 = io_lib:fwrite(<<" ~s ">>, [Op]),
@@ -606,7 +606,7 @@ pp_arguments(PF, As, I, Enc, CL) ->
             {S0, _} = PF([A | T], I+1, CL),
             S = unicode:characters_to_list(S0, Enc),
             brackets_to_parens([$[,L,string:slice(S, 1+Ll)], Enc);
-        _ -> 
+        _ ->
             {S, _CL1} = PF(As, I+1, CL),
             brackets_to_parens(S, Enc)
     end.
@@ -672,13 +672,31 @@ count_nl(Bin) when is_binary(Bin) ->
 count_nl(_) ->
     0.
 
+n_spaces(0) ->
+    "";
+n_spaces(1) ->
+    " ";
+n_spaces(2) ->
+    "  ";
+n_spaces(3) ->
+    "   ";
+n_spaces(4) ->
+    "    ";
+n_spaces(5) ->
+    "     ";
+n_spaces(6) ->
+    "      ";
+n_spaces(7) ->
+    "       ";
+n_spaces(8) ->
+    "        ";
 n_spaces(N) ->
     lists:duplicate(N, $\s).
 
 is_op(ForMForFun, A) ->
-    try 
+    try
         {erlang,F} = ForMForFun,
-        _ = erl_internal:op_type(F, A), 
+        _ = erl_internal:op_type(F, A),
         {yes,F}
     catch error:_ -> no
     end.

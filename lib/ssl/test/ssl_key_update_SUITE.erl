@@ -158,7 +158,7 @@ get_traffic_secrets(ClientSocket, ServerSocket) ->
                 TrafficSecrets = lists:filter(Interesting, KeyLog),
                 Print = fun(Secret) ->
                                 [Name, _A, B] = string:lexemes(Secret, " "),
-                                [Key] = io_lib:format("~s", [B]),
+                                Key = io_lib:format("~s", [B]),
                                 {Name, {Role, Key}}
                         end,
                 [Print(Scr) || Scr <- TrafficSecrets]

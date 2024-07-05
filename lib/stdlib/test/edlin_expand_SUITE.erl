@@ -36,6 +36,7 @@
          c_field   :: list(term()) | 'undefined',
          d_field   :: non_neg_integer() | 'undefined'}).
 -include_lib("common_test/include/ct.hrl").
+-include_lib("stdlib/include/assert.hrl").
 
 init_per_testcase(_Case, Config) ->
     cleanup(),
@@ -49,7 +50,7 @@ suite() ->
      {timetrap,{minutes,1}}].
 
 all() ->
-    [normal, filename_completion, binding_completion, get_coverage, type_completion, 
+    [normal, filename_completion, binding_completion, get_coverage, type_completion,
      record_completion, fun_completion, map_completion, function_parameter_completion,
      no_completion, quoted_fun, quoted_module, quoted_both, erl_1152, check_trailing,
      invalid_module, unicode].
@@ -82,19 +83,28 @@ normal(Config) when is_list(Config) ->
     {module,expand_test} = compile_and_load(Config,expand_test),
     %% These tests might fail if another module with the prefix
     %% "expand_" happens to also be loaded.
-    {yes,"test:",[]} = do_expand("expand_"),
-    {no, [], []} = do_expand("expandXX_"),
-    {no,[],[#{
-               title:="functions",
-               elems:=[{"a_fun_name",[{ending,"("}]},
-                        {"a_less_fun_name",_},
-                        {"b_comes_after_a",_},
-                        {"expand0arity_entirely",_},
-                        {"module_info",_}]
-              }]} = do_expand("expand_test:"),
-    {yes,[],[#{title:="functions",
-                      elems:=[{"a_fun_name",_},{"a_less_fun_name",_}]}]} = do_expand("expand_test:a_"),
-    {yes,"arity_entirely()",[]} = do_expand("expand_test:expand0"),
+    ?assertEqual({yes,"test:",[]}, do_expand("expand_")),
+    ?assertEqual({no, [], []}, do_expand("expandXX_")),
+    ?assertMatch(
+        {no,[],[#{
+            title:="functions",
+            elems:=[{"a_fun_name",[{ending,"("}]},
+                {"a_less_fun_name",_},
+                {"b_comes_after_a",_},
+                {"expand0arity_entirely",_},
+                {"module_info",_}]
+        }]},
+        do_expand("expand_test:")),
+    ?assertMatch(
+        {yes,
+            [],
+            [#{title:="functions",
+                elems:=[{"a_fun_name",_},{"a_less_fun_name",_}]}]
+        },
+        do_expand("expand_test:a_")),
+    ?assertMatch(
+        {yes,"arity_entirely()",[]},
+        do_expand("expand_test:expand0")),
     ok.
 
 to_atom(Str) ->
@@ -436,20 +446,20 @@ get_coverage(Config) ->
     {yes, "(", _}=edlin_expand:expand(lists:reverse("complete_function_parameter:a_fun_name")),
 
     do_expand("fun l"),
-    %{yes, ">", _} = 
+    %{yes, ">", _} =
     do_expand("fun () -"),
     %{yes, "n ", _} =
     do_expand("fun () whe "),
     %{no, [], []} =
     do_expand("fun () when "),
-    %{no, [], []} = 
+    %{no, [], []} =
     do_expand("fun () -> "),
     %% {keyword, ...}
     do_expand("M#"),
     do_expand("#non_existant_record"),
     do_expand("#a_record{ non_existand_field"),
-    
-    
+
+
     %% match_arguments coverage
     do_expand("complete_function_parameter:integer_parameter_function(atom,"), %% match_argument -> false
     do_expand("complete_function_parameter:a_zero_arity_fun()"), %% match_argument, parameters empty
@@ -633,10 +643,11 @@ unicode(Config) when is_list(Config) ->
     {yes,"еский атом", [#{elems:=[{"'кlирилли́ческий атом'",_},
                                         {"'кlирилли́ческий атомB'",_}]}]} = do_expand("unicode_expand:'кlирилли́ч"),
     {yes,"(", []} = do_expand("unicode_expand:'кlирилли́ческий атомB'"),
-    "'кlирилли́ческий атом'     'кlирилли́ческий атомB'    module_info\n" =
+    ?assertEqual(
+        "'кlирилли́ческий атом'     'кlирилли́ческий атомB'    module_info\n",
         do_format([{"'кlирилли́ческий атом'",[]},
                    {"'кlирилли́ческий атомB'",[]},
-                   {"module_info",[]}]),
+                   {"module_info",[]}])),
     ok.
 
 do_expand(String) ->

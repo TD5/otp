@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 1996-2024. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 -module(supervisor_bridge).
@@ -176,7 +176,7 @@ start_link(Name, Mod, StartArgs) ->
 %% Callback functions from gen_server
 %%-----------------------------------------------------------------
 -doc false.
-init([Mod, StartArgs, Name0]) ->  
+init([Mod, StartArgs, Name0]) ->
     process_flag(trap_exit, true),
     Name = supname(Name0, Mod),
     case Mod:init(StartArgs) of
@@ -402,7 +402,7 @@ format_child_log_progress_single(Child, Tag, FormatOpts) ->
             Depth ->
                 [MFAs, Depth]
         end,
-    {" ~s pid=~w,mfa="++p(FormatOpts)++".",[Tag,Pid]++Args}.
+    {" ~s pid=~w,mfa="++p(FormatOpts)++".",[Tag,Pid|Args]}.
 
 format_child_log_error_single(Child, Tag) ->
     {pid,Pid} = lists:keyfind(pid, 1, Child),

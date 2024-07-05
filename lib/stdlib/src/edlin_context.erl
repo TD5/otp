@@ -88,7 +88,7 @@ get_context(">-" ++ _, L) when is_list(L) -> {term};
 get_context([$?|_], _) ->
     {macro};
 get_context(Bef0, Word) when is_list(Word) ->
-    get_context(lists:reverse(Word) ++ Bef0, #context{});
+    get_context(lists:reverse(Word, Bef0), #context{});
 get_context([], #context{arguments = Args, parameter_count = Count, nestings = Nestings} = _CR) ->
     case (Count+1 == length(Args)) andalso (Nestings =:= []) of
         true -> {term, lists:droplast(Args), lists:last(Args)};
@@ -198,7 +198,7 @@ get_context([$=|Bef1], #context{
                           parameter_count=Count,
                           fields=Fields}=CR) ->
     {Bef2, Field}=edlin_expand:over_word(Bef1),
-    % if we are here, its always going to be 
+    % if we are here, its always going to be
     case Count of
         0 -> %%[$=|_],
             get_context(Bef2, CR#context{fields = [Field|Fields],
@@ -482,7 +482,7 @@ extract_argument2(Bef0) ->
         {[$:|_], []} -> {stop};
         {"nehw" ++ _Bef1,[]} -> {stop};
         {_, []} -> extract_argument(Bef0);
-        {Bef1, Operator} -> 
+        {Bef1, Operator} ->
             {Bef1, {operator, Operator}}
     end.
 
@@ -518,7 +518,7 @@ extract_argument(Bef0) ->
     end.
 over_number(Bef) ->
     case edlin_expand:over_word(Bef) of
-        {_, []} -> {Bef, []}; 
+        {_, []} -> {Bef, []};
         {Bef2, Var} ->
             try list_to_integer(Var) of
                 _ ->
@@ -535,7 +535,7 @@ over_number(Bef) ->
                         %% and return an {operation, Clause}
                     end,
                     case edlin_expand:over_word(Bef6) of
-                        {[$-|Bef5], []} -> 
+                        {[$-|Bef5], []} ->
                             case read_opening_char(Bef5) of
                                 {_, []} -> Res;
                                 _ -> {Bef5, {NumberType, "-" ++Number}}

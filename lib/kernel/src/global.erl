@@ -120,7 +120,7 @@ network problem.
 %% dynamically kept up to date with the entire network. Global can
 %% operate in two modes: in a fully connected network, or in a
 %% non-fully connected network. In the latter case, the name
-%% registration mechanism won't work. 
+%% registration mechanism won't work.
 %% As a separate service Global also provides global locks.
 
 %% External exports
@@ -218,8 +218,8 @@ network problem.
 %%                     as well as some other information. See state
 %%                     record declaration below for more info.
 %% synced      = [Node] - all nodes that have the same names as us
-%% resolvers   = [{Node, MyTag, Resolver}] - 
-%%                        the tag separating different synch sessions, 
+%% resolvers   = [{Node, MyTag, Resolver}] -
+%%                        the tag separating different synch sessions,
 %%                        and the pid of the name resolver process
 %% syncers     = [pid()] - all current syncers processes
 %% node_name   = atom()  - our node name (can change if distribution
@@ -231,7 +231,7 @@ network problem.
 %%                         arrived before nodeup
 %% {wait_lock, Node}   = {exchange, NameList, _NamelistExt} | lock_is_set
 %%                        - see comment below (handle_cast)
-%% {save_ops, Node}    = {resolved, HisKnown, NamesExt, Res} | [operation()] 
+%% {save_ops, Node}    = {resolved, HisKnown, NamesExt, Res} | [operation()]
 %%                        - save the ops between exchange and resolved
 %% {prot_vsn, Node}    = Vsn - the exchange protocol version (not used now)
 %% {sync_tag_my, Node} =  My tag, used at synchronization with Node
@@ -241,7 +241,7 @@ network problem.
 -record(conf, {connect_all        :: boolean(),
                prevent_over_part  :: boolean()
               }).
-                
+
 -record(state, {conf = #conf{}     :: #conf{},
 		known = #{}        :: #{
                            %% Known connected node with protocol
@@ -273,7 +273,7 @@ network problem.
 %%%   Registered names. ref() is the monitor ref.
 %%% global_names_ext (set): {Name, Pid, RegNode}
 %%%   External registered names (C-nodes).
-%%% 
+%%%
 %%% Helper tables:
 %%% global_pid_names (bag): {Pid, Name} | {ref(), Name}
 %%%   Name(s) registered for Pid.
@@ -297,7 +297,7 @@ network problem.
 %%% It was necessary to use monitors to fix bugs regarding locks that
 %%% were never removed. The signal {async_del_lock, ...} has been
 %%% kept for backward compatibility. It can be removed later.
-%%% 
+%%%
 %%% R11B-4 (OTP-6428): Monitors are used for registered names.
 %%% The signal {delete_name, ...} has been kept for backward compatibility.
 %%% It can be removed later as can the deleter process.
@@ -309,15 +309,15 @@ network problem.
 %%% Erlang/OTP 22.0: The extra process calling erlang:monitor() is removed.
 
 -doc false.
-start() -> 
+start() ->
     gen_server:start({local, global_name_server}, ?MODULE, [], []).
 
 -doc false.
-start_link() -> 
+start_link() ->
     gen_server:start_link({local, global_name_server}, ?MODULE, [], []).
 
 -doc false.
-stop() -> 
+stop() ->
     gen_server:call(global_name_server, stop, infinity).
 
 -doc """
@@ -465,7 +465,7 @@ check_dupname(Name, Pid) ->
     case ets:lookup(global_pid_names, Pid) of
         [] ->
             true;
-        PidNames -> 
+        PidNames ->
             case application:get_env(kernel, ?WARN_DUPLICATED_NAME) of
                 {ok, allow} ->
                     true;
@@ -634,7 +634,7 @@ set_lock({_ResourceId, _LockRequesterId} = Id, Nodes, Retries, Times) ->
     ?trace({set_lock,{me,self()},Id,{nodes,Nodes},
             {retries,Retries}, {times,Times}}),
     case set_lock_on_nodes(Id, Nodes) of
-	true -> 
+	true ->
             ?trace({set_lock_true, Id}),
             true;
         false=Reply when Retries =:= 0 ->
@@ -695,7 +695,7 @@ the transaction does not abort.
 trans(Id, Fun, Nodes, Retries) ->
     case set_lock(Id, Nodes, Retries) of
 	true ->
-            try 
+            try
                 Fun()
             after
                 del_lock(Id, Nodes)
@@ -816,10 +816,10 @@ init([]) ->
     %% This is for troubleshooting only.
     DoTrace = os:getenv("GLOBAL_HIGH_LEVEL_TRACE") =:= "TRUE",
     T0 = case DoTrace of
-             true -> 
+             true ->
                  send_high_level_trace(),
                  [];
-             false -> 
+             false ->
                  no_trace
          end,
 
@@ -884,7 +884,7 @@ init([]) ->
 %% net.
 %%
 %% A few remarks:
-%% 
+%%
 %% (*) When this information is being exchanged, no one is allowed to
 %%     change the global register table. All calls to register etc are
 %%     protected by a lock. If a registered process dies during this
@@ -910,7 +910,7 @@ init([]) ->
 %%   Depending on the value of the kernel variable 'net_ticktime' long
 %%   delays may occur. This does not affect the handling of locks but
 %%   will block name registration.
-%% 
+%%
 %% - Old synch session messages may linger on in the message queue of
 %%   global_name_server after the sending node has died. The tags of
 %%   such messages do not match the current tag (if there is one),
@@ -1042,7 +1042,7 @@ init([]) ->
 %%   inconsistencies entering global's state.
 %% * All nodes need to make the same choices independent of
 %%   each other.
-%% 
+%%
 %% ----------------------------------------------------------------
 
 -doc false.
@@ -1235,7 +1235,7 @@ handle_cast({exchange_ops, Node, MyTag, Ops, Resolved}, S0) ->
                     put({save_ops, Node}, Ops),
                     NewS = resolved(Node, HisResolved, HisKnown, Names_ext,S),
                     {noreply, NewS};
-                undefined -> 
+                undefined ->
                     put({save_ops, Node}, Ops),
                     {noreply, S}
             end;
@@ -1249,12 +1249,12 @@ handle_cast({exchange_ops, Node, MyTag, Ops, Resolved}, S0) ->
 %%
 %% Here the name clashes are resolved.
 %%========================================================================
-handle_cast({resolved, Node, HisResolved, HisKnown, _Unused, 
+handle_cast({resolved, Node, HisResolved, HisKnown, _Unused,
              Names_ext, MyTag}, S) ->
     %% Sent from global_name_server at Node.
     ?trace({'####', resolved, {his_resolved,HisResolved}, {node,Node}}),
     case get({sync_tag_my, Node}) of
-	MyTag -> 
+	MyTag ->
             %% See the comment at handle_case({exchange_ops, ...}).
             case get({save_ops, Node}) of
                 Ops when is_list(Ops) ->
@@ -1621,7 +1621,7 @@ handle_info(known, S) ->
 
 %% "High level trace". For troubleshooting only.
 handle_info(high_level_trace, S) ->
-    case S of 
+    case S of
         #state{trace = [{Node, _Time, _M, Nodes, _X} | _]} ->
             send_high_level_trace(),
             CNode = node(),
@@ -1630,7 +1630,7 @@ handle_info(high_level_trace, S) ->
                 {Node, Nodes} ->
                     {noreply, S};
                 _ ->
-                    {New, _, Old} = 
+                    {New, _, Old} =
                         sofs:symmetric_partition(sofs:set([CNode|CNodes]),
                                                  sofs:set([Node|Nodes])),
                     M = {nodes_changed, {sofs:to_external(New),
@@ -1732,7 +1732,7 @@ trans_all_known(Fun) ->
         delete_global_lock(Id, Nodes)
     end.
 
-set_lock_known(Id, Times) -> 
+set_lock_known(Id, Times) ->
     Known = get_known(),
     Nodes = [node() | Known],
     Boss = the_boss(Nodes),
@@ -1742,7 +1742,7 @@ set_lock_known(Id, Times) ->
             case lock_on_known_nodes(Id, Known, Nodes) of
                 true ->
                     Nodes;
-                false -> 
+                false ->
                     del_lock(Id, [Boss]),
                     random_sleep(Times),
                     set_lock_known(Id, Times+1)
@@ -1763,10 +1763,10 @@ lock_on_known_nodes(Id, Known, Nodes) ->
 set_lock_on_nodes(_Id, []) ->
     true;
 set_lock_on_nodes(Id, Nodes) ->
-    case local_lock_check(Id, Nodes) of 
+    case local_lock_check(Id, Nodes) of
         true ->
             Msg = {set_lock, Id},
-            {Replies, _} = 
+            {Replies, _} =
                 gen_server:multi_call(Nodes, global_name_server, Msg),
             ?trace({set_lock,{me,self()},Id,{nodes,Nodes},{replies,Replies}}),
             check_replies(Replies, Id, Replies);
@@ -1912,7 +1912,7 @@ lock_is_set(Node, Resolvers, LockId) ->
 %% exchange
 %%========================================================================
 exchange(Node, NameList, Resolvers) ->
-    ?trace({'####', exchange, {node,Node}, {namelist,NameList}, 
+    ?trace({'####', exchange, {node,Node}, {namelist,NameList},
             {resolvers, Resolvers}}),
     case erase({wait_lock, Node}) of
 	lock_is_set ->
@@ -1940,9 +1940,9 @@ resolved(Node, HisResolved, HisKnown, Names_ext, S0) ->
                                  end,
                              cancel_resolved_locker(CnclNode, F, AccS)
                      end, S1, HisKnownNodes),
-    %% The locker that took the lock is asked to send 
+    %% The locker that took the lock is asked to send
     %% the {new_nodes, ...} message. This ensures that
-    %% {del_lock, ...} is received after {new_nodes, ...} 
+    %% {del_lock, ...} is received after {new_nodes, ...}
     NewNodesMsg = {new_nodes, node(), Ops, Names_ext, NewNodes, ExtraInfo},
     NewNodesF = fun() ->
                         maps:foreach(
@@ -1966,7 +1966,7 @@ resolved(Node, HisResolved, HisKnown, Names_ext, S0) ->
     %% See (*) below... we're node b in that description
     {AddedNodes, S4} = add_to_known(NewNodes, S3),
     S4#state.the_locker ! {add_to_known, AddedNodes},
-    S5 = trace_message(S4, {added, AddedNodes}, 
+    S5 = trace_message(S4, {added, AddedNodes},
                        [{new_nodes, NewNodes}, {abcast, Known}, {ops,Ops}]),
     S5#state{synced = [Node | Synced]}.
 
@@ -2025,7 +2025,7 @@ start_resolver(Node, MyTag) ->
     spawn(fun() -> resolver(Node, MyTag) end).
 
 resolver(Node, Tag) ->
-    receive 
+    receive
         {resolve, NameList, Node} ->
             ?trace({resolver, {me,self()}, {node,Node}, {namelist,NameList}}),
             {Ops, Resolved} = exchange_names(NameList, Node, [], []),
@@ -2078,9 +2078,9 @@ handle_set_lock(Id, Pid, S) ->
     case can_set_lock(Id) of
         {true, PidRefs} ->
 	    case pid_is_locking(Pid, PidRefs) of
-		true -> 
+		true ->
                     {true, S};
-		false -> 
+		false ->
                     {true, insert_lock(Id, Pid, PidRefs, S)}
 	    end;
         false=Reply ->
@@ -2131,7 +2131,7 @@ remove_lock(ResourceId, LockRequesterId, Pid, [{Pid,Ref}], Down, S0) ->
             ?GLOBAL_RID -> S0#state{global_lock_down = Down};
             _ -> S0
         end,
-    trace_message(S, {rem_lock, node(Pid)}, 
+    trace_message(S, {rem_lock, node(Pid)},
                   [{ResourceId, LockRequesterId}, Pid]);
 remove_lock(ResourceId, LockRequesterId, Pid, PidRefs0, _Down, S) ->
     ?trace({remove_lock_2, {id,ResourceId},{pid,Pid}}),
@@ -2139,7 +2139,7 @@ remove_lock(ResourceId, LockRequesterId, Pid, PidRefs0, _Down, S) ->
                   {Pid, Ref} ->
                       delete_node_resource_info(Ref),
                       true = erlang:demonitor(Ref, [flush]),
-                      true = ets:delete_object(global_pid_ids, 
+                      true = ets:delete_object(global_pid_ids,
                                                {Ref, ResourceId}),
                       lists:keydelete(Pid, 1, PidRefs0);
                   false ->
@@ -2148,32 +2148,32 @@ remove_lock(ResourceId, LockRequesterId, Pid, PidRefs0, _Down, S) ->
     Lock = {ResourceId, LockRequesterId, PidRefs},
     true = ets:insert(global_locks, Lock),
     true = ets:delete_object(global_pid_ids, {Pid, ResourceId}),
-    trace_message(S, {rem_lock, node(Pid)}, 
+    trace_message(S, {rem_lock, node(Pid)},
                   [{ResourceId, LockRequesterId}, Pid]).
 
 do_ops(Ops, ConnNode, Names_ext, ExtraInfo, S0) ->
     ?trace({do_ops, {ops,Ops}}),
 
-    XInserts = [{Name, Pid, RegNode, Method} || 
+    XInserts = [{Name, Pid, RegNode, Method} ||
                    {Name2, Pid2, RegNode} <- Names_ext,
                    {insert, {Name, Pid, Method}} <- Ops,
                    Name =:= Name2, Pid =:= Pid2],
     S1 = lists:foldl(fun({Name, Pid, RegNode, Method}, S1) ->
-                             ins_name_ext(Name, Pid, Method, RegNode, 
+                             ins_name_ext(Name, Pid, Method, RegNode,
                                           ConnNode, ExtraInfo, S1)
                      end, S0, XInserts),
 
     XNames = [Name || {Name, _Pid, _RegNode, _Method} <- XInserts],
-    Inserts = [{Name, Pid, node(Pid), Method} || 
+    Inserts = [{Name, Pid, node(Pid), Method} ||
                   {insert, {Name, Pid, Method}} <- Ops,
                   not lists:member(Name, XNames)],
     S2 = lists:foldl(fun({Name, Pid, _RegNode, Method}, S2) ->
-                            ins_name(Name, Pid, Method, ConnNode, 
+                            ins_name(Name, Pid, Method, ConnNode,
                                      ExtraInfo, S2)
                     end, S1, Inserts),
 
     DelNames = [Name || {delete, Name} <- Ops],
-    lists:foldl(fun(Name, S) -> delete_global_name2(Name, S) 
+    lists:foldl(fun(Name, S) -> delete_global_name2(Name, S)
                 end, S2, DelNames).
 
 %% It is possible that a node that was up and running when the
@@ -2191,11 +2191,11 @@ do_ops(Ops, ConnNode, Names_ext, ExtraInfo, S0) ->
 %% are run.
 sync_others(Nodes) ->
     N = case application:get_env(kernel, ?N_CONNECT_RETRIES) of
-            {ok, NRetries} when is_integer(NRetries), 
+            {ok, NRetries} when is_integer(NRetries),
                                 NRetries >= 0 -> NRetries;
             _ -> ?DEFAULT_N_CONNECT_RETRIES
         end,
-    lists:foreach(fun(Node) -> 
+    lists:foreach(fun(Node) ->
                           spawn(fun() -> sync_other(Node, N) end)
                   end, Nodes).
 
@@ -2222,14 +2222,14 @@ insert_global_name(Name, Pid, Method, FromPidOrNode, ExtraInfo, S) ->
     true = ets:insert(global_pid_names, {Pid, Name}),
     true = ets:insert(global_pid_names, {Ref, Name}),
     case lock_still_set(FromPidOrNode, ExtraInfo, S) of
-        true -> 
+        true ->
             S;
         false ->
             %% The node that took the lock has gone down and then up
             %% again. The {register, ...} or {new_nodes, ...} message
             %% was delayed and arrived after nodeup (maybe it caused
             %% the nodeup). The DOWN signal from the monitor of the
-            %% lock has removed the lock. 
+            %% lock has removed the lock.
             %% Note: it is assumed here that the DOWN signal arrives
             %% _before_ nodeup and any message that caused nodeup.
             %% This is true of Erlang/OTP.
@@ -2238,7 +2238,7 @@ insert_global_name(Name, Pid, Method, FromPidOrNode, ExtraInfo, S) ->
 
 lock_still_set(PidOrNode, ExtraInfo, S) ->
     case ets:lookup(global_locks, ?GLOBAL_RID) of
-        [{?GLOBAL_RID, _LockReqId, PidRefs}] when is_pid(PidOrNode) -> 
+        [{?GLOBAL_RID, _LockReqId, PidRefs}] when is_pid(PidOrNode) ->
             %% Name registration.
             lists:keymember(PidOrNode, 1, PidRefs);
         [{?GLOBAL_RID, LockReqId, _PidRefs}] when is_atom(PidOrNode) ->
@@ -2258,7 +2258,7 @@ extra_info(Tag, ExtraInfo) ->
     end.
 
 del_name(Ref, S) ->
-    NameL = [Name || 
+    NameL = [Name ||
                 {_, Name} <- ets:lookup(global_pid_names, Ref),
                 {_, _Pid, _Method, Ref1} <-
                     ets:lookup(global_names, Name),
@@ -2306,7 +2306,7 @@ delete_global_name2(Name, Pid, Ref, S) ->
     end,
     trace_message(S, {del_name, node(Pid)}, [Name, Pid]).
 
-%% delete_global_name/2 is traced by the inviso application. 
+%% delete_global_name/2 is traced by the inviso application.
 %% Do not change.
 delete_global_name(_Name, _Pid) ->
     ok.
@@ -2322,7 +2322,7 @@ delete_global_name(_Name, _Pid) ->
 
 %% There are two versions of the protocol between lockers on two nodes:
 %% Version 1: used by unpatched R7.
-%% Version 2: the messages exchanged between the lockers include the known 
+%% Version 2: the messages exchanged between the lockers include the known
 %%            nodes (see OTP-3576).
 
 %% As of version 6 of global, lockers (on different nodes) do not
@@ -2334,11 +2334,11 @@ delete_global_name(_Name, _Pid) ->
 
 -define(locker_vsn, 2).
 
--record(multi, 
+-record(multi,
         {local = [],          % Requests from nodes on the local host.
          remote = [],         % Other requests.
          known = [],          % Copy of global_name_server's known nodes. It's
-                              % faster to keep a copy of known than asking 
+                              % faster to keep a copy of known than asking
                               % for it when needed.
          the_boss,            % max([node() | 'known'])
          just_synced = false, % true if node() synced just a moment ago
@@ -2364,11 +2364,11 @@ init_the_locker_fun(DoTrace) ->
 
 loop_the_locker(S) ->
     ?trace({loop_the_locker,S}),
-    receive 
+    receive
         Message ->
             the_locker_message(Message, S)
     after 0 ->
-            Timeout = 
+            Timeout =
                 case {S#multi.local, S#multi.remote} of
                     {[],[]} ->
                         infinity;
@@ -2381,21 +2381,21 @@ loop_the_locker(S) ->
                             S#multi.just_synced ->
                                 0; % no reason to wait after success
                             S#multi.known =:= [] ->
-                                200; % just to get started 
+                                200; % just to get started
                             true ->
                                 erlang:min(1000 + 100*length(S#multi.known),
                                            3000)
                         end
                 end,
             S1 = S#multi{just_synced = false},
-            receive 
+            receive
                 Message ->
                     the_locker_message(Message, S1)
             after Timeout ->
                     case is_global_lock_set() of
-                        true -> 
+                        true ->
                             loop_the_locker(S1);
-                        false -> 
+                        false ->
                             select_node(S1)
                     end
             end
@@ -2436,9 +2436,9 @@ the_locker_message({lock_set, Pid, true, _HisKnown, MyTag} = _Msg, S) ->
                     {node,Node}, {is_lock_set,IsLockSet}}),
             case IsLockSet of
                 true ->
-                    gen_server:cast(global_name_server, 
+                    gen_server:cast(global_name_server,
                                     {lock_is_set, Node, MyTag, LockId}),
-                    ?trace({lock_sync_done, {pid,Pid}, 
+                    ?trace({lock_sync_done, {pid,Pid},
                             {node,node(Pid)}, {me,self()}}),
                     %% Wait for global to tell us to remove lock.
                     %% Should the other locker's node die,
@@ -2497,14 +2497,14 @@ select_node(S) ->
     UseRemote = S#multi.local =:= [],
     Others1 = if UseRemote -> S#multi.remote; true -> S#multi.local end,
     Others2 = exclude_known(Others1, S#multi.known),
-    S1 = if 
-             UseRemote -> S#multi{remote = Others2}; 
-             true -> S#multi{local = Others2} 
+    S1 = if
+             UseRemote -> S#multi{remote = Others2};
+             true -> S#multi{local = Others2}
          end,
-    if 
+    if
         Others2 =:= [] ->
             loop_the_locker(S1);
-        true -> 
+        true ->
             Him = random_element(Others2),
             #him{locker = HisTheLocker, vsn = HisVsn,
                  node = Node, my_tag = MyTag, his_tag = HisTag} = Him,
@@ -2515,7 +2515,7 @@ select_node(S) ->
             %% HisNode = [Node] prevents deadlock:
             {IsLockSet, S2} = lock_nodes_safely(LockId, HisNode, S1),
             case IsLockSet of
-                true -> 
+                true ->
                     Known1 = Us ++ S2#multi.known,
                     send_lock_set(S2, true, HisTheLocker, HisVsn, HisTag),
                     S3 = lock_is_set(S2, Him, MyTag, Known1, LockId),
@@ -2621,7 +2621,7 @@ update_locker_known(Upd, S) ->
                 {add, Nodes} -> Nodes ++ S#multi.known;
                 {remove, Node} -> lists:delete(Node, S#multi.known)
             end,
-    TheBoss = the_boss([node() | Known]), 
+    TheBoss = the_boss([node() | Known]),
     NewS = S#multi{known = Known, the_boss = TheBoss},
     NewS.
 
@@ -2664,7 +2664,7 @@ lock_is_set(S, Him, MyTag, Known1, LockId) ->
             get_state_reply(Msg, lock_is_set, S),
             lock_is_set(S, Him, MyTag, Known1, LockId)
 
-        %% There used to be an 'after' clause (OTP-4902), but it is 
+        %% There used to be an 'after' clause (OTP-4902), but it is
         %% no longer needed:
         %% OTP-5770. Version 5 of the protocol. Deadlock can no longer
         %% occur due to the fact that if a partition is locked, one
@@ -2676,7 +2676,7 @@ lock_is_set(S, Him, MyTag, Known1, LockId) ->
 
 lock_is_set_true_received(S, Him, MyTag, Known1, LockId, P) ->
     Node = node(P),
-    gen_server:cast(global_name_server, 
+    gen_server:cast(global_name_server,
                     {lock_is_set, Node, MyTag, LockId}),
     ?trace({lock_sync_done, {p,P, node(P)}, {me,self()}}),
 
@@ -2701,7 +2701,7 @@ wait_cancel_lock(Node, LockId, MyTag, Known, Where, S) ->
             get_state_reply(Msg, Where, S),
             wait_cancel_lock(Node, LockId, MyTag, Known, Where, S)
     end.
-                
+
 
 %% The locker does the {new_nodes, ...} call before removing the lock.
 call_fun(no_fun) ->
@@ -2722,7 +2722,7 @@ the_boss(Nodes) ->
 
 find_node_tag(Node, S) ->
     case find_node_tag2(Node, S#multi.local) of
-        false -> 
+        false ->
             find_node_tag2(Node, S#multi.remote);
         Reply ->
             Reply
@@ -2757,7 +2757,7 @@ add_node(Him, S) ->
 is_node_local(Node) ->
     {ok, Host} = inet:gethostname(),
     case catch split_node(atom_to_list(Node), $@, []) of
-	[_, Host] -> 
+	[_, Host] ->
             true;
 	_ ->
             false
@@ -2930,9 +2930,9 @@ notify_all_name(Name, Pid, Pid2) ->
     Pid2 ! {global_name_conflict, Name, Pid},
     none.
 
-dolink_ext(Pid, RegNode) when RegNode =:= node() -> 
+dolink_ext(Pid, RegNode) when RegNode =:= node() ->
     link(Pid);
-dolink_ext(_, _) -> 
+dolink_ext(_, _) ->
     ok.
 
 dounlink_ext(Pid, RegNode) when RegNode =:= node() ->
@@ -2944,12 +2944,12 @@ unlink_pid(Pid) ->
     case ets:member(global_pid_names, Pid) of
 	false ->
             case ets:member(global_pid_ids, Pid) of
-                false -> 
+                false ->
 		    unlink(Pid);
-		true -> 
+		true ->
                     ok
 	    end;
-	true -> 
+	true ->
             ok
     end.
 
@@ -2958,7 +2958,7 @@ pid_is_locking(Pid, PidRefs) ->
 
 delete_lock(Ref, S0) ->
     Locks = pid_locks(Ref),
-    F = fun({ResourceId, LockRequesterId, PidRefs}, S) -> 
+    F = fun({ResourceId, LockRequesterId, PidRefs}, S) ->
                 {Pid, Ref} = lists:keyfind(Ref, 2, PidRefs),
                 remove_lock(ResourceId, LockRequesterId, Pid, PidRefs, true, S)
         end,
@@ -2968,11 +2968,11 @@ pid_locks(Ref) ->
     L = lists:flatmap(fun({_, ResourceId}) ->
                               ets:lookup(global_locks, ResourceId)
                       end, ets:lookup(global_pid_ids, Ref)),
-    [Lock || Lock = {_Id, _Req, PidRefs} <- L, 
+    [Lock || Lock = {_Id, _Req, PidRefs} <- L,
              ref_is_locking(Ref, PidRefs)].
 
 ref_is_locking(Ref, PidRefs) ->
-    lists:keyfind(Ref, 2, PidRefs) =/= false.                                  
+    lists:keyfind(Ref, 2, PidRefs) =/= false.
 
 handle_nodeup(Node, #state{the_locker = TheLocker,
                            resolvers = Rs,
@@ -3025,14 +3025,14 @@ handle_nodedown(Node, #state{synced = Syncs,
     reset_node_state(Node),
     Known1 = case What of
                  remove_connection ->
-                     maps:put({removing, Node}, yes, Known0);
+                     Known0#{{removing, Node} => yes};
                  ignore_node ->
                      maps:remove({removing, Node}, Known0);
                  disconnected ->
-                     case maps:get({removing, Node}, Known0, no) of
-                         yes ->
+                     case Known0 of
+                         #{{removing,Node} := yes} ->
                              maps:remove({removing, Node}, Known0);
-                         no ->
+                         _ ->
                              inform_connection_loss(Node, S),
                              Known0
                      end
@@ -3110,7 +3110,7 @@ node_list(NList) ->
                   ({N, _V}) when is_atom(N) ->
                       N
               end, NList).
-    
+
 
 make_node_vsn_list(NList, #state{} = S) ->
     lists:map(fun ({N, 0}) when is_atom(N) ->
@@ -3147,18 +3147,18 @@ add_to_known(AddKnown, #state{known = Known} = S) ->
               (N, {A, K} = Acc) when is_atom(N) ->
                   case maps:is_key(N, K) of
                       true -> Acc;
-                      false -> {[N|A], maps:put(N, 0, K)}
+                      false -> {[N|A], K#{N => 0}}
                   end;
               ({N, V}, {A, K} = Acc) ->
                   case maps:find(N, K) of
                       error ->
-                          {[N|A], maps:put(N, V, K)};
+                          {[N|A], K#{N => V}};
                       {ok, NV} when NV >= 0 ->
                           Acc;
                       {ok, _UnknownVsn} ->
                           %% Update version, but don't count
                           %% it as an added node...
-                          {A, maps:put(N, V, K)}
+                          {A, K#{N=>V}}
                   end
           end,
 
@@ -3198,9 +3198,9 @@ remove_lost_connection_info(_) ->
     ok.
 
 get_names() ->
-    ets:select(global_names, 
+    ets:select(global_names,
                ets:fun2ms(fun({Name, Pid, Method, _Ref}) ->
-                                  {Name, Pid, Method} 
+                                  {Name, Pid, Method}
                           end)).
 
 get_names_ext() ->
@@ -3323,7 +3323,7 @@ start_the_registrar() ->
     spawn_link(fun() -> loop_the_registrar() end).
 
 loop_the_registrar() ->
-    receive 
+    receive
         {trans_all_known, Fun, From} ->
             ?trace({loop_the_registrar, self(), Fun, From}),
             gen_server:reply(From, trans_all_known(Fun));
@@ -3335,14 +3335,14 @@ loop_the_registrar() ->
 unexpected_message({'EXIT', _Pid, _Reason}, _What) ->
     %% global_name_server died
     ok;
-unexpected_message(Message, What) -> 
+unexpected_message(Message, What) ->
     logger:log(warning, "The global_name_server ~w process "
                "received an unexpected message:\n~tp\n",
                [What, Message]).
 
 %%% Utilities
 
-intersection(_, []) -> 
+intersection(_, []) ->
     [];
 intersection(L1, L2) ->
     L1 -- (L1 -- L2).

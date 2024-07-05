@@ -42,6 +42,8 @@
 -export([otp_5435_2/0, prompt1/1, prompt2/1, prompt3/1, prompt4/1,
 	 prompt5/1]).
 
+-include_lib("stdlib/include/assert.hrl").
+
 %%
 %% Define to run outside of test server
 %%
@@ -195,7 +197,7 @@ LocalFuncs2 = [
     <<"A = 1.\nv(1).">>, <<"h().">>, <<"b().">>, <<"f().">>, <<"f(A).">>,
     <<"fl()">>, <<"ff()">>, <<"ff(my_func,1)">>, <<"lf()">>, <<"lr()">>, <<"lt()">>,
     <<"rd(foo,{bar}).">>, <<"rf().">>, <<"rf(foo).">>, <<"rl().">>, <<"rl(foo).">>, <<"rp([hej]).">>,
-    <<"rr(shell).">>, <<"rr(shell, shell_state).">>, <<"rr(shell,shell_state,[]).">>, <<"tf()">>, <<"tf(hej)">>, 
+    <<"rr(shell).">>, <<"rr(shell, shell_state).">>, <<"rr(shell,shell_state,[]).">>, <<"tf()">>, <<"tf(hej)">>,
     <<"save_module(\"src/my_module.erl\")">>, <<"history(20).">>, <<"results(20).">>, <<"catch_exception(0).">>],
 lists:foreach(fun(LocalFunc) ->
         try
@@ -425,21 +427,21 @@ shell_attribute_test(Config) ->
     ok.
 
 prompt_width(Config) when is_list(Config) ->
-    5 = shell:prompt_width("olá> ", unicode),
-    5 = shell:prompt_width("\e[31molá> ", unicode),
-    5 = shell:prompt_width(<<"\e[31molá> "/utf8>>, unicode),
-    8 = shell:prompt_width("olá> ", latin1),
-    4 = shell:prompt_width("😀> ", unicode),
-    11 = shell:prompt_width("😀> ", latin1),
+    ?assertEqual(5, shell:prompt_width("olá> ", unicode)),
+    ?assertEqual(5, shell:prompt_width("\e[31molá> ", unicode)),
+    ?assertEqual(5, shell:prompt_width(<<"\e[31molá> "/utf8>>, unicode)),
+    ?assertEqual(8, shell:prompt_width("olá> ", latin1)),
+    ?assertEqual(4, shell:prompt_width("😀> ", unicode)),
+    ?assertEqual(11, shell:prompt_width("😀> ", latin1)),
     case proplists:get_value(encoding, io:getopts(user)) of
         unicode ->
-            5 = shell:prompt_width("olá> "),
-            5 = shell:prompt_width("\e[31molá> "),
-            5 = shell:prompt_width(<<"\e[31molá> "/utf8>>),
-            4 = shell:prompt_width("😀> ");
+            ?assertEqual(5, shell:prompt_width("olá> ")),
+            ?assertEqual(5, shell:prompt_width("\e[31molá> ")),
+            ?assertEqual(5, shell:prompt_width(<<"\e[31molá> "/utf8>>)),
+            ?assertEqual(4, shell:prompt_width("😀> "));
         latin1 ->
-            8 = shell:prompt_width("olá> "),
-            11 = shell:prompt_width("😀> ")
+            ?assertEqual(8, shell:prompt_width("olá> ")),
+            ?assertEqual(11, shell:prompt_width("😀> "))
     end,
     ok.
 
@@ -2613,11 +2615,9 @@ otp_6554(Config) when is_list(Config) ->
     "exception error: no function clause matching "
         "shell:apply_fun(4)" ++ _ =
         comm_err(<<"erlang:error(function_clause, [4]).">>),
-    "exception error: no function clause matching "
-        "lists:reverse(" ++ _ =
+    "exception error: bad argument" ++ _ =
         comm_err(<<"F=fun() -> hello end, lists:reverse(F).">>),
-    "exception error: no function clause matching "
-        "lists:reverse(34) (lists.erl, line " ++ _ =
+    "exception error: bad argument" ++ _ =
         comm_err(<<"lists:reverse(34).">>),
     "exception error: function_clause" =
         comm_err(<<"erlang:error(function_clause, 4).">>),

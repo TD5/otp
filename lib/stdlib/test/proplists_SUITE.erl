@@ -24,7 +24,9 @@
          init_per_group/2, end_per_group/2,
 	 init_per_testcase/2, end_per_testcase/2,
          examples/1, map_conversion/1, map_conversion_normalize/1,
-         pm_fold_test/1]).
+         pm_fold_test/1, get_value/1]).
+
+-include_lib("stdlib/include/assert.hrl").
 
 init_per_testcase(_Case, Config) ->
     Config.
@@ -37,7 +39,7 @@ suite() ->
      {timetrap,{minutes,5}}].
 
 all() ->
-    [examples, map_conversion, map_conversion_normalize, pm_fold_test].
+    [examples, map_conversion, map_conversion_normalize, pm_fold_test, get_value].
 
 groups() ->
     [].
@@ -177,5 +179,83 @@ pm_fold_test(_Config) ->
 
     Exp2 = lists:sort([[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]]),
     Exp2 = lists:sort(pm_fold(Fun, [], [1, 2, 3])),
+
+    ok.
+
+get_value(_Config) ->
+    ?assertEqual(undefined, proplists:get_value(a, [])),
+    ?assertEqual(undefined, proplists:get_value(a, [b])),
+    ?assertEqual(undefined, proplists:get_value(a, [b,{c,1}])),
+    ?assertEqual(undefined, proplists:get_value(a, [b,{c,1},{d,2}])),
+    ?assertEqual(undefined, proplists:get_value(a, [b,{c,1},{d,2},{c,3}])),
+    ?assertEqual(undefined, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e])),
+    ?assertEqual(undefined, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4}])),
+    ?assertEqual(undefined, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4},g])),
+    ?assertEqual(undefined, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4},g,h])),
+    ?assertEqual(undefined, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4},g,h,{i,0}])),
+    ?assertEqual(undefined, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4},g,h,{i,0},j])),
+    ?assertEqual(undefined, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4},g,h,{i,0},j,{k,5}])),
+
+    CustomDefault = <<"some default">>,
+    ?assertEqual(CustomDefault, proplists:get_value(a, [], CustomDefault)),
+    ?assertEqual(CustomDefault, proplists:get_value(a, [b], CustomDefault)),
+    ?assertEqual(CustomDefault, proplists:get_value(a, [b,{c,1}], CustomDefault)),
+    ?assertEqual(CustomDefault, proplists:get_value(a, [b,{c,1},{d,2}], CustomDefault)),
+    ?assertEqual(CustomDefault, proplists:get_value(a, [b,{c,1},{d,2},{c,3}], CustomDefault)),
+    ?assertEqual(CustomDefault, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e], CustomDefault)),
+    ?assertEqual(CustomDefault, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4}], CustomDefault)),
+    ?assertEqual(CustomDefault, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4},g], CustomDefault)),
+    ?assertEqual(CustomDefault, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4},g,h], CustomDefault)),
+    ?assertEqual(CustomDefault, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4},g,h,{i,0}], CustomDefault)),
+    ?assertEqual(CustomDefault, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4},g,h,{i,0},j], CustomDefault)),
+    ?assertEqual(CustomDefault, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4},g,h,{i,0},j,{k,5}], CustomDefault)),
+
+    ?assertEqual(true, proplists:get_value(a, [a,b], CustomDefault)),
+    ?assertEqual(true, proplists:get_value(a, [a,b,{c,1}], CustomDefault)),
+    ?assertEqual(true, proplists:get_value(a, [a,b,{c,1},{d,2}], CustomDefault)),
+    ?assertEqual(true, proplists:get_value(a, [a,b,{c,1},{d,2},{c,3}], CustomDefault)),
+    ?assertEqual(true, proplists:get_value(a, [a,b,{c,1},{d,2},{c,3},e], CustomDefault)),
+    ?assertEqual(true, proplists:get_value(a, [a,b,{c,1},{d,2},{c,3},e,{f,4}], CustomDefault)),
+    ?assertEqual(true, proplists:get_value(a, [a,b,{c,1},{d,2},{c,3},e,{f,4},g], CustomDefault)),
+    ?assertEqual(true, proplists:get_value(a, [a,b,{c,1},{d,2},{c,3},e,{f,4},g,h], CustomDefault)),
+    ?assertEqual(true, proplists:get_value(a, [a,b,{c,1},{d,2},{c,3},e,{f,4},g,h,{i,0}], CustomDefault)),
+    ?assertEqual(true, proplists:get_value(a, [a,a,b,{c,1},{d,2},{c,3},e,{f,4},g,h,{i,0},j], CustomDefault)),
+    ?assertEqual(true, proplists:get_value(a, [a,b,{c,1},{d,2},{c,3},e,{f,4},g,h,{i,0},j,{k,5}], CustomDefault)),
+
+    ?assertEqual(true, proplists:get_value(a, [b,a], CustomDefault)),
+    ?assertEqual(true, proplists:get_value(a, [b,{c,1},a], CustomDefault)),
+    ?assertEqual(true, proplists:get_value(a, [b,{c,1},{d,2},a], CustomDefault)),
+    ?assertEqual(true, proplists:get_value(a, [b,{c,1},{d,2},{c,3},a], CustomDefault)),
+    ?assertEqual(true, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,a], CustomDefault)),
+    ?assertEqual(true, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4},a], CustomDefault)),
+    ?assertEqual(true, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4},g,a], CustomDefault)),
+    ?assertEqual(true, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4},g,h,a], CustomDefault)),
+    ?assertEqual(true, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4},g,h,{i,0},a], CustomDefault)),
+    ?assertEqual(true, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4},g,h,{i,0},j,a], CustomDefault)),
+    ?assertEqual(true, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4},g,h,{i,0},j,{k,5},a], CustomDefault)),
+
+    ?assertEqual(found, proplists:get_value(a, [{a,found},b], CustomDefault)),
+    ?assertEqual(found, proplists:get_value(a, [{a,found},b,{c,1}], CustomDefault)),
+    ?assertEqual(found, proplists:get_value(a, [{a,found},b,{c,1},{d,2}], CustomDefault)),
+    ?assertEqual(found, proplists:get_value(a, [{a,found},b,{c,1},{d,2},{c,3}], CustomDefault)),
+    ?assertEqual(found, proplists:get_value(a, [{a,found},b,{c,1},{d,2},{c,3},e], CustomDefault)),
+    ?assertEqual(found, proplists:get_value(a, [{a,found},b,{c,1},{d,2},{c,3},e,{f,4}], CustomDefault)),
+    ?assertEqual(found, proplists:get_value(a, [{a,found},b,{c,1},{d,2},{c,3},e,{f,4},g], CustomDefault)),
+    ?assertEqual(found, proplists:get_value(a, [{a,found},b,{c,1},{d,2},{c,3},e,{f,4},g,h], CustomDefault)),
+    ?assertEqual(found, proplists:get_value(a, [{a,found},b,{c,1},{d,2},{c,3},e,{f,4},g,h,{i,0}], CustomDefault)),
+    ?assertEqual(found, proplists:get_value(a, [{a,found},a,b,{c,1},{d,2},{c,3},e,{f,4},g,h,{i,0},j], CustomDefault)),
+    ?assertEqual(found, proplists:get_value(a, [{a,found},b,{c,1},{d,2},{c,3},e,{f,4},g,h,{i,0},j,{k,5}], CustomDefault)),
+
+    ?assertEqual(found, proplists:get_value(a, [b,{a,found}], CustomDefault)),
+    ?assertEqual(found, proplists:get_value(a, [b,{c,1},{a,found}], CustomDefault)),
+    ?assertEqual(found, proplists:get_value(a, [b,{c,1},{d,2},{a,found}], CustomDefault)),
+    ?assertEqual(found, proplists:get_value(a, [b,{c,1},{d,2},{c,3},{a,found}], CustomDefault)),
+    ?assertEqual(found, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{a,found}], CustomDefault)),
+    ?assertEqual(found, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4},{a,found}], CustomDefault)),
+    ?assertEqual(found, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4},g,{a,found}], CustomDefault)),
+    ?assertEqual(found, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4},g,h,{a,found}], CustomDefault)),
+    ?assertEqual(found, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4},g,h,{i,0},{a,found}], CustomDefault)),
+    ?assertEqual(found, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4},g,h,{i,0},j,{a,found}], CustomDefault)),
+    ?assertEqual(found, proplists:get_value(a, [b,{c,1},{d,2},{c,3},e,{f,4},g,h,{i,0},j,{k,5},{a,found}], CustomDefault)),
 
     ok.

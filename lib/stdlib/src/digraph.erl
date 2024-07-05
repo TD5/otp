@@ -779,7 +779,7 @@ prune_short_path(_Counter, _Min) ->
 one_path([W|Ws], W, Cont, Xs, Ps, Prune, G, Counter) ->
     case prune_short_path(Counter, Prune) of
 	short -> one_path(Ws, W, Cont, Xs, Ps, Prune, G, Counter);
-	ok -> lists:reverse([W|Ps])
+	ok -> lists:reverse(Ps, [W])
     end;
 one_path([V|Vs], W, Cont, Xs, Ps, Prune, G, Counter) ->
     case lists:member(V, Xs) of

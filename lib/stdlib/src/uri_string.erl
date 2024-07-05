@@ -309,7 +309,7 @@ characters used in URI syntax. Quoting functions use percent encoding, but with
 different rules than for example during execution of
 [`recompose/1`](`recompose/1`). It is user responsibility to provide quoting
 functions with application data only and using their output to combine an URI
-component.  
+component.
 Quoting functions can for instance be used for constructing a path component
 with a segment containing '/' character which should not collide with '/' used
 as general delimiter in path component.
@@ -482,19 +482,19 @@ _Example:_
       Options :: [return_map],
       NormalizedURI :: uri_string() | uri_map()
                      | error().
-normalize(URIMap, []) when is_map(URIMap) ->
+normalize(#{}=URIMap, []) ->
     try recompose(normalize_map(URIMap))
     catch
         throw:{error, Atom, RestData} -> {error, Atom, RestData}
     end;
-normalize(URIMap, [return_map]) when is_map(URIMap) ->
+normalize(#{}=URIMap, [return_map]) ->
     try normalize_map(URIMap)
     catch
         throw:{error, Atom, RestData} -> {error, Atom, RestData}
     end;
 normalize(URIString, []) ->
     case parse(URIString) of
-        Value when is_map(Value) ->
+        #{}=Value ->
             try recompose(normalize_map(Value))
             catch
                 throw:{error, Atom, RestData} -> {error, Atom, RestData}
@@ -504,7 +504,7 @@ normalize(URIString, []) ->
     end;
 normalize(URIString, [return_map]) ->
     case parse(URIString) of
-        Value when is_map(Value) ->
+        #{}=Value ->
             try normalize_map(Value)
             catch
                 throw:{error, Atom, RestData} -> {error, Atom, RestData}
@@ -808,7 +808,7 @@ _Example:_
       Result :: uri_string() |
                 uri_map() |
                 {error, {invalid, {atom(), {term(), term()}}}}.
-percent_decode(URIMap) when is_map(URIMap)->
+percent_decode(#{}=URIMap) ->
     Fun = fun (K,V) when K =:= userinfo; K =:= host; K =:= path;
                          K =:= query; K =:= fragment ->
                   case raw_decode(V) of
@@ -1048,8 +1048,8 @@ _Example:_
                  | error().
 dissect_query(<<>>) ->
     [];
-dissect_query([]) ->
-    [];
+dissect_query([]=Nil) ->
+    Nil;
 dissect_query(QueryString) when is_list(QueryString) ->
     try
         B = convert_to_binary(QueryString, utf8, utf8),
@@ -2287,9 +2287,9 @@ update_fragment(#{}, URI) ->
 %% The result is a list if at least one of its argument is a list and
 %% binary otherwise.
 %%-------------------------------------------------------------------------
-concat(A, B) when is_binary(A), is_binary(B) ->
+concat(<<_/binary>>=A, <<_/binary>>=B) ->
     <<A/binary, B/binary>>;
-concat(A, B) when is_binary(A), is_list(B) ->
+concat(<<_/binary>>=A, B) when is_list(B) ->
     unicode:characters_to_list(A) ++ B;
 concat(A, B) when is_list(A) ->
     A ++ maybe_to_list(B).
@@ -2502,20 +2502,20 @@ convert_to_list(Binary, InEncoding) ->
 
 
 %% Flatten input list
-flatten_list([], _) ->
-    [];
+flatten_list([]=Nil, _) ->
+    Nil;
 flatten_list(L, InEnc) ->
     flatten_list(L, InEnc, []).
 %%
-flatten_list([H|T], InEnc, Acc) when is_binary(H) ->
+flatten_list([], _InEnc, Acc) ->
+    lists:reverse(Acc);
+flatten_list([<<_/binary>>=H|T], InEnc, Acc) ->
     L = convert_to_list(H, InEnc),
     flatten_list(T, InEnc, lists:reverse(L, Acc));
 flatten_list([H|T], InEnc, Acc) when is_list(H) ->
     flatten_list(H ++ T, InEnc, Acc);
 flatten_list([H|T], InEnc, Acc) ->
     flatten_list(T, InEnc, [H|Acc]);
-flatten_list([], _InEnc, Acc) ->
-    lists:reverse(Acc);
 flatten_list(Arg, _, _) ->
     throw({error, invalid_input, Arg}).
 
