@@ -19,7 +19,7 @@
 -include_lib("common_test/include/ct.hrl").
 
 %% Test server specific exports
--export([all/0, suite/0,groups/0,init_per_suite/1, end_per_suite/1, 
+-export([all/0, suite/0,groups/0,init_per_suite/1, end_per_suite/1,
 	 init_per_group/2,end_per_group/2]).
 
 %% Test cases
@@ -32,7 +32,7 @@
 
 suite() -> [{ct_hooks,[ts_install_cth]}].
 
-all() -> 
+all() ->
     [app_test,appup_test,smoke_test,revert,revert_map,revert_map_type,
      revert_preserve_pos_changes,
      wrapped_subtrees,
@@ -40,7 +40,7 @@ all() ->
      t_epp_dodger,t_epp_dodger_clever,
      t_comment_scan,t_prettypr,test_named_fun_bind_ann].
 
-groups() -> 
+groups() ->
     [].
 
 init_per_suite(Config) ->
@@ -91,7 +91,7 @@ print_error_markers(F, File) ->
 	_ ->
 	    ok
     end.
-    
+
 
 %% Read with erl_parse, wrap and revert with erl_syntax and check for equality.
 revert(Config) when is_list(Config) ->
@@ -110,10 +110,10 @@ revert(Config) when is_list(Config) ->
 revert_file(File, Path) ->
     case epp:parse_file(File, [{includes,Path},
                                res_word_option()]) of
-        {ok,Fs0} ->
+        {ok,Fs0=[_|_]} ->
             Fs1 = erl_syntax:form_list(Fs0),
             Fs2 = erl_syntax_lib:map(fun (Node) -> Node end, Fs1),
-            Fs3 = erl_syntax:form_list_elements(Fs2),
+            Fs3 = [_|_] = erl_syntax:form_list_elements(Fs2),
             Fs4 = [ erl_syntax:revert(Form) || Form <- Fs3 ],
             case compile:forms(Fs4, [report,return,strong_validation]) of
                 {ok,_,_} -> ok;

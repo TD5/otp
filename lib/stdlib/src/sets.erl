@@ -621,7 +621,7 @@ add_all_map_to_set(Set, Map) ->
 add_all_map_to_set_1(Acc, Iter) ->
     case maps:next(Iter) of
         {K, _, NextIter} ->
-            add_all_map_to_set(add_element(K, Acc), NextIter);
+            add_all_map_to_set_1(add_element(K, Acc), NextIter);
         none ->
             Acc
     end.

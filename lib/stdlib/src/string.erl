@@ -163,6 +163,15 @@ functions of both packages have been retained.
         is_integer(CP2), 0 =< CP2, CP2 < 256, CP1 =/= $\r,
         is_integer(CP3), 0 =< CP3, CP3 < 256, CP2 =/= $\r,
         is_integer(CP4), 0 =< CP4, CP4 < 256, CP3 =/= $\r).
+-define(ASCII_LIST(CP1,CP2,CP3,CP4,CP5,CP6,CP7,CP8),
+        is_integer(CP1), 0 =< CP1, CP1 < 256,
+        is_integer(CP2), 0 =< CP2, CP2 < 256, CP1 =/= $\r,
+        is_integer(CP3), 0 =< CP3, CP3 < 256, CP2 =/= $\r,
+        is_integer(CP4), 0 =< CP4, CP4 < 256, CP3 =/= $\r,
+        is_integer(CP5), 0 =< CP5, CP5 < 256, CP4 =/= $\r,
+        is_integer(CP6), 0 =< CP6, CP6 < 256, CP5 =/= $\r,
+        is_integer(CP7), 0 =< CP7, CP7 < 256, CP6 =/= $\r,
+        is_integer(CP8), 0 =< CP8, CP8 < 256, CP7 =/= $\r).
 
 -export_type([grapheme_cluster/0]).
 
@@ -295,7 +304,7 @@ to_graphemes(CD0) ->
 -spec equal(A, B) -> boolean() when
       A::unicode:chardata(),
       B::unicode:chardata().
-equal(<<_/binary>>=A,<<_/binary>>=B) ->
+equal(A,B) when is_binary(A), is_binary(B) ->
     A =:= B;
 equal(A,B) ->
     equal_1(A,B).
@@ -475,10 +484,10 @@ pad(CD, Length, both, Char) when is_integer(Length) ->
     Size = max(0, Length-Len),
     Pre = lists:duplicate(Size div 2, Char),
     Post = case Size rem 2 of
-               1 -> [Char];
-               _ -> []
+               1 -> [Char|Pre];
+               _ -> Pre
            end,
-    [Pre, CD, Pre|Post].
+    [Pre, CD, Post].
 
 %%  Strip characters from whitespace or Separator in Direction
 -doc(#{equiv => trim(String, both)}).
@@ -833,7 +842,7 @@ to_float(String) ->
     catch _:_ -> {error, badarg}
     end.
 
-to_number(<<_/binary>>=String, Number, Rest, List, _Tail) ->
+to_number(String, Number, Rest, List, _Tail) when is_binary(String) ->
     BSz = erlang:length(List)-erlang:length(Rest),
     <<_:BSz/binary, Cont/binary>> = String,
     {Number, Cont};
@@ -1155,7 +1164,9 @@ next_codepoint(CD) -> unicode_util:cp(CD).
 
 %% Internals
 
-length_1([CP1|[CP2|[CP3|[CP4|_]=Cont]]], N) when ?ASCII_LIST(CP1,CP2,CP3,CP4) -> % Fast path for runs of ASCII characters
+length_1([CP1,CP2,CP3,CP4,CP5,CP6,CP7|[CP8|_]=Cont], N) when ?ASCII_LIST(CP1,CP2,CP3,CP4,CP5,CP6,CP7,CP8) -> % Fast path for runs of ASCII characters
+    length_1(Cont, N+7);
+length_1([CP1,CP2,CP3|[CP4|_]=Cont], N) when ?ASCII_LIST(CP1,CP2,CP3,CP4) ->
     length_1(Cont, N+3);
 length_1([CP1|[CP2|_]=Cont], N) when ?ASCII_LIST(CP1,CP2) ->
     length_1(Cont, N+1);
@@ -1166,7 +1177,10 @@ length_1(Str, N) ->
         {error, Err} -> error({badarg, Err})
     end.
 
-length_b(<<CP2/utf8, CP3/utf8, CP4/utf8, Rest/binary>>, CP1, N) % Fast path for runs of ASCII characters
+length_b(<<CP2/utf8, CP3/utf8, CP4/utf8, CP5/utf8, CP6/utf8, CP7/utf8, CP8/utf8, Rest/binary>>, CP1, N) % Fast path for runs of ASCII characters
+  when ?ASCII_LIST(CP1,CP2,CP3,CP4,CP5,CP6,CP7,CP8) ->
+    length_b(Rest, CP8, N+7);
+length_b(<<CP2/utf8, CP3/utf8, CP4/utf8, Rest/binary>>, CP1, N)
   when ?ASCII_LIST(CP1,CP2,CP3,CP4) ->
     length_b(Rest, CP4, N+3);
 length_b(<<CP2/utf8, Rest/binary>>, CP1, N)
@@ -1181,8 +1195,12 @@ length_b(Bin0, CP1, N) ->
     end.
 
 equal_1([], BR) -> is_empty(BR);
-equal_1([A|AR], [B|BR]) when is_integer(A), is_integer(B) ->
-    A =:= B andalso equal_1(AR, BR);
+equal_1([C], [C]) when is_integer(C) ->
+    true;
+equal_1([C|AR], [C|BR]) when is_integer(C) ->
+    equal_1(AR, BR);
+equal_1([A|_AR], [B|_BR]) when is_integer(A), is_integer(B) ->
+    false;
 equal_1(A0,B0) ->
     case {unicode_util:cp(A0), unicode_util:cp(B0)} of
         {[CP|A],[CP|B]} -> equal_1(A,B);
@@ -1217,6 +1235,10 @@ equal_norm_nocase(A0, B0, Norm) ->
         {L1,L2} when is_list(L1), is_list(L2) -> false
     end.
 
+reverse_1([CP1,CP2,CP3,CP4,CP5,CP6,CP7|[CP8|_]=Cont], Acc) when ?ASCII_LIST(CP1,CP2,CP3,CP4,CP5,CP6,CP7,CP8) ->
+    reverse_1(Cont, [CP7,CP6,CP5,CP4,CP3,CP2,CP1|Acc]);
+reverse_1([CP1,CP2,CP3|[CP4|_]=Cont], Acc) when ?ASCII_LIST(CP1,CP2,CP3,CP4) ->
+    reverse_1(Cont, [CP3,CP2,CP1|Acc]);
 reverse_1([CP1|[CP2|_]=Cont], Acc) when ?ASCII_LIST(CP1,CP2) ->
     reverse_1(Cont, [CP1|Acc]);
 reverse_1(CD, Acc) ->
@@ -1226,9 +1248,15 @@ reverse_1(CD, Acc) ->
         {error, Err} -> error({badarg, Err})
     end.
 
+reverse_b(<<CP2/utf8, CP3/utf8, CP4/utf8, CP5/utf8, CP6/utf8, CP7/utf8, CP8/utf8, Rest/binary>>, CP1, Acc)
+  when ?ASCII_LIST(CP1,CP2,CP3,CP4,CP5,CP6,CP7,CP8) ->
+    reverse_b(Rest, CP8, [CP7,CP6,CP5,CP4,CP3,CP2,CP1|Acc]);
+reverse_b(<<CP2/utf8, CP3/utf8, CP4/utf8, Rest/binary>>, CP1, Acc)
+  when ?ASCII_LIST(CP1,CP2,CP3,CP4) ->
+    reverse_b(Rest, CP4, [CP3,CP2,CP1|Acc]);
 reverse_b(<<CP2/utf8, Rest/binary>>, CP1, Acc)
   when ?ASCII_LIST(CP1,CP2) ->
-    reverse_b(Rest, CP2,  [CP1|Acc]);
+    reverse_b(Rest, CP2, [CP1|Acc]);
 reverse_b(Bin0, CP1, Acc) ->
     [GC|Bin1] = unicode_util:gc([CP1|Bin0]),
     case unicode_util:cp(Bin1) of
@@ -1242,7 +1270,10 @@ slice_l0(<<CP1/utf8, Bin/binary>>, N) when N > 0 ->
 slice_l0(L, N) ->
     slice_l(L, N).
 
-slice_l([CP1|[CP2|[CP3|[CP4|_]=Cont]]], N) % Fast path for runs of ASCII chars
+slice_l([CP1,CP2,CP3,CP4,CP5,CP6,CP7|[CP8|_]=Cont], N)
+  when ?ASCII_LIST(CP1,CP2,CP3,CP4,CP5,CP6,CP7,CP8), is_integer(N), N > 6 ->
+    slice_l(Cont, N-7);
+slice_l([CP1,CP2,CP3|[CP4|_]=Cont], N)
   when ?ASCII_LIST(CP1,CP2,CP3,CP4), is_integer(N), N > 2 ->
     slice_l(Cont, N-3);
 slice_l([CP1|[CP2|_]=Cont], N)
@@ -1257,6 +1288,9 @@ slice_l(CD, N) when is_integer(N), N > 0 ->
 slice_l(Cont, 0) ->
     Cont.
 
+slice_lb(<<CP2/utf8, CP3/utf8, CP4/utf8, CP5/utf8, CP6/utf8, CP7/utf8, CP8/utf8, Bin/binary>>, CP1, N)
+  when ?ASCII_LIST(CP1,CP2,CP3,CP4,CP5,CP6,CP7,CP8), is_integer(N), N > 7 ->
+    slice_lb(Bin, CP2, N-7);
 slice_lb(<<CP2/utf8, CP3/utf8, CP4/utf8, Bin/binary>>, CP1, N)
   when ?ASCII_LIST(CP1,CP2,CP3,CP4), is_integer(N), N > 3 ->
     slice_lb(Bin, CP2, N-3);
@@ -1290,7 +1324,10 @@ slice_trail(<<_/binary>>=Orig, N) ->
 slice_trail(CD, N) when is_list(CD) ->
     slice_list(CD, N).
 
-slice_list([CP1|[CP2|[CP3|[CP4|_]=Cont]]], N) % Fast path for runs of ASCII characters
+slice_list([CP1,CP2,CP3,CP4,CP5,CP6,CP7|[CP8|_]=Cont], N)
+    when ?ASCII_LIST(CP1,CP2,CP3,CP4,CP5,CP6,CP7,CP8),N > 6 ->
+        [CP1,CP2,CP3|slice_list(Cont, N-7)];
+slice_list([CP1,CP2,CP3|[CP4|_]=Cont], N)
     when ?ASCII_LIST(CP1,CP2,CP3,CP4),N > 2 ->
         [CP1,CP2,CP3|slice_list(Cont, N-3)];
 slice_list([CP1|[CP2|_]=Cont], N) when ?ASCII_LIST(CP1,CP2),N > 0 ->
@@ -1304,7 +1341,10 @@ slice_list(CD, N) when N > 0 ->
 slice_list(_, 0) ->
     [].
 
-slice_bin(<<CP2/utf8, CP3/utf8, CP4/utf8, Bin/binary>>, CP1, N) % Fast path for runs of ASCII characters
+slice_bin(<<CP2/utf8, CP3/utf8, CP4/utf8, CP5/utf8, CP6/utf8, CP7/utf8, CP8/utf8, Bin/binary>>, CP1, N)
+    when ?ASCII_LIST(CP1,CP2,CP3,CP4,CP5,CP6,CP7,CP8), N > 6 ->
+        slice_bin(Bin, CP4, N-7);
+slice_bin(<<CP2/utf8, CP3/utf8, CP4/utf8, Bin/binary>>, CP1, N)
     when ?ASCII_LIST(CP1,CP2,CP3,CP4), N > 2 ->
         slice_bin(Bin, CP4, N-3);
 slice_bin(<<CP2/utf8, Bin/binary>>, CP1, N) when ?ASCII_LIST(CP1,CP2), N > 0 ->

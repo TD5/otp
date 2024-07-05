@@ -300,18 +300,18 @@ win_basenameb(O) ->
 basenameb(Bin,Sep) ->
     Parts = [ X || X <- binary:split(Bin,Sep,[global]),
 		   X =/= <<>> ],
-    if
-	Parts =:= [] ->
-	    <<>>;
-	true ->
-	    lists:last(Parts)
+    case Parts of
+        [] ->
+            <<>>;
+        _ ->
+            lists:last(Parts)
     end.
 
 
 
 basename1([$/], Tail0, _DirSep2) ->
     %% End of filename -- must get rid of trailing directory separator.
-    lists:nthtail(1,Tail0);
+    lists:droplast(Tail0);
 basename1([$/|Rest], _Tail, DirSep2) ->
     basename1(Rest, Rest, DirSep2);
 basename1([DirSep2|Rest], Tail, DirSep2) when is_integer(DirSep2) ->

@@ -668,6 +668,8 @@ _Example:_
       List :: [T],
       T :: term().
 
+duplicate(N, X) when is_integer(N), N >= 100 ->
+    duplicate_2(N, X);
 duplicate(N, X) when is_integer(N), N >= 0 ->
     duplicate_1(N, X).
 
@@ -691,6 +693,16 @@ duplicate_1(8, X) ->
     [X, X, X, X, X, X, X, X];
 duplicate_1(N, X) -> % We know N > 8
     [X, X, X, X, X, X, X, X | duplicate_1(N - 8, X)].
+
+duplicate_2(N, X) when N < 100 ->
+    duplicate_1(N, X);
+duplicate_2(N, X) ->
+    HalfN = N bsr 1,
+    HalfL = duplicate_2(HalfN, X),
+    case HalfN + HalfN of
+        N -> HalfL ++ HalfL;
+        _ -> [X | (HalfL ++ HalfL)]
+    end.
 
 %% min(L) -> returns the minimum element of the list L
 
@@ -1012,28 +1024,30 @@ each tuple.
 
 unzip(Ts) ->
     Nil=[],
-    unzip_1(Ts, Nil, Nil).
+    Cont = fun (X,Y) -> {X,Y} end,
+    unzip_1(Ts, Nil, Nil, Cont).
 
-unzip_1([{X1,Y1},{X2,Y2},{X3,Y3},{X4,Y4},{X5,Y5},{X6,Y6},{X7,Y7},{X8,Y8}], Xs, Ys) ->
-    {lists:reverse(Xs,[X1,X2,X3,X4,X5,X6,X7,X8]), lists:reverse(Ys, [Y1,Y2,Y3,Y4,Y5,Y6,Y7,Y8])};
-unzip_1([{X1,Y1},{X2,Y2},{X3,Y3},{X4,Y4},{X5,Y5},{X6,Y6},{X7,Y7},{X8,Y8} | Ts], Xs, Ys) ->
-    unzip_1(Ts, [X8,X7,X6,X5,X4,X3,X2,X1 | Xs], [Y8,Y7,Y6,Y5,Y4,Y3,Y2,Y1 | Ys]);
-unzip_1([{X1,Y1},{X2,Y2},{X3,Y3},{X4,Y4},{X5,Y5},{X6,Y6},{X7,Y7}], Xs, Ys) ->
-    {lists:reverse(Xs,[X1,X2,X3,X4,X5,X6,X7]), lists:reverse(Ys, [Y1,Y2,Y3,Y4,Y5,Y6,Y7])};
-unzip_1([{X1,Y1},{X2,Y2},{X3,Y3},{X4,Y4},{X5,Y5},{X6,Y6}], Xs, Ys) ->
-    {lists:reverse(Xs,[X1,X2,X3,X4,X5,X6]), lists:reverse(Ys, [Y1,Y2,Y3,Y4,Y5,Y6])};
-unzip_1([{X1,Y1},{X2,Y2},{X3,Y3},{X4,Y4},{X5,Y5}], Xs, Ys) ->
-    {lists:reverse(Xs,[X1,X2,X3,X4,X5]), lists:reverse(Ys, [Y1,Y2,Y3,Y4,Y5])};
-unzip_1([{X1,Y1},{X2,Y2},{X3,Y3},{X4,Y4}], Xs, Ys) ->
-    {lists:reverse(Xs,[X1,X2,X3,X4]), lists:reverse(Ys, [Y1,Y2,Y3,Y4])};
-unzip_1([{X1,Y1},{X2,Y2},{X3,Y3}], Xs, Ys) ->
-    {lists:reverse(Xs,[X1,X2,X3]), lists:reverse(Ys, [Y1,Y2,Y3])};
-unzip_1([{X1,Y1},{X2,Y2}], Xs, Ys) ->
-    {lists:reverse(Xs,[X1,X2]), lists:reverse(Ys, [Y1,Y2])};
-unzip_1([{X,Y}], Xs, Ys) ->
-    {lists:reverse(Xs,[X]), lists:reverse(Ys, [Y])};
-unzip_1([], Xs, Ys) ->
-    {reverse(Xs), reverse(Ys)}.
+% Uses continuations to avoid allocating intermediate pairs
+unzip_1([{X1,Y1},{X2,Y2},{X3,Y3},{X4,Y4},{X5,Y5},{X6,Y6},{X7,Y7},{X8,Y8}], Xs, Ys, Cont) ->
+    Cont(lists:reverse(Xs,[X1,X2,X3,X4,X5,X6,X7,X8]), lists:reverse(Ys, [Y1,Y2,Y3,Y4,Y5,Y6,Y7,Y8]));
+unzip_1([{X1,Y1},{X2,Y2},{X3,Y3},{X4,Y4},{X5,Y5},{X6,Y6},{X7,Y7},{X8,Y8} | Ts], Xs, Ys, Cont) ->
+    unzip_1(Ts, [X8,X7,X6,X5,X4,X3,X2,X1 | Xs], [Y8,Y7,Y6,Y5,Y4,Y3,Y2,Y1 | Ys], Cont);
+unzip_1([{X1,Y1},{X2,Y2},{X3,Y3},{X4,Y4},{X5,Y5},{X6,Y6},{X7,Y7}], Xs, Ys, Cont) ->
+    Cont(lists:reverse(Xs,[X1,X2,X3,X4,X5,X6,X7]), lists:reverse(Ys, [Y1,Y2,Y3,Y4,Y5,Y6,Y7]));
+unzip_1([{X1,Y1},{X2,Y2},{X3,Y3},{X4,Y4},{X5,Y5},{X6,Y6}], Xs, Ys, Cont) ->
+    Cont(lists:reverse(Xs,[X1,X2,X3,X4,X5,X6]), lists:reverse(Ys, [Y1,Y2,Y3,Y4,Y5,Y6]));
+unzip_1([{X1,Y1},{X2,Y2},{X3,Y3},{X4,Y4},{X5,Y5}], Xs, Ys, Cont) ->
+    Cont(lists:reverse(Xs,[X1,X2,X3,X4,X5]), lists:reverse(Ys, [Y1,Y2,Y3,Y4,Y5]));
+unzip_1([{X1,Y1},{X2,Y2},{X3,Y3},{X4,Y4}], Xs, Ys, Cont) ->
+    Cont(lists:reverse(Xs,[X1,X2,X3,X4]), lists:reverse(Ys, [Y1,Y2,Y3,Y4]));
+unzip_1([{X1,Y1},{X2,Y2},{X3,Y3}], Xs, Ys, Cont) ->
+    Cont(lists:reverse(Xs,[X1,X2,X3]), lists:reverse(Ys, [Y1,Y2,Y3]));
+unzip_1([{X1,Y1},{X2,Y2}], Xs, Ys, Cont) ->
+    Cont(lists:reverse(Xs,[X1,X2]), lists:reverse(Ys, [Y1,Y2]));
+unzip_1([{X,Y}], Xs, Ys, Cont) ->
+    Cont(lists:reverse(Xs,[X]), lists:reverse(Ys, [Y]));
+unzip_1([], Xs, Ys, Cont) ->
+    Cont(reverse(Xs), reverse(Ys)).
 
 %% Return [{X0, Y0, Z0}, {X1, Y1, Z1}, ..., {Xn, Yn, Zn}] for lists [X0,
 %% X1, ..., Xn], [Y0, Y1, ..., Yn] and [Z0, Z1, ..., Zn].
@@ -1135,28 +1149,30 @@ each tuple, and the third list contains the third element of each tuple.
 
 unzip3(Ts) ->
     Nil=[],
-    unzip3(Ts, Nil, Nil, Nil).
+    Cont = fun (Xs,Ys,Zs) -> {Xs,Ys,Zs} end,
+    unzip3(Ts, Nil, Nil, Nil, Cont).
 
-unzip3([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4},{X5,Y5,Z5},{X6,Y6,Z6},{X7,Y7,Z7},{X8,Y8,Z8}], Xs, Ys, Zs) ->
-    {lists:reverse(Xs,[X1,X2,X3,X4,X5,X6,X7,X8]), lists:reverse(Ys, [Y1,Y2,Y3,Y4,Y5,Y6,Y7,Y8]), lists:reverse(Zs, [Z1,Z2,Z3,Z4,Z5,Z6,Z7,Z8])};
-unzip3([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4},{X5,Y5,Z5},{X6,Y6,Z6},{X7,Y7,Z7},{X8,Y8,Z8} | Ts], Xs, Ys, Zs) ->
-    unzip3(Ts, [X8,X7,X6,X5,X4,X3,X2,X1 | Xs], [Y8,Y7,Y6,Y5,Y4,Y3,Y2,Y1 | Ys], [Z8,Z7,Z6,Z5,Z4,Z3,Z2,Z1 | Zs]);
-unzip3([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4},{X5,Y5,Z5},{X6,Y6,Z6},{X7,Y7,Z7}], Xs, Ys, Zs) ->
-    {lists:reverse(Xs,[X1,X2,X3,X4,X5,X6,X7]), lists:reverse(Ys, [Y1,Y2,Y3,Y4,Y5,Y6,Y7]), lists:reverse(Zs, [Z1,Z2,Z3,Z4,Z5,Z6,Z7])};
-unzip3([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4},{X5,Y5,Z5},{X6,Y6,Z6}], Xs, Ys, Zs) ->
-    {lists:reverse(Xs,[X1,X2,X3,X4,X5,X6]), lists:reverse(Ys, [Y1,Y2,Y3,Y4,Y5,Y6]), lists:reverse(Zs, [Z1,Z2,Z3,Z4,Z5,Z6])};
-unzip3([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4},{X5,Y5,Z5}], Xs, Ys, Zs) ->
-    {lists:reverse(Xs,[X1,X2,X3,X4,X5]), lists:reverse(Ys, [Y1,Y2,Y3,Y4,Y5]), lists:reverse(Zs, [Z1,Z2,Z3,Z4,Z5])};
-unzip3([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4}], Xs, Ys, Zs) ->
-    {lists:reverse(Xs,[X1,X2,X3,X4]), lists:reverse(Ys, [Y1,Y2,Y3,Y4]), lists:reverse(Zs, [Z1,Z2,Z3,Z4])};
-unzip3([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}], Xs, Ys, Zs) ->
-    {lists:reverse(Xs,[X1,X2,X3]), lists:reverse(Ys, [Y1,Y2,Y3]), lists:reverse(Zs, [Z1,Z2,Z3])};
-unzip3([{X1,Y1,Z1},{X2,Y2,Z2}], Xs, Ys, Zs) ->
-    {lists:reverse(Xs,[X1,X2]), lists:reverse(Ys, [Y1,Y2]), lists:reverse(Zs, [Z1,Z2])};
-unzip3([{X1,Y1,Z1}], Xs, Ys, Zs) ->
-    {lists:reverse(Xs,[X1]), lists:reverse(Ys, [Y1]), lists:reverse(Zs, [Z1])};
-unzip3([], Xs, Ys, Zs) ->
-    {reverse(Xs), reverse(Ys), reverse(Zs)}.
+% Uses continuations to avoid allocating intermediate pairs
+unzip3([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4},{X5,Y5,Z5},{X6,Y6,Z6},{X7,Y7,Z7},{X8,Y8,Z8}], Xs, Ys, Zs, Cont) ->
+    Cont(lists:reverse(Xs,[X1,X2,X3,X4,X5,X6,X7,X8]), lists:reverse(Ys, [Y1,Y2,Y3,Y4,Y5,Y6,Y7,Y8]), lists:reverse(Zs, [Z1,Z2,Z3,Z4,Z5,Z6,Z7,Z8]));
+unzip3([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4},{X5,Y5,Z5},{X6,Y6,Z6},{X7,Y7,Z7},{X8,Y8,Z8} | Ts], Xs, Ys, Zs, Cont) ->
+    unzip3(Ts, [X8,X7,X6,X5,X4,X3,X2,X1 | Xs], [Y8,Y7,Y6,Y5,Y4,Y3,Y2,Y1 | Ys], [Z8,Z7,Z6,Z5,Z4,Z3,Z2,Z1 | Zs], Cont);
+unzip3([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4},{X5,Y5,Z5},{X6,Y6,Z6},{X7,Y7,Z7}], Xs, Ys, Zs, Cont) ->
+    Cont(lists:reverse(Xs,[X1,X2,X3,X4,X5,X6,X7]), lists:reverse(Ys, [Y1,Y2,Y3,Y4,Y5,Y6,Y7]), lists:reverse(Zs, [Z1,Z2,Z3,Z4,Z5,Z6,Z7]));
+unzip3([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4},{X5,Y5,Z5},{X6,Y6,Z6}], Xs, Ys, Zs, Cont) ->
+    Cont(lists:reverse(Xs,[X1,X2,X3,X4,X5,X6]), lists:reverse(Ys, [Y1,Y2,Y3,Y4,Y5,Y6]), lists:reverse(Zs, [Z1,Z2,Z3,Z4,Z5,Z6]));
+unzip3([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4},{X5,Y5,Z5}], Xs, Ys, Zs, Cont) ->
+    Cont(lists:reverse(Xs,[X1,X2,X3,X4,X5]), lists:reverse(Ys, [Y1,Y2,Y3,Y4,Y5]), lists:reverse(Zs, [Z1,Z2,Z3,Z4,Z5]));
+unzip3([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3},{X4,Y4,Z4}], Xs, Ys, Zs, Cont) ->
+    Cont(lists:reverse(Xs,[X1,X2,X3,X4]), lists:reverse(Ys, [Y1,Y2,Y3,Y4]), lists:reverse(Zs, [Z1,Z2,Z3,Z4]));
+unzip3([{X1,Y1,Z1},{X2,Y2,Z2},{X3,Y3,Z3}], Xs, Ys, Zs, Cont) ->
+    Cont(lists:reverse(Xs,[X1,X2,X3]), lists:reverse(Ys, [Y1,Y2,Y3]), lists:reverse(Zs, [Z1,Z2,Z3]));
+unzip3([{X1,Y1,Z1},{X2,Y2,Z2}], Xs, Ys, Zs, Cont) ->
+    Cont(lists:reverse(Xs,[X1,X2]), lists:reverse(Ys, [Y1,Y2]), lists:reverse(Zs, [Z1,Z2]));
+unzip3([{X1,Y1,Z1}], Xs, Ys, Zs, Cont) ->
+    Cont(lists:reverse(Xs,[X1]), lists:reverse(Ys, [Y1]), lists:reverse(Zs, [Z1]));
+unzip3([], Xs, Ys, Zs, Cont) ->
+    Cont(reverse(Xs), reverse(Ys), reverse(Zs)).
 
 %% Return [F(X0, Y0), F(X1, Y1), ..., F(Xn, Yn)] for lists [X0, X1, ...,
 %% Xn] and [Y0, Y1, ..., Yn].
@@ -3555,35 +3571,37 @@ and `List3` the remaining elements (the `N`th tail).
       T :: term().
 
 split(N, List) when is_integer(N), N >= 0, is_list(List) ->
-    case split(N, List, []) of
-	{_, _} = Result -> Result;
-	Fault when is_atom(Fault) ->
-	    erlang:error(Fault, [N,List])
+    case split(N, List, [], fun (L,R) -> {L,R} end) of
+        {_,_}=Result ->
+            Result;
+        (Fault) when is_atom(Fault) ->
+            erlang:error(Fault, [N,List])
     end;
 split(N, List) ->
     erlang:error(badarg, [N,List]).
 
-split(0, L, R) ->
-    {reverse(R), L};
-split(8, [H1,H2,H3,H4,H5,H6,H7,H8|T], R) ->
-    {lists:reverse(R,[H1,H2,H3,H4,H5,H6,H7,H8]),T};
-split(1, [H|T], R) ->
-    {lists:reverse(R,[H]),T};
-split(2, [H1,H2|T], R) ->
-    {lists:reverse(R,[H1,H2]),T};
-split(3, [H1,H2,H3|T], R) ->
-    {lists:reverse(R,[H1,H2,H3]),T};
-split(4, [H1,H2,H3,H4|T], R) ->
-    {lists:reverse(R,[H1,H2,H3,H4]),T};
-split(5, [H1,H2,H3,H4,H5|T], R) ->
-    {lists:reverse(R,[H1,H2,H3,H4,H5]),T};
-split(6, [H1,H2,H3,H4,H5,H6|T], R) ->
-    {lists:reverse(R,[H1,H2,H3,H4,H5,H6]),T};
-split(7, [H1,H2,H3,H4,H5,H6,H7|T], R) ->
-    {lists:reverse(R,[H1,H2,H3,H4,H5,H6,H7]),T};
-split(N, [H1,H2,H3,H4,H5,H6,H7,H8|T], R) when N > 8 ->
-    split(N-8, T, [H8,H7,H6,H5,H4,H3,H2,H1|R]);
-split(_,_,_) ->
+% Uses continuations to avoid allocating intermediate pairs
+split(0, L, R, Cont) ->
+    Cont(reverse(R), L);
+split(8, [H1,H2,H3,H4,H5,H6,H7,H8|T], R, Cont) ->
+    Cont(lists:reverse(R,[H1,H2,H3,H4,H5,H6,H7,H8]),T);
+split(1, [H|T], R, Cont) ->
+    Cont(lists:reverse(R,[H]),T);
+split(2, [H1,H2|T], R, Cont) ->
+    Cont(lists:reverse(R,[H1,H2]),T);
+split(3, [H1,H2,H3|T], R, Cont) ->
+    Cont(lists:reverse(R,[H1,H2,H3]),T);
+split(4, [H1,H2,H3,H4|T], R, Cont) ->
+    Cont(lists:reverse(R,[H1,H2,H3,H4]),T);
+split(5, [H1,H2,H3,H4,H5|T], R, Cont) ->
+    Cont(lists:reverse(R,[H1,H2,H3,H4,H5]),T);
+split(6, [H1,H2,H3,H4,H5,H6|T], R, Cont) ->
+    Cont(lists:reverse(R,[H1,H2,H3,H4,H5,H6]),T);
+split(7, [H1,H2,H3,H4,H5,H6,H7|T], R, Cont) ->
+    Cont(lists:reverse(R,[H1,H2,H3,H4,H5,H6,H7]),T);
+split(N, [H1,H2,H3,H4,H5,H6,H7,H8|T], R, Cont) when N > 8 ->
+    split(N-8, T, [H8,H7,H6,H5,H4,H3,H2,H1|R], Cont);
+split(_,_,_,_) ->
     badarg.
 
 -doc """

@@ -881,26 +881,146 @@ printable_bin1(Bin, Start, Len) ->
             Len - (N - NC)
     end.
 
+-define(is_printable_latin1(X), (
+    (X =:= $\n) orelse (X =:= $\r) orelse (X =:= $\t) orelse (X =:= $\v) orelse
+    (X =:= $\b) orelse (X =:= $\f) orelse (X =:= $\e) orelse
+
+    % ----
+
+    (X =:= 32) orelse
+    (X =:= 33) orelse (X =:= 34) orelse (X =:= 35) orelse (X =:= 36) orelse
+    (X =:= 37) orelse (X =:= 38) orelse (X =:= 39) orelse (X =:= 40) orelse
+    (X =:= 41) orelse (X =:= 42) orelse (X =:= 43) orelse (X =:= 44) orelse
+    (X =:= 45) orelse (X =:= 46) orelse (X =:= 47) orelse (X =:= 48) orelse
+    (X =:= 49) orelse (X =:= 50) orelse (X =:= 51) orelse (X =:= 52) orelse
+    (X =:= 53) orelse (X =:= 54) orelse (X =:= 55) orelse (X =:= 56) orelse
+    (X =:= 57) orelse (X =:= 58) orelse (X =:= 59) orelse (X =:= 60) orelse
+    (X =:= 61) orelse (X =:= 62) orelse (X =:= 63) orelse (X =:= 64) orelse
+    (X =:= 65) orelse (X =:= 66) orelse (X =:= 67) orelse (X =:= 68) orelse
+    (X =:= 69) orelse (X =:= 70) orelse (X =:= 71) orelse (X =:= 72) orelse
+    (X =:= 73) orelse (X =:= 74) orelse (X =:= 75) orelse (X =:= 76) orelse
+    (X =:= 77) orelse (X =:= 78) orelse (X =:= 79) orelse (X =:= 80) orelse
+    (X =:= 81) orelse (X =:= 82) orelse (X =:= 83) orelse (X =:= 84) orelse
+    (X =:= 85) orelse (X =:= 86) orelse (X =:= 87) orelse (X =:= 88) orelse
+    (X =:= 89) orelse (X =:= 90) orelse (X =:= 91) orelse (X =:= 92) orelse
+    (X =:= 93) orelse (X =:= 94) orelse (X =:= 95) orelse (X =:= 96) orelse
+    (X =:= 97) orelse (X =:= 98) orelse (X =:= 99) orelse (X =:= 100) orelse
+    (X =:= 101) orelse (X =:= 102) orelse (X =:= 103) orelse (X =:= 104) orelse
+    (X =:= 105) orelse (X =:= 106) orelse (X =:= 107) orelse (X =:= 108) orelse
+    (X =:= 109) orelse (X =:= 110) orelse (X =:= 111) orelse (X =:= 112) orelse
+    (X =:= 113) orelse (X =:= 114) orelse (X =:= 115) orelse (X =:= 116) orelse
+    (X =:= 117) orelse (X =:= 118) orelse (X =:= 119) orelse (X =:= 120) orelse
+    (X =:= 121) orelse (X =:= 122) orelse (X =:= 123) orelse (X =:= 124) orelse
+    (X =:= 125) orelse (X =:= 126) orelse
+
+    % ----
+
+    (X =:= 160) orelse (X =:= 161) orelse (X =:= 162) orelse (X =:= 163) orelse
+    (X =:= 164) orelse (X =:= 165) orelse (X =:= 166) orelse (X =:= 167) orelse
+    (X =:= 168) orelse (X =:= 169) orelse (X =:= 170) orelse (X =:= 171) orelse
+    (X =:= 172) orelse (X =:= 173) orelse (X =:= 174) orelse (X =:= 175) orelse
+    (X =:= 176) orelse (X =:= 177) orelse (X =:= 178) orelse (X =:= 179) orelse
+    (X =:= 180) orelse (X =:= 181) orelse (X =:= 182) orelse (X =:= 183) orelse
+    (X =:= 184) orelse (X =:= 185) orelse (X =:= 186) orelse (X =:= 187) orelse
+    (X =:= 188) orelse (X =:= 189) orelse (X =:= 190) orelse (X =:= 191) orelse
+    (X =:= 192) orelse (X =:= 193) orelse (X =:= 194) orelse (X =:= 195) orelse
+    (X =:= 196) orelse (X =:= 197) orelse (X =:= 198) orelse (X =:= 199) orelse
+    (X =:= 200) orelse (X =:= 201) orelse (X =:= 202) orelse (X =:= 203) orelse
+    (X =:= 204) orelse (X =:= 205) orelse (X =:= 206) orelse (X =:= 207) orelse
+    (X =:= 208) orelse (X =:= 209) orelse (X =:= 210) orelse (X =:= 211) orelse
+    (X =:= 212) orelse (X =:= 213) orelse (X =:= 214) orelse (X =:= 215) orelse
+    (X =:= 216) orelse (X =:= 217) orelse (X =:= 218) orelse (X =:= 219) orelse
+    (X =:= 220) orelse (X =:= 221) orelse (X =:= 222) orelse (X =:= 223) orelse
+    (X =:= 224) orelse (X =:= 225) orelse (X =:= 226) orelse (X =:= 227) orelse
+    (X =:= 228) orelse (X =:= 229) orelse (X =:= 230) orelse (X =:= 231) orelse
+    (X =:= 232) orelse (X =:= 233) orelse (X =:= 234) orelse (X =:= 235) orelse
+    (X =:= 236) orelse (X =:= 237) orelse (X =:= 238) orelse (X =:= 239) orelse
+    (X =:= 240) orelse (X =:= 241) orelse (X =:= 242) orelse (X =:= 243) orelse
+    (X =:= 244) orelse (X =:= 245) orelse (X =:= 246) orelse (X =:= 247) orelse
+    (X =:= 248) orelse (X =:= 249) orelse (X =:= 250) orelse (X =:= 251) orelse
+    (X =:= 252) orelse (X =:= 253) orelse (X =:= 254) orelse (X =:= 255))).
+
+-define(all_printable_latin1(C1, C2, C3, C4, C5, C6, C7, C8),
+    (?is_printable_latin1(C1)), (?is_printable_latin1(C2)), (?is_printable_latin1(C3)),
+    (?is_printable_latin1(C4)), (?is_printable_latin1(C5)), (?is_printable_latin1(C6)),
+    (?is_printable_latin1(C7)), (?is_printable_latin1(C8))
+).
+
 %% -> all | integer() >=0. Adopted from io_lib.erl.
-printable_latin1_list([_ | _], 0) -> 0;
-printable_latin1_list([$\n | Cs], N) -> printable_latin1_list(Cs, N - 1);
-printable_latin1_list([$\r | Cs], N) -> printable_latin1_list(Cs, N - 1);
-printable_latin1_list([$\t | Cs], N) -> printable_latin1_list(Cs, N - 1);
-printable_latin1_list([$\v | Cs], N) -> printable_latin1_list(Cs, N - 1);
-printable_latin1_list([$\b | Cs], N) -> printable_latin1_list(Cs, N - 1);
-printable_latin1_list([$\f | Cs], N) -> printable_latin1_list(Cs, N - 1);
-printable_latin1_list([$\e | Cs], N) -> printable_latin1_list(Cs, N - 1);
-printable_latin1_list([], _) -> all;
-printable_latin1_list([C | Cs], N) when is_integer(C), C >= $\s, C =< $~ ->
-    printable_latin1_list(Cs, N - 1);
-printable_latin1_list([C | Cs], N) when is_integer(C), C >= $\240, C =< $\377 ->
-    printable_latin1_list(Cs, N - 1);
-printable_latin1_list(_, N) -> N.
+printable_latin1_list([_|_], 0) ->
+    0;
+printable_latin1_list([], _) ->
+    all;
+printable_latin1_list([C1,C2,C3,C4,C5,C6,C7,C8], N) when ?all_printable_latin1(C1,C2,C3,C4,C5,C6,C7,C8) ->
+    case N of
+        _ when N >= 8 -> all;
+        _ -> 0
+    end;
+printable_latin1_list([C1,C2,C3,C4,C5,C6,C7,C8|Cs], N) when ?all_printable_latin1(C1,C2,C3,C4,C5,C6,C7,C8) ->
+    printable_latin1_list(Cs, tsub(N,8));
+printable_latin1_list([C1], N) when
+        ?is_printable_latin1(C1) ->
+    case N of
+        _ when N >= 1 -> all;
+        _ -> 0
+    end;
+printable_latin1_list([C1,C2], N) when
+        ?is_printable_latin1(C1), ?is_printable_latin1(C2) ->
+    case N of
+        _ when N >= 2 -> all;
+        _ -> 0
+    end;
+printable_latin1_list([C1,C2,C3], N) when
+        ?is_printable_latin1(C1), ?is_printable_latin1(C2), ?is_printable_latin1(C3) ->
+    case N of
+        _ when N >= 3 -> all;
+        _ -> 0
+    end;
+printable_latin1_list([C1,C2,C3,C4], N) when
+        ?is_printable_latin1(C1), ?is_printable_latin1(C2),
+        ?is_printable_latin1(C3), ?is_printable_latin1(C4) ->
+    case N of
+        _ when N >= 4 -> all;
+        _ -> 0
+    end;
+printable_latin1_list([C1,C2,C3,C4,C5], N) when
+        ?is_printable_latin1(C1), ?is_printable_latin1(C2),
+        ?is_printable_latin1(C3), ?is_printable_latin1(C4),
+        ?is_printable_latin1(C5) ->
+    case N of
+        _ when N >= 5 -> all;
+        _ -> 0
+    end;
+printable_latin1_list([C1,C2,C3,C4,C5,C6], N) when
+        ?is_printable_latin1(C1), ?is_printable_latin1(C2),
+        ?is_printable_latin1(C3), ?is_printable_latin1(C4),
+        ?is_printable_latin1(C5), ?is_printable_latin1(C6) ->
+    case N of
+        _ when N >= 6 -> all;
+        _ -> 0
+    end;
+printable_latin1_list([C1,C2,C3,C4,C5,C6,C7], N) when
+        ?is_printable_latin1(C1), ?is_printable_latin1(C2),
+        ?is_printable_latin1(C3), ?is_printable_latin1(C4),
+        ?is_printable_latin1(C5), ?is_printable_latin1(C6),
+        ?is_printable_latin1(C7) ->
+    case N of
+        _ when N >= 7 -> all;
+        _ -> 0
+    end;
+% Cannot fast forward: Count how many printable latin1 chars occur before we reach a non-printable one
+printable_latin1_list([C|Cs], N) when ?is_printable_latin1(C) ->
+    printable_latin1_list(Cs, N-1);
+printable_latin1_list(_,N) -> N.
 
 valid_utf8(<<>>,_) ->
     true;
 valid_utf8(_,0) ->
     true;
+valid_utf8(<<_/utf8, _/utf8, _/utf8, _/utf8, _/utf8, _/utf8, _/utf8, _/utf8, R/binary>>,N) when N >= 8 ->
+    valid_utf8(R,tsub(N,8));
+valid_utf8(<<_/utf8, _/utf8, _/utf8, _/utf8, R/binary>>,N) when N >= 4 ->
+    valid_utf8(R,tsub(N,4));
 valid_utf8(<<_/utf8, R/binary>>,N) ->
     valid_utf8(R,N-1);
 valid_utf8(_,_) ->

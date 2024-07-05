@@ -30,8 +30,9 @@
 -include_lib("common_test/include/ct.hrl").
 -define(format(S, A), ok).
 -endif.
+-include_lib("stdlib/include/assert.hrl").
 
--export([all/0, suite/0,groups/0,init_per_suite/1, end_per_suite/1, 
+-export([all/0, suite/0,groups/0,init_per_suite/1, end_per_suite/1,
 	 init_per_group/2,end_per_group/2]).
 
 -export([ from_term_1/1, set_1/1, from_sets_1/1, relation_1/1,
@@ -58,7 +59,7 @@
 	  family_intersection_2/1, family_union_2/1,
 	  partition_family/1]).
 
--import(sofs, 
+-import(sofs,
 	[a_function/1, a_function/2, constant_function/2,
 	 canonical_relation/1, composite/2,
 	 converse/1, extension/3, from_term/1, from_term/2,
@@ -91,10 +92,10 @@ suite() ->
     [{ct_hooks,[ts_install_cth]},
      {timetrap,{minutes,2}}].
 
-all() -> 
+all() ->
     [{group, sofs}, {group, sofs_family}].
 
-groups() -> 
+groups() ->
     [{sofs, [],
       [from_term_1, set_1, from_sets_1, relation_1,
        a_function_1, family_1, relation_to_family_1, domain_1,
@@ -262,7 +263,7 @@ from_sets_1(Conf) when is_list(Conf) ->
     %% unordered
     eval(from_sets([]), E),
     {'EXIT', {type_mismatch, _}} =
-	(catch from_sets([from_term([{a,b}]), 
+	(catch from_sets([from_term([{a,b}]),
                           E,
                           from_term([{a,b,c}])])),
     eval(from_sets([from_term([{a,b}]), E]),
@@ -272,7 +273,7 @@ from_sets_1(Conf) when is_list(Conf) ->
 		    from_term({b,c},{atom,atom})]),
 	 relation([{a,b}, {b,c}])),
     {'EXIT', {type_mismatch, _}} =
-	(catch from_sets([from_term({a,b},{atom,atom}), 
+	(catch from_sets([from_term({a,b},{atom,atom}),
 			  from_term({a,b,c},{atom,atom,atom})])),
     {'EXIT', {badarg, _}} = (catch from_sets(foo)),
     eval(from_sets([E]), from_term([[]])),
@@ -339,7 +340,7 @@ a_function_1(Conf) when is_list(Conf) ->
                 (catch a_function([{I,a},{F,b}])),
             {'EXIT', {bad_function, _}} =
 		(catch a_function([{[I],a},{[F],b}],[{[a],b}]));
-        true -> 
+        true ->
             2 = no_elements(a_function([{I,a},{F,b}])),
             2 = no_elements(a_function([{[I],a},{[F],b}],[{[a],b}]))
     end,
@@ -385,7 +386,7 @@ family_1(Conf) when is_list(Conf) ->
             {'EXIT', {bad_function, _}} =
                 (catch family([{I,[a]},{F,[b]}])),
             true = (1 =:= no_elements(family([{a,[I]},{a,[F]}])));
-        true -> 
+        true ->
             {'EXIT', {bad_function, _}} =
                 (catch family([{a,[I]},{a,[F]}]))
     end,
@@ -455,7 +456,7 @@ projection(Conf) when is_list(Conf) ->
     eval(projection(Fun2, relation([{a,1}])), relation([{a}])),
     eval(projection(Fun2, relation([{a,1},{b,3},{a,2}])),
 	 relation([{a},{b}])),
-    Fun3 = {external, fun({A,_B,C}) -> {C,{A},C} end}, 
+    Fun3 = {external, fun({A,_B,C}) -> {C,{A},C} end},
     eval(projection(Fun3, relation([{a,1,x},{b,3,y},{a,2,z}])),
 	 from_term([{x,{a},x},{y,{b},y},{z,{a},z}])),
     Fun4 = {external, fun(A={B,_C,_D}) -> {B, A} end},
@@ -470,7 +471,7 @@ projection(Conf) when is_list(Conf) ->
     {'EXIT', {function_clause, _}} =
 	(catch projection({external, fun({A}) -> A end}, S1)),
     {'EXIT', {badarg, _}} =
-	(catch projection({external, fun({A,_}) -> {A,0} end}, 
+	(catch projection({external, fun({A,_}) -> {A,0} end},
 			  from_term([{1,a}]))),
 
     %% {} is not an ordered set
@@ -512,13 +513,13 @@ projection(Conf) when is_list(Conf) ->
     if
         F == I -> % term ordering
             true = (no_elements(projection(1, FR)) =:= 1);
-        true -> 
+        true ->
             eval(projection(1, FR), set([I,F]))
     end,
 
     %% set of sets
     {'EXIT', {badarg, _}} =
-        (catch projection({external, fun(X) -> X end}, 
+        (catch projection({external, fun(X) -> X end},
 			  from_term([], [[atom]]))),
     {'EXIT', {badarg, _}} =
         (catch projection({external, fun(X) -> X end}, from_term([[a]]))),
@@ -568,7 +569,7 @@ substitution(Conf) when is_list(Conf) ->
     eval(substitution(2, S1),
 	 from_term([{{a,1},1},{{b,2},2},{{b,22},22},{{c,0},0}])),
 
-    Fun1 = fun({A,_B}) -> {A} end, 
+    Fun1 = fun({A,_B}) -> {A} end,
     XFun1 = {external, Fun1},
     eval(substitution(XFun1, E), E),
     eval(substitution(Fun1, E), E),
@@ -602,12 +603,12 @@ substitution(Conf) when is_list(Conf) ->
     {'EXIT', {function_clause, _}} =
 	(catch substitution({external, fun({A,_}) -> A end}, set([]))),
     {'EXIT', {badarg, _}} =
-	(catch substitution({external, fun({A,_}) -> {A,0} end}, 
+	(catch substitution({external, fun({A,_}) -> {A,0} end},
 			    from_term([{1,a}]))),
 
     %% set of sets
     {'EXIT', {badarg, _}} =
-        (catch substitution({external, fun(X) -> X end}, 
+        (catch substitution({external, fun(X) -> X end},
 			    from_term([], [[atom]]))),
     {'EXIT', {badarg, _}} =
         (catch substitution({external, fun(X) -> X end}, from_term([[a]]))),
@@ -702,10 +703,10 @@ restriction(Conf) when is_list(Conf) ->
     {'EXIT', {type_mismatch, _}} =
 	(catch restriction(2, relation([{a,b}]), relation([{b,d}]))),
     {'EXIT', {type_mismatch, _}} =
-	(catch restriction({external, fun({A,_B}) -> A end}, 
+	(catch restriction({external, fun({A,_B}) -> A end},
 			   relation([{a,b}]), relation([{b,d}]))),
     {'EXIT', {badarg, _}} =
-	(catch restriction({external, fun({A,_}) -> {A,0} end}, 
+	(catch restriction({external, fun({A,_}) -> {A,0} end},
 			   from_term([{1,a}]),
 			   from_term([{1,0}]))),
     eval(restriction(2, relation([{a,d},{b,e},{c,b},{d,c}]), set([b,d])),
@@ -719,7 +720,7 @@ restriction(Conf) when is_list(Conf) ->
 
     %% set of sets
     {'EXIT', {badarg, _}} =
-        (catch restriction({external, fun(X) -> X end}, 
+        (catch restriction({external, fun(X) -> X end},
 			   from_term([], [[atom]]), set([a]))),
     S2 = from_term([], [[atom]]),
     eval(restriction(Id, S2, E), E),
@@ -737,7 +738,7 @@ restriction(Conf) when is_list(Conf) ->
 		     from_term([], [[a]])),
 	 from_term([], [[atom]])),
     {'EXIT', {type_mismatch, _}} =
-        (catch restriction(fun(_) -> from_term([a]) end, 
+        (catch restriction(fun(_) -> from_term([a]) end,
                            from_term([[1,2],[3,4]]),
                            from_term([], [atom]))),
     Fun10 = fun(S) ->
@@ -750,11 +751,11 @@ restriction(Conf) when is_list(Conf) ->
     {'EXIT', {type_mismatch, _}} =
         (catch restriction(Fun10, from_term([[1]]), from_term([], [[atom]]))),
     {'EXIT', {type_mismatch, _}} =
-        (catch restriction(fun(_) -> from_term({a}) end, 
+        (catch restriction(fun(_) -> from_term({a}) end,
                            from_term([[a]]),
                            from_term([], [atom]))),
     {'EXIT', {badarg, _}} =
-        (catch restriction(fun(_) -> {a} end, 
+        (catch restriction(fun(_) -> {a} end,
                            from_term([[a]]),
                            from_term([], [atom]))),
     ok.
@@ -817,10 +818,10 @@ drestriction(Conf) when is_list(Conf) ->
     {'EXIT', {type_mismatch, _}} =
 	(catch drestriction(2, relation([{a,b}]), relation([{b,d}]))),
     {'EXIT', {type_mismatch, _}} =
-	(catch drestriction({external, fun({A,_B}) -> A end}, 
+	(catch drestriction({external, fun({A,_B}) -> A end},
 			    relation([{a,b}]), relation([{b,d}]))),
     {'EXIT', {badarg, _}} =
-	(catch drestriction({external, fun({A,_}) -> {A,0} end}, 
+	(catch drestriction({external, fun({A,_}) -> {A,0} end},
 			    from_term([{1,a}]),
 			    from_term([{1,0}]))),
     eval(drestriction(2, relation([{a,d},{b,e},{c,b},{d,c}]), set([b,d])),
@@ -834,7 +835,7 @@ drestriction(Conf) when is_list(Conf) ->
 
     %% set of sets
     {'EXIT', {badarg, _}} =
-        (catch drestriction({external, fun(X) -> X end}, 
+        (catch drestriction({external, fun(X) -> X end},
 			    from_term([], [[atom]]), set([a]))),
     S2 = from_term([], [[atom]]),
     eval(drestriction(Id, S2, E), S2),
@@ -852,7 +853,7 @@ drestriction(Conf) when is_list(Conf) ->
 		      from_term([], [[a]])),
 	 from_term([], [[atom]])),
     {'EXIT', {type_mismatch, _}} =
-        (catch drestriction(fun(_) -> from_term([a]) end, 
+        (catch drestriction(fun(_) -> from_term([a]) end,
                             from_term([[1,2],[3,4]]),
                             from_term([], [atom]))),
     Fun10 = fun(S) ->
@@ -865,11 +866,11 @@ drestriction(Conf) when is_list(Conf) ->
     {'EXIT', {type_mismatch, _}} =
         (catch drestriction(Fun10, from_term([[1]]), from_term([], [[atom]]))),
     {'EXIT', {type_mismatch, _}} =
-        (catch drestriction(fun(_) -> from_term({a}) end, 
+        (catch drestriction(fun(_) -> from_term({a}) end,
                             from_term([[a]]),
                             from_term([], [atom]))),
     {'EXIT', {badarg, _}} =
-        (catch drestriction(fun(_) -> {a} end, 
+        (catch drestriction(fun(_) -> {a} end,
 			    from_term([[a]]),
 			    from_term([], [atom]))),
     ok.
@@ -888,7 +889,7 @@ strict_relation_1(Conf) when is_list(Conf) ->
     if
         F == I -> % term ordering
             eval(strict_relation(FR), ER);
-        true -> 
+        true ->
             eval(strict_relation(FR), FR)
     end,
     ok.
@@ -899,11 +900,11 @@ extension(Conf) when is_list(Conf) ->
     EF = family([]),
     C1 = from_term(3),
     C2 = from_term([3]),
-    {'EXIT', {function_clause, _}} = (catch extension(foo, E, C1)),
-    {'EXIT', {function_clause, _}} = (catch extension(ER, foo, C1)),
-    {'EXIT', {{case_clause, _},_}} = (catch extension(ER, E, foo)),
-    {'EXIT', {type_mismatch, _}} = (catch extension(ER, E, E)),
-    {'EXIT', {badarg, _}} = (catch extension(C2, E, E)),
+    ?assertMatch({'EXIT', {function_clause, _}}, (catch extension(foo, E, C1))),
+    ?assertMatch({'EXIT', {function_clause, _}}, (catch extension(ER, foo, C1))),
+    ?assertMatch({'EXIT', {{case_clause, _},_}}, (catch extension(ER, E, foo))),
+    ?assertMatch({'EXIT', {type_mismatch, _}}, (catch extension(ER, E, E))),
+    ?assertMatch({'EXIT', {badarg, _}}, (catch extension(C2, E, E))),
     eval(E, extension(E, E, E)),
     eval(EF, extension(EF, E, E)),
     eval(family([{3,[]}]), extension(EF, set([3]), E)),
@@ -960,7 +961,7 @@ weak_relation_1(Conf) when is_list(Conf) ->
             true = no_elements(weak_relation(FR2)) =:= 5,
             FR3 = relation([{1,0},{1.0,1}]),
             true = no_elements(weak_relation(FR3)) =:= 3;
-        true -> 
+        true ->
             ok
     end,
     ok.
@@ -994,7 +995,7 @@ specification(Conf) when is_list(Conf) ->
     eval(specification(Fun2, S2), from_term([[1],[3],[5],[7]])),
     Fun2x = fun([1]) -> true;
 	       ([3]) -> true;
-	       (_) -> false 
+	       (_) -> false
 	    end,
     eval(specification({external,Fun2x}, S2), from_term([[1],[3]])),
 
@@ -1115,7 +1116,7 @@ symmetric_partition(Conf) when is_list(Conf) ->
 	(catch symmetric_partition(relation([{a,b}]), relation([{a,b,c}]))),
     {E, E, E} = symmetric_partition(E, E),
     {'EXIT', {type_mismatch, _}} =
-	(catch symmetric_partition(relation([{a,b}]), 
+	(catch symmetric_partition(relation([{a,b}]),
                                    from_term([{a,c}],[{d,r}]))),
     {E, E, S1} = symmetric_partition(E, S1),
     {S1, E, E} = symmetric_partition(S1, E),
@@ -1166,7 +1167,7 @@ is_equal(Conf) when is_list(Conf) ->
 	(catch is_equal(intersection(set([a]), set([b])),
 			intersection(from_term([{a}]), from_term([{b}])))),
     {'EXIT', {type_mismatch, _}} =
-	(catch is_equal(from_term([],[{[atom],atom,[atom]}]), 
+	(catch is_equal(from_term([],[{[atom],atom,[atom]}]),
 			from_term([],[{[atom],{atom},[atom]}]))),
     {'EXIT', {type_mismatch, _}} =
 	(catch is_equal(set([a]), from_term([a],[type]))),
@@ -1184,7 +1185,7 @@ is_equal(Conf) when is_list(Conf) ->
     true = is_equal(from_term({[],a,[]},{[atom],atom,[atom]}),
 		    from_term({[],a,[]},{[atom],atom,[atom]})),
     {'EXIT', {type_mismatch, _}} =
-	(catch is_equal(from_term({[],a,[]},{[atom],atom,[atom]}), 
+	(catch is_equal(from_term({[],a,[]},{[atom],atom,[atom]}),
 			from_term({[],{a},[]},{[atom],{atom},[atom]}))),
     {'EXIT', {type_mismatch, _}} =
 	(catch is_equal(from_term({a}), from_term({a},{type}))),
@@ -1224,7 +1225,7 @@ is_a_function_1(Conf) when is_list(Conf) ->
     if
         F == I -> % term ordering
             false = is_a_function(FR);
-        true -> 
+        true ->
             true = is_a_function(FR)
     end,
     ok.
@@ -1315,7 +1316,7 @@ domain_1(Conf) when is_list(Conf) ->
     if
         F == I -> % term ordering
             true = (1 =:= no_elements(domain(FR)));
-        true -> 
+        true ->
             true = (2 =:= no_elements(domain(FR)))
     end,
     ok.
@@ -1347,7 +1348,7 @@ inverse_1(Conf) when is_list(Conf) ->
     if
         F == I -> % term ordering
             {'EXIT', {bad_function, _}} = (catch inverse(FR));
-        true -> 
+        true ->
             eval(inverse(FR), relation([{a,I},{b,F}]))
     end,
     ok.
@@ -1432,7 +1433,7 @@ composite_1(Conf) when is_list(Conf) ->
     {'EXIT', {bad_function, _}} =
 	(catch composite(a_function([{b,a}]), EF)),
     {'EXIT', {bad_function, _}} =
-	(catch composite(relation([{1,a},{2,b},{2,a}]), 
+	(catch composite(relation([{1,a},{2,b},{2,a}]),
 			 a_function([{a,1},{b,3}]))),
     {'EXIT', {bad_function, _}} =
 	(catch composite(a_function([{1,a},{2,b}]), a_function([{b,3}]))),
@@ -1449,7 +1450,7 @@ composite_1(Conf) when is_list(Conf) ->
 		   a_function([{a,1},{b,3},{c,4}])),
 	 a_function([{1,4}])),
     {'EXIT', {bad_function, _}} =
-	(catch composite(a_function([{1,a},{2,b}]), 
+	(catch composite(a_function([{1,a},{2,b}]),
 			 a_function([{a,1},{c,3}]))),
     {'EXIT', {badarg, _}} =
 	(catch composite(from_term([a,b]), E)),
@@ -1458,7 +1459,7 @@ composite_1(Conf) when is_list(Conf) ->
     {'EXIT', {type_mismatch, _}} =
         (catch composite(from_term([{a,b}]), from_term([{{a},b}]))),
     {'EXIT', {type_mismatch, _}} =
-        (catch composite(from_term([{a,b}]), 
+        (catch composite(from_term([{a,b}]),
 			 from_term([{b,c}], [{d,r}]))),
     F = 0.0, I = round(F),
     FR1 = relation([{1,c}]),
@@ -1466,7 +1467,7 @@ composite_1(Conf) when is_list(Conf) ->
     if
         F == I -> % term ordering
             {'EXIT', {bad_function, _}} = (catch composite(FR1, FR2));
-        true -> 
+        true ->
             eval(composite(FR1, FR2), a_function([{1,4}]))
     end,
     ok.
@@ -1493,7 +1494,7 @@ relative_product_1(Conf) when is_list(Conf) ->
     {'EXIT', {type_mismatch, _}} =
         (catch relative_product1(from_term([{a,b}]), from_term([{{a},b}]))),
     {'EXIT', {type_mismatch, _}} =
-        (catch relative_product1(from_term([{a,b}]), 
+        (catch relative_product1(from_term([{a,b}]),
 				 from_term([{b,c}], [{d,r}]))),
     ok.
 
@@ -1520,7 +1521,7 @@ relative_product_2(Conf) when is_list(Conf) ->
     {'EXIT', {badarg, _}} =
 	(catch relative_product({relation([])}, set([]))),
     {'EXIT', {type_mismatch, _}} =
-	(catch relative_product({from_term([{a,b}]), 
+	(catch relative_product({from_term([{a,b}]),
 				 from_term([{{a},b}])}, ER)),
 
     {'EXIT', {badarg, _}} = (catch relative_product({}, ER)),
@@ -1600,7 +1601,7 @@ partition_1(Conf) when is_list(Conf) ->
     if
         F == I -> % term ordering
             eval(partition(1, FR), from_term([[{I,a},{F,b}]]));
-        true -> 
+        true ->
             eval(partition(1, FR), from_term([[{I,a}],[{F,b}]]))
     end,
     {'EXIT', {badarg, _}} = (catch partition(2, set([a]))),
@@ -1667,10 +1668,10 @@ partition_3(Conf) when is_list(Conf) ->
     {'EXIT', {type_mismatch, _}} =
 	(catch partition(2, relation([{a,b}]), relation([{b,d}]))),
     {'EXIT', {type_mismatch, _}} =
-	(catch partition({external, fun({A,_B}) -> A end}, 
+	(catch partition({external, fun({A,_B}) -> A end},
 			 relation([{a,b}]), relation([{b,d}]))),
     {'EXIT', {badarg, _}} =
-	(catch partition({external, fun({A,_}) -> {A,0} end}, 
+	(catch partition({external, fun({A,_}) -> {A,0} end},
 			 from_term([{1,a}]),
 			 from_term([{1,0}]))),
 
@@ -1711,7 +1712,7 @@ partition_3(Conf) when is_list(Conf) ->
 
     %% set of sets
     {'EXIT', {badarg, _}} =
-        (catch partition({external, fun(X) -> X end}, 
+        (catch partition({external, fun(X) -> X end},
 			 from_term([], [[atom]]), set([a]))),
 
     S10 = from_term([], [[atom]]),
@@ -1735,7 +1736,7 @@ partition_3(Conf) when is_list(Conf) ->
     eval(partition(Fun13, S13a, S13b), lpartition(Fun13, S13a, S13b)),
 
     {'EXIT', {type_mismatch, _}} =
-        (catch partition(fun(_) -> from_term([a]) end, 
+        (catch partition(fun(_) -> from_term([a]) end,
 			 from_term([[1,2],[3,4]]),
 			 from_term([], [atom]))),
     Fun10 = fun(S) ->
@@ -1748,11 +1749,11 @@ partition_3(Conf) when is_list(Conf) ->
     {'EXIT', {type_mismatch, _}} =
         (catch partition(Fun10, from_term([[1]]), from_term([], [[atom]]))),
     {'EXIT', {type_mismatch, _}} =
-        (catch partition(fun(_) -> from_term({a}) end, 
+        (catch partition(fun(_) -> from_term({a}) end,
 			 from_term([[a]]),
 			 from_term([], [atom]))),
     {'EXIT', {badarg, _}} =
-        (catch partition(fun(_) -> {a} end, 
+        (catch partition(fun(_) -> {a} end,
 			 from_term([[a]]),
 			 from_term([], [atom]))),
     ok.
@@ -1779,7 +1780,7 @@ multiple_relative_product(Conf) when is_list(Conf) ->
 		    {{c,d,a},{3,4,1}}, {{c,d,a},{3,4,11}},
 		    {{c,d,a},{33,4,1}}, {{c,d,a},{33,4,11}}])),
     {'EXIT', {type_mismatch, _}} =
-	(catch multiple_relative_product({T}, from_term([{{a}}]))), 
+	(catch multiple_relative_product({T}, from_term([{{a}}]))),
     ok.
 
 digraph(Conf) when is_list(Conf) ->
@@ -1883,7 +1884,7 @@ family_specification(Conf) when is_list(Conf) ->
     eval(family_specification(Fun, F2), family([{a,[1,2]}])),
     F3 = from_term([{a,[]},{b,[]}]),
     eval(family_specification(fun sofs:is_set/1, F3), F3),
-    Fun2 = fun(_) -> throw(fippla) end, 
+    Fun2 = fun(_) -> throw(fippla) end,
     fippla = (catch family_specification(Fun2, family([{a,[1]}]))),
     Fun3 = fun(_) -> neither_true_nor_false end,
     {'EXIT', {badarg, _}} =
@@ -2016,7 +2017,7 @@ family_projection(Conf) when is_list(Conf) ->
            end,
     eval(family_projection(Fun1, family([{a,[1]}])),
 	 from_term([{a,{1,1}}])),
-    Fun2 = fun(_) -> throw(fippla) end, 
+    Fun2 = fun(_) -> throw(fippla) end,
     fippla =
         (catch family_projection(Fun2, family([{a,[1]}]))),
     {'EXIT', {type_mismatch, _}} =
@@ -2031,7 +2032,7 @@ family_projection(Conf) when is_list(Conf) ->
     eval(family_projection(fun(S) -> local_adjoin(S, Z) end, F4),
 	 from_term([{a,[{{1,2,3},0}]},{b,[{{4,5,6},0}]},{c,[]},{m3,[]}])),
     {'EXIT', {badarg, _}} =
-        (catch family_projection({external, fun(X) -> X end}, 
+        (catch family_projection({external, fun(X) -> X end},
 				 from_term([{1,[1]}]))),
 
     %% ordered set element
@@ -2158,7 +2159,7 @@ family_union_2(Conf) when is_list(Conf) ->
     {'EXIT', {badarg, _}} =
 	(catch family_union(set([]),set([]))),
     {'EXIT', {type_mismatch, _}} =
-	(catch family_union(from_term([{a,[b,c]}]), 
+	(catch family_union(from_term([{a,[b,c]}]),
                             from_term([{e,[{f}]}]))),
     ok.
 
@@ -2195,7 +2196,7 @@ partition_family(Conf) when is_list(Conf) ->
 	 from_term([{b,[{a,b,c},{a,b,d},{b,b,c}]},
 		    {c,[{a,c,c},{a,c,d},{b,c,c}]}])),
 
-    Fun1 = {external, fun({A,_B}) -> {A} end}, 
+    Fun1 = {external, fun({A,_B}) -> {A} end},
     eval(partition_family(Fun1, relation([{a,1},{a,2},{b,3}])),
 	 from_term([{{a},[{a,1},{a,2}]},{{b},[{b,3}]}])),
     Fun2 = fun(S) -> {A,_B} = to_external(S), from_term({A}) end,
@@ -2203,10 +2204,10 @@ partition_family(Conf) when is_list(Conf) ->
 	 from_term([{{a},[{a,1},{a,2}]},{{b},[{b,3}]}])),
 
     {'EXIT', {badarg, _}} =
-	(catch partition_family({external, fun({A,_}) -> {A,0} end}, 
+	(catch partition_family({external, fun({A,_}) -> {A,0} end},
 				from_term([{1,a}]))),
     [{{atom,atom},[{atom,atom,atom,atom}]}] =
-	type(partition_family({external, fun({A,_B,C,_D}) -> {C,A} end}, 
+	type(partition_family({external, fun({A,_B,C,_D}) -> {C,A} end},
 			      relation([],4))),
 
     Fun3 = fun(S) -> from_term({to_external(S),0}, {type(S),atom}) end,
@@ -2224,16 +2225,16 @@ partition_family(Conf) when is_list(Conf) ->
     if
         F == I -> % term ordering
             true = (1 =:= no_elements(partition_family(1, FR)));
-        true -> 
+        true ->
             eval(partition_family(1, FR),
 		 from_term([{I,[{I,a}]},{F,[{F,b}]}]))
     end,
     %% set of sets
     {'EXIT', {badarg, _}} =
-        (catch partition_family({external, fun(X) -> X end}, 
+        (catch partition_family({external, fun(X) -> X end},
 				from_term([], [[atom]]))),
     {'EXIT', {badarg, _}} =
-        (catch partition_family({external, fun(X) -> X end}, 
+        (catch partition_family({external, fun(X) -> X end},
 				from_term([[a]]))),
     eval(partition_family(fun sofs:union/1,
 			  from_term([[[1],[1,2]], [[1,2]]])),
@@ -2274,4 +2275,3 @@ eval(R, E) when R == E ->
 eval(R, E) ->
     io:format("expected ~p~n got ~p~n", [E, R]),
     exit({R,E}).
-

@@ -326,7 +326,7 @@ nodes_to_alias(Kind, Inner, Anno, Node, Keys0) ->
 %% We bail out after an arbitrary amount of nodes
 %% as very complex expressions may take forever to
 %% process otherwise.
--define(DEPTH_LIMIT, 100).
+-define(DEPTH_LIMIT, 250).
 nodes_to_key(Kind, Nodes) ->
     ntk_1(Nodes, [], Kind, ?DEPTH_LIMIT).
 

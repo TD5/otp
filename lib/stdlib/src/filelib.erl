@@ -928,7 +928,7 @@ try_suffix_rules([], _Root, _Dir, _Ext) ->
 %% ensuring we check the directory of the object file before any other directory
 add_local_search(Rules) ->
     Local = {"",""},
-    [Local|lists:filter(fun (X) -> X =/= Local end, Rules)].
+    [Local|[X || X <- Rules, X =/= Local]].
 
 try_dir_rules([{From, To}|Rest], Filename, Dir)
   when is_list(From), is_list(To) ->
