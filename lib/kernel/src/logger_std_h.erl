@@ -782,7 +782,7 @@ rotate_files(FileName,Count,Compress) ->
     rotate_files(FileName,Count-1,Compress).
 
 rot_file_name(FileName,Count,false) ->
-    FileName ++ "." ++ integer_to_list(Count);
+    FileName ++ [$. | integer_to_list(Count)];
 rot_file_name(FileName,Count,true) ->
     rot_file_name(FileName,Count,false) ++ ".gz".
 

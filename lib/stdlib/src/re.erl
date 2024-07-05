@@ -776,7 +776,7 @@ For a descriptions of options only affecting the compilation step, see
       ListConversionData :: string()
                           | {error, string(), binary()}
                           | {incomplete, string(), binary()},
-      ErrType :: match_limit | match_limit_recursion | {compile,  CompileErr}, 
+      ErrType :: match_limit | match_limit_recursion | {compile,  CompileErr},
       CompileErr :: {ErrString :: string(), Position :: non_neg_integer()}.
 
 run(_, _, _) ->
@@ -790,7 +790,7 @@ run(_, _, _) ->
       Subject :: iodata() | unicode:charlist(),
       RE :: mp() | iodata() | unicode:charlist(),
       Options :: [Option],
-      Option :: anchored | global | notbol | noteol | notempty 
+      Option :: anchored | global | notbol | noteol | notempty
 	      | notempty_atstart | report_errors
               | {offset, non_neg_integer()} |
 		{match_limit, non_neg_integer()} |
@@ -810,7 +810,7 @@ run(_, _, _) ->
       ListConversionData :: string()
                           | {error, string(), binary()}
                           | {incomplete, string(), binary()},
-      ErrType :: match_limit | match_limit_recursion | {compile,  CompileErr}, 
+      ErrType :: match_limit | match_limit_recursion | {compile,  CompileErr},
       CompileErr :: {ErrString :: string(), Position :: non_neg_integer()},
       FirstCall :: boolean().
 
@@ -868,7 +868,7 @@ mapping from the result of [`run/3`](`run/3`) like this:
 
 inspect(_,_) ->
     erlang:nif_error(undef).
-    
+
 
 %%% End of BIFs
 
@@ -1061,7 +1061,7 @@ Summary of options not previously described for function [`run/3`](`run/3`):
       Options :: [ Option ],
       Option :: anchored | notbol | noteol | notempty | notempty_atstart
               | {offset, non_neg_integer()} | {newline, nl_spec()}
-              | {match_limit, non_neg_integer()} 
+              | {match_limit, non_neg_integer()}
               | {match_limit_recursion, non_neg_integer()}
               | bsr_anycrlf | bsr_unicode | {return, ReturnType}
               | {parts, NumParts} | group | trim | CompileOpt,
@@ -1087,14 +1087,14 @@ split(Subject,RE,Options) ->
 		nomatch ->
 		    case Group of
 			true ->
-			    convert_any_split_result([[FlatSubject]], 
+			    convert_any_split_result([[FlatSubject]],
 						     Convert, Unicode, true);
 			false ->
-			    convert_any_split_result([FlatSubject], 
+			    convert_any_split_result([FlatSubject],
 						     Convert, Unicode, false)
 		    end;
 		{match, Matches} ->
-		    Res = do_split(FlatSubject, 0, Matches, NumSub, 
+		    Res = do_split(FlatSubject, 0, Matches, NumSub,
 				   Limit, Group),
 		    Stripped = case Strip of
 				   true ->
@@ -1241,7 +1241,7 @@ compile_split(Pat,Options0) when not is_tuple(Pat) ->
     end;
 compile_split(_,_) ->
     throw(badre).
-    
+
 -doc #{ equiv => replace(Subject, RE, Replacement, []) }.
 -spec replace(Subject, RE, Replacement) -> iodata() | unicode:charlist() when
       Subject :: iodata() | unicode:charlist(),
@@ -1336,10 +1336,10 @@ As with [`run/3`](`run/3`), compilation errors raise the `badarg` exception.
       RE :: mp() | iodata() | unicode:charlist(),
       Replacement :: iodata() | unicode:charlist() | replace_fun(),
       Options :: [Option],
-      Option :: anchored | global | notbol | noteol | notempty 
+      Option :: anchored | global | notbol | noteol | notempty
 	      | notempty_atstart
               | {offset, non_neg_integer()} | {newline, NLSpec} | bsr_anycrlf
-              | {match_limit, non_neg_integer()} 
+              | {match_limit, non_neg_integer()}
               | {match_limit_recursion, non_neg_integer()}
               | bsr_unicode | {return, ReturnType} | CompileOpt,
       ReturnType :: iodata | list | binary,
@@ -1420,17 +1420,17 @@ process_repl_params(_,_) ->
 process_split_params([],Convert,Limit,Strip,Group) ->
     {[],Convert,Limit,Strip,Group};
 process_split_params([trim|T],C,_L,_S,G) ->
-    process_split_params(T,C,-1,true,G); 
+    process_split_params(T,C,-1,true,G);
 process_split_params([{parts,0}|T],C,_L,_S,G) ->
-    process_split_params(T,C,-1,true,G); 
+    process_split_params(T,C,-1,true,G);
 process_split_params([{parts,N}|T],C,_L,_S,G) when is_integer(N), N >= 1 ->
-    process_split_params(T,C,N-1,false,G); 
+    process_split_params(T,C,N-1,false,G);
 process_split_params([{parts,infinity}|T],C,_L,_S,G) ->
-    process_split_params(T,C,-1,false,G); 
+    process_split_params(T,C,-1,false,G);
 process_split_params([{parts,_}|_],_,_,_,_) ->
-    throw(badopt); 
+    throw(badopt);
 process_split_params([group|T],C,L,S,_G) ->
-    process_split_params(T,C,L,S,true); 
+    process_split_params(T,C,L,S,true);
 process_split_params([global|_],_,_,_,_) ->
     throw(badopt);
 process_split_params([report_errors|_],_,_,_,_) ->
@@ -1487,7 +1487,7 @@ precomp_repl(<<X,Rest/binary>>) ->
     end;
 precomp_repl(Repl) when is_function(Repl) ->
     Repl.
-    
+
 
 
 pick_int(<<X,R/binary>>) when X >= $0, X =< $9 ->
@@ -1500,13 +1500,13 @@ do_mlist(_,<<>>,_,_,[]) ->
     []; %Avoid empty binary tail
 do_mlist(_,Subject,_,_,[]) ->
     Subject;
-do_mlist(Whole,Subject,Pos,Repl,[[{MPos,Count} | Sub] | Tail]) 
+do_mlist(Whole,Subject,Pos,Repl,[[{MPos,Count} | Sub] | Tail])
   when MPos > Pos ->
     EatLength = MPos - Pos,
     <<Untouched:EatLength/binary, Rest/binary>> = Subject,
-    [Untouched | do_mlist(Whole,Rest, MPos, Repl, 
+    [Untouched | do_mlist(Whole,Rest, MPos, Repl,
 			  [[{MPos,Count} | Sub] | Tail])];
-do_mlist(Whole,Subject,Pos,Repl,[[{MPos,Count} | Sub] | Tail]) 
+do_mlist(Whole,Subject,Pos,Repl,[[{MPos,Count} | Sub] | Tail])
   when MPos =:= Pos ->
     EatLength = Count,
     <<_:EatLength/binary,Rest/binary>> = Subject,
@@ -1535,11 +1535,11 @@ do_replace(Subject,Repl,SubExprs0) ->
 		      <<>>;
 		  true ->
 		      {SPos,SLen} = element(N+1,SubExprs),
-		      if 
+		      if
 			  SPos < 0 ->
 			      <<>>;
 			  true ->
-			      <<_:SPos/binary,Res:SLen/binary,_/binary>> = 
+			      <<_:SPos/binary,Res:SLen/binary,_/binary>> =
 				  Subject,
 			      Res
 		      end
@@ -1567,11 +1567,11 @@ check_for_crlf(_,L) ->
 	{value,{newline,anycrlf}} -> true;
 	_ -> false
     end.
-    
-% SelectReturn = false | all | stirpfirst | none 
+
+% SelectReturn = false | all | stirpfirst | none
 % ConvertReturn = index | list | binary
 % {capture, all} -> all (untouchded)
-% {capture, all_names} -> if names are present: treated as a name {capture, [...]} 
+% {capture, all_names} -> if names are present: treated as a name {capture, [...]}
 %                                      else:    same as {capture, []}
 % {capture, first} -> kept in argument list and Select all
 % {capture, all_but_first} -> removed from argument list and selects stripfirst
@@ -1592,20 +1592,20 @@ process_parameters([{capture,Values,Type}|T],Init0,Select0,_Return0,CC,RE) ->
     process_parameters([{capture,Values}|T],Init0,Select0,Type,CC,RE);
 process_parameters([{capture,Values}|T],Init0,Select0,Return0,CC,RE) ->
     % First process the rest to see if capture was already present
-    {NewTail, Init1, Select1, Return1} = 
+    {NewTail, Init1, Select1, Return1} =
 	process_parameters(T,Init0,Select0,Return0,CC,RE),
     case Select1 of
 	false ->
 	    case Values of
 		all ->
-		    {[{capture,all} | NewTail], Init1, all, Return0}; 
+		    {[{capture,all} | NewTail], Init1, all, Return0};
 		all_names ->
 		    case re:inspect(RE,namelist) of
 			{namelist, []} ->
 			    {[{capture,first} | NewTail], Init1, none, Return0};
 			{namelist, List} ->
 			    {[{capture,[0|List]} | NewTail], Init1, stripfirst, Return0}
-		    end; 
+		    end;
 		first ->
 		    {[{capture,first} | NewTail], Init1, all, Return0};
 		all_but_first ->
@@ -1615,7 +1615,7 @@ process_parameters([{capture,Values}|T],Init0,Select0,Return0,CC,RE) ->
 		[] ->
 		    {[{capture,first} | NewTail], Init1, none, Return0};
 		List when is_list(List) ->
-		    {[{capture,[0|List]} | NewTail], 
+		    {[{capture,[0|List]} | NewTail],
 		     Init1, stripfirst, Return0};
 		_ ->
 		    throw(badlist)
@@ -1630,7 +1630,7 @@ process_parameters([H|T],Init0,Select0,Return0,true,RE) ->
 	    process_parameters(T,Init0,Select0,Return0,true,RE);
 	false ->
 	    {NewT,Init,Select,Return} =
-		process_parameters(T,Init0,Select0,Return0,true,RE),	
+		process_parameters(T,Init0,Select0,Return0,true,RE),
 	    {[H|NewT],Init,Select,Return}
     end;
 process_parameters([H|T],Init0,Select0,Return0,false,RE) ->
@@ -1722,7 +1722,7 @@ ucompile(RE,Options) ->
 				    [RE,Options])),
 	    erlang:raise(error,AnyError,[{Mod,compile,L,Loc}|Rest])
     end.
-	
+
 
 -doc false.
 urun(Subject,RE,Options) ->
@@ -1761,7 +1761,7 @@ urun2(Subject0,RE0,Options0) ->
 	_ ->
 	    Ret
     end.
-	
+
 
 %% Might be called either with two-tuple (if regexp was already compiled)
 %% or with 3-tuple (saving original RE for exceptions
@@ -1795,8 +1795,8 @@ grun2(Subject,RE,{Options,NeedClean}) ->
 
 do_grun(FlatSubject,Subject,Unicode,CRLF,RE,{Options0,NeedClean}) ->
     {StrippedOptions, InitialOffset,
-     SelectReturn, ConvertReturn} = 
-	case (catch 
+     SelectReturn, ConvertReturn} =
+	case (catch
 		  process_parameters(Options0, 0, false, index, NeedClean,RE)) of
 	    badlist ->
 		erlang:error(badarg,[Subject,RE,Options0]);
@@ -1816,26 +1816,26 @@ do_grun(FlatSubject,Subject,Unicode,CRLF,RE,{Options0,NeedClean}) ->
 loopexec(_,_,X,Y,_,_,_,_) when X > Y ->
     {match,[]};
 loopexec(Subject,RE,X,Y,Unicode,CRLF,Options, First) ->
-    case re:internal_run(Subject,RE,[{offset,X}]++Options,First) of
+    case re:internal_run(Subject,RE,[{offset,X}|Options],First) of
 	{error, Err} ->
 	    throw({error,Err});
 	nomatch ->
 	    {match,[]};
 	{match,[{A,B}|More]} ->
-	    {match,Rest} = 
+	    {match,Rest} =
 		case B>0 of
 		    true ->
 			loopexec(Subject,RE,A+B,Y,Unicode,CRLF,Options,false);
 		    false ->
-			{match,M} = 
+			{match,M} =
 			    case re:internal_run(Subject,RE,[{offset,X},notempty_atstart,
-                                                             anchored]++Options,false) of
+                                                             anchored|Options],false) of
 				nomatch ->
 				    {match,[]};
 				{match,Other} ->
 				    {match,Other}
 			    end,
-			NewA = case M of 
+			NewA = case M of
 				   [{_,NStep}|_] when NStep > 0 ->
 				       A+NStep;
 				   _ ->
@@ -1843,7 +1843,7 @@ loopexec(Subject,RE,X,Y,Unicode,CRLF,Options, First) ->
 			       end,
 			{match,MM} = loopexec(Subject,RE,NewA,Y,
 					      Unicode,CRLF,Options,false),
-			case M of 
+			case M of
 			    [] ->
 				{match,MM};
 			    _ ->
@@ -1852,7 +1852,7 @@ loopexec(Subject,RE,X,Y,Unicode,CRLF,Options, First) ->
 		end,
 	    {match,[[{A,B}|More] | Rest]}
     end.
-    
+
 forward(_Chal,A,0,_,_) ->
     A;
 forward(Chal,A,N,U,true) ->
@@ -1860,7 +1860,7 @@ forward(Chal,A,N,U,true) ->
     case Tl of
 	<<$\r,$\n,_/binary>> ->
 	    forward(Chal,A+2,N-1,U,true);
-	_ -> 
+	_ ->
 	    forward2(Chal,A,N,U,true)
     end;
 forward(Chal,A,N,U,false) ->

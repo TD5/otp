@@ -24,7 +24,7 @@
 -include_lib("common_test/include/ct.hrl").
 -include_lib("stdlib/include/erl_compile.hrl").
 
--export([all/0, suite/0,groups/0,init_per_suite/1, end_per_suite/1, 
+-export([all/0, suite/0,groups/0,init_per_suite/1, end_per_suite/1,
 	 init_per_group/2,end_per_group/2,
 	 app_test/1,appup_test/1,bigE_roundtrip/1,
 	 debug_info/4, custom_debug_info/1, custom_compile_info/1,
@@ -49,7 +49,7 @@ suite() -> [{ct_hooks,[ts_install_cth]}].
 -type all_return_type() :: [atom()].
 -spec all() -> all_return_type().
 
-all() -> 
+all() ->
     [app_test, appup_test, bigE_roundtrip, file_1,
      forms_2, module_mismatch, outdir,
      binary, makedep, cond_and_ifdef, listings, listings_big,
@@ -64,7 +64,7 @@ all() ->
      erl_compile_api, types_pp, bs_init_writable, annotations_pp,
      option_order].
 
-groups() -> 
+groups() ->
     [].
 
 init_per_suite(Config) ->
@@ -656,7 +656,7 @@ encrypted_abstr(Config) when is_list(Config) ->
 		  ok = file:delete(Target),
 		  _ = file:del_dir_r(filename:dirname(Target))
 	  end,
-    
+
     %% Cleanup.
     Res.
 
@@ -794,7 +794,7 @@ encrypted_abstr_no_crypto(Simple, Target) ->
 			       [debug_info,{debug_info_key,Key},
 				{outdir,TargetDir},report]),
     ok.
-    
+
 verify_abstract(Beam, Backend) ->
     {ok,{simple,[Abst, Dbgi]}} = beam_lib:chunks(Beam, [abstract_code, debug_info]),
     {abstract_code,{raw_abstract_v1,_}} = Abst,
@@ -902,7 +902,7 @@ strict_record(Config) when is_list(Config) ->
     ok = file:set_cwd(proplists:get_value(data_dir, Config)),
     Opts = [{outdir,Priv},report_errors],
     M = record_access,
- 
+
     {ok,M} = c:c(M, [strict_record_tests|Opts]),
     Turtle = test_strict(),
 
@@ -1072,11 +1072,11 @@ core_pp(Config) when is_list(Config) ->
 
     TestBeams = get_unique_beam_files(),
     Abstr = [begin {ok,{Mod,[{abstract_code,
-				    {raw_abstract_v1,Abstr}}]}} = 
+				    {raw_abstract_v1,Abstr}}]}} =
 			     beam_lib:chunks(Beam, [abstract_code]),
 			 {Mod,Abstr} end || Beam <- TestBeams],
     test_lib:p_run(fun(F) -> do_core_pp(F, Outdir) end, Abstr).
-    
+
 do_core_pp({M,A}, Outdir) ->
     try
 	do_core_pp_1(M, A, Outdir)
@@ -1340,7 +1340,7 @@ asm(Config) when is_list(Config) ->
     Res = test_lib:p_run(fun(F) -> do_asm(F, Outdir) end, TestBeams),
     Res.
 
-    
+
 do_asm(Beam, Outdir) ->
     {ok,{M,[{abstract_code,{raw_abstract_v1,A}}]}} =
 	beam_lib:chunks(Beam, [abstract_code]),
@@ -1765,7 +1765,7 @@ highest_opcode(DataDir, Mod, Opt) ->
 deterministic_include(Config) when is_list(Config) ->
     DataDir = proplists:get_value(data_dir, Config),
     Simple = filename:join(DataDir, "simple"),
- 
+
     %% Files without +deterministic should differ if their include paths do,
     %% as their debug info will be different.
     {ok,_,NonDetA} = compile:file(Simple, [binary, {i,"gurka"}]),
@@ -2299,7 +2299,7 @@ option_order(Config) ->
 compile_and_verify(Name, Target, Opts) ->
     Mod = list_to_atom(filename:basename(Name, ".erl")),
     {ok,Mod} = compile:file(Name, Opts),
-    {ok,{Mod,[{compile_info,CInfo}]}} = 
+    {ok,{Mod,[{compile_info,CInfo}]}} =
 	beam_lib:chunks(Target, [compile_info]),
     {options,BeamOpts} = lists:keyfind(options, 1, CInfo),
     Opts = BeamOpts.

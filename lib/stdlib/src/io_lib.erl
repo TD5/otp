@@ -74,6 +74,7 @@ used for flattening deep lists.
 -export([print/1,print/4,indentation/2]).
 
 -export([write/1,write/2,write/3,nl/0,format_prompt/1,format_prompt/2]).
+-export([write_acc/3]).
 -export([write_binary/3]).
 -export([write_atom/1,write_string/1,write_string/2,write_latin1_string/1,
          write_latin1_string/2, write_char/1, write_latin1_char/1]).
@@ -442,9 +443,9 @@ format_prompt({format,Format,Args}, _Encoding) ->
     do_format_prompt(Format, Args);
 format_prompt(Prompt, Encoding)
   when is_list(Prompt); is_atom(Prompt); is_binary(Prompt) ->
-    do_format_prompt(add_modifier(Encoding, "s"), [Prompt]);
+    do_format_prompt(prompt_format_str(Encoding), [Prompt]);
 format_prompt(Prompt, Encoding) ->
-    do_format_prompt(add_modifier(Encoding, "p"), [Prompt]).
+    do_format_prompt(prompt_format(Encoding), [Prompt]).
 
 do_format_prompt(Format, Args) ->
     case catch format(Format, Args) of
@@ -452,10 +453,15 @@ do_format_prompt(Format, Args) ->
 	List -> List
     end.
 
-add_modifier(latin1, C) ->
-    "~"++C;
-add_modifier(_, C) ->
-    "~t"++C.
+prompt_format_str(latin1) ->
+    "~s";
+prompt_format_str(_) ->
+    "~ts".
+
+prompt_format(latin1) ->
+    "~p";
+prompt_format(_) ->
+    "~tp".
 
 %% write(Term)
 %% write(Term, Depth)
@@ -468,7 +474,7 @@ add_modifier(_, C) ->
       Term :: term().
 
 write(Term) ->
-    write1(Term, -1, latin1, undefined).
+    write1(Term, -1, latin1, undefined, "").
 
 -doc false.
 -spec write(term(), depth(), boolean()) -> chars().
@@ -515,69 +521,356 @@ _Example:_
       CharsLimit :: chars_limit(),
       Depth :: depth().
 
-write(Term, Options) when is_list(Options) ->
+write(Term, DepthOrOptions) ->
+    write_acc(Term, DepthOrOptions, "").
+
+-doc false.
+write_acc(Term, Options, Tl) when is_list(Options) ->
     Depth = get_option(depth, Options, -1),
     Encoding = get_option(encoding, Options, epp:default_encoding()),
     CharsLimit = get_option(chars_limit, Options, -1),
     MapsOrder = get_option(maps_order, Options, undefined),
     if
         Depth =:= 0; CharsLimit =:= 0 ->
-            "...";
+            pre_static("...",Tl);
         is_integer(CharsLimit), CharsLimit < 0, is_integer(Depth) ->
-            write1(Term, Depth, Encoding, MapsOrder);
+            write1(Term, Depth, Encoding, MapsOrder, Tl);
         is_integer(CharsLimit), CharsLimit > 0 ->
             RecDefFun = fun(_, _) -> no end,
             If = io_lib_pretty:intermediate
                  (Term, Depth, CharsLimit, RecDefFun, Encoding, _Str=false, MapsOrder),
-            io_lib_pretty:write(If)
+            pre_dynamic(io_lib_pretty:write(If),Tl) % TODO Make use of a prepending pretty writer
     end;
-write(Term, Depth) ->
-    write(Term, [{depth, Depth}, {encoding, latin1}]).
+write_acc(Term, Depth, Tl) ->
+    write_acc(Term, [{depth, Depth}, {encoding, latin1}], Tl).
 
-write1(_Term, 0, _E, _O) -> "...";
-write1(Term, _D, _E, _O) when is_integer(Term) -> integer_to_list(Term);
-write1(Term, _D, _E, _O) when is_float(Term) -> io_lib_format:fwrite_g(Term);
-write1(Atom, _D, latin1, _O) when is_atom(Atom) -> write_atom_as_latin1(Atom);
-write1(Atom, _D, _E, _O) when is_atom(Atom) -> write_atom(Atom);
-write1(Term, _D, _E, _O) when is_port(Term) -> write_port(Term);
-write1(Term, _D, _E, _O) when is_pid(Term) -> pid_to_list(Term);
-write1(Term, _D, _E, _O) when is_reference(Term) -> write_ref(Term);
-write1(<<_/bitstring>>=Term, D, _E, _O) -> write_binary(Term, D);
-write1([], _D, _E, _O) -> "[]";
-write1({}, _D, _E, _O) -> "{}";
-write1([H|T], D, E, O) ->
-    if
-	D =:= 1 -> "[...]";
-	true ->
-	    [$[,[write1(H, D-1, E, O)|write_tail(T, D-1, E, O)],$]]
+write1(_Term, 0, _E, _O, Tl) ->
+    pre_static("...",Tl);
+write1([], _D, _E, _O, Tl) ->
+    [$[,$]|Tl];
+write1({}, _D, _E, _O, Tl) ->
+    [${,$}|Tl];
+write1(<<_/bitstring>>=Term, D, _E, _O, Tl) ->
+    write_binary_acc(Term, D, Tl);
+write1([H], D, E, O, Tl) ->
+    case D of
+        1 -> pre_static("[...]",Tl);
+        _ when D < 0 ->
+            [$[|write1(H, -1, E, O, [$]|Tl])];
+        _ ->
+            [$[|write1(H, D-1, E, O, [$]|Tl])]
     end;
-write1(F, _D, _E, _O) when is_function(F) ->
-    erlang:fun_to_list(F);
-write1(Term, D, E, O) when is_map(Term) ->
-    write_map(Term, D, E, O);
-write1(T, D, E, O) when is_tuple(T) ->
+write1([H|T], D, E, O, Tl) ->
+    case D of
+        1 -> pre_static("[...]",Tl);
+        _ when D < 0 ->
+            [$[|write1(H, -1, E, O, write_tail_unlimited_depth(T, E, O, Tl))];
+        _ ->
+            [$[|write1(H, D-1, E, O, write_tail(T, D-1, E, O, Tl))]
+    end;
+write1(#{}=Term, D, E, O, Tl) ->
     if
-	D =:= 1 -> "{...}";
-	true ->
-	    [${,
-	     [write1(element(1, T), D-1, E, O)|write_tuple(T, 2, D-1, E, O)],
-	     $}]
-    end.
+        D < 0 ->
+            write_map_unlimited_depth(Term, E, O, Tl);
+        true ->
+            write_map(Term, D, E, O, Tl)
+    end;
+write1(Term, _D, _E, _O, Tl) when is_integer(Term) -> pre_dynamic(integer_to_list(Term), Tl);
+write1(Term, _D, _E, _O, Tl) when is_float(Term) -> pre_dynamic(io_lib_format:fwrite_g(Term), Tl);
+write1(Atom, _D, latin1, _O, Tl) when is_atom(Atom) -> write_atom_as_latin1_acc(Atom, Tl);
+write1(Atom, _D, _E, _O, Tl) when is_atom(Atom) -> write_atom_acc(Atom, Tl);
+write1(T, D, E, O, Tl) when is_tuple(T) ->
+    case D of
+        1 -> pre_static("{...}",Tl);
+        _ when D < 0 -> write_tuple_unlimited_depth(T, E, O, Tl);
+        _ -> write_tuple(T, D, E, O, Tl)
+    end;
+write1(Term, _D, _E, _O, Tl) when is_port(Term) -> pre_dynamic(write_port(Term), Tl);
+write1(Term, _D, _E, _O, Tl) when is_pid(Term) -> pre_dynamic(pid_to_list(Term), Tl);
+write1(Term, _D, _E, _O, Tl) when is_reference(Term) -> pre_dynamic(write_ref(Term), Tl);
+write1(F, _D, _E, _O, Tl) when is_function(F) ->
+    pre_dynamic(erlang:fun_to_list(F), Tl).
+
+-compile({inline, pre_dynamic/2}).
+pre_dynamic(Str,[]=_Tl) -> % If the tail is empty, there's no need to keep it and increase nesting
+    Str;
+pre_dynamic([C],Tl) -> % If we're prepending a single thing, it's probably overall cheaper not to nest it
+    [C|Tl];
+pre_dynamic([C1,C2],Tl) -> % If we're prepending two things, it's still probably overall cheaper not to nest them
+    [C1,C2|Tl];
+pre_dynamic(Str,Tl) -> % Else just nest the given string at the head of the accumulator
+    [Str|Tl].
+
+-compile({inline, pre_static/2}).
+pre_static(Str,[]=_Tl) ->
+    Str;
+pre_static(Str,Tl) ->
+    [Str|Tl].
 
 %% write_tail(List, Depth, Encoding)
 %%  Test the terminating case first as this looks better with depth.
 
-write_tail([], _D, _E, _O) -> "";
-write_tail(_, 1, _E, _O) -> [$| | "..."];
-write_tail([H|T], D, E, O) ->
-    [$,,write1(H, D-1, E, O)|write_tail(T, D-1, E, O)];
-write_tail(Other, D, E, O) ->
-    [$|,write1(Other, D-1, E, O)].
+write_tail([], _D, _E, _O, Tl) -> [$]|Tl];
+write_tail(_, 1, _E, _O, Tl) -> pre_static("|...]",Tl);
+write_tail([H], D, E, O, Tl) ->
+    [$,|write1(H, D-1, E, O, [$]|Tl])];
+write_tail([H1|_], 2, E, O, Tl) ->
+    [$,|write1(H1, 1, E, O, pre_static("|...]",Tl))];
+write_tail([H1,H2], D, E, O, Tl) ->
+    [$,|write1(H1, D-1, E, O, [$, | write1(H2, D-2, E, O, [$]|Tl])])];
+write_tail([H1,H2|_], 3, E, O, Tl) ->
+    [$,|write1(H1, 2, E, O, [$,|write1(H2, 1, E, O, pre_static("|...]", Tl))])];
+write_tail([H1,H2|T], D, E, O, Tl) ->
+    [$,|write1(H1, D-1, E, O, [$,|write1(H2, D-2, E, O, write_tail(T, D-2, E, O, Tl))])];
+write_tail(Other, D, E, O, Tl) ->
+    [$||write1(Other, D-1, E, O, [$]|Tl])].
 
-write_tuple(T, I, _D, _E, _O) when I > tuple_size(T) -> "";
-write_tuple(_, _I, 1, _E, _O) -> [$, | "..."];
-write_tuple(T, I, D, E, O) ->
-    [$,,write1(element(I, T), D-1, E, O)|write_tuple(T, I+1, D-1, E, O)].
+write_tail_unlimited_depth([], _E, _O, Tl) ->
+    [$]|Tl];
+write_tail_unlimited_depth([H], E, O, Tl) ->
+    [$,|write1(H, -1, E, O, [$]|Tl])];
+write_tail_unlimited_depth([H1,H2], E, O, Tl) ->
+    UD=-1,
+    [$,|write1(H1, UD, E, O, [$,|write1(H2, UD, E, O, [$]|Tl])])];
+write_tail_unlimited_depth([H1,H2,H3], E, O, Tl) ->
+    UD=-1,
+    [$,|write1(H1, UD, E, O,
+        [$,|write1(H2, UD, E, O,
+        [$,|write1(H3, UD, E, O, [$]|Tl])])])];
+write_tail_unlimited_depth([H1,H2,H3,H4], E, O, Tl) ->
+    UD=-1,
+    [$,|write1(H1, UD, E, O,
+        [$,|write1(H2, UD, E, O,
+        [$,|write1(H3, UD, E, O,
+        [$,|write1(H4, UD, E, O, [$]|Tl])])])])];
+write_tail_unlimited_depth([H1,H2,H3,H4,H5], E, O, Tl) ->
+    UD=-1,
+    [$,|write1(H1, UD, E, O,
+        [$,|write1(H2, UD, E, O,
+        [$,|write1(H3, UD, E, O,
+        [$,|write1(H4, UD, E, O,
+        [$,|write1(H5, UD, E, O, [$]|Tl])])])])])];
+write_tail_unlimited_depth([H1,H2,H3,H4,H5,H6], E, O, Tl) ->
+    UD=-1,
+    [$,|write1(H1, UD, E, O,
+        [$,|write1(H2, UD, E, O,
+        [$,|write1(H3, UD, E, O,
+        [$,|write1(H4, UD, E, O,
+        [$,|write1(H5, UD, E, O,
+        [$,|write1(H6, UD, E, O, [$]|Tl])])])])])])];
+write_tail_unlimited_depth([H1,H2,H3,H4,H5,H6,H7], E, O, Tl) ->
+    UD=-1,
+    [$,|write1(H1, UD, E, O,
+        [$,|write1(H2, UD, E, O,
+        [$,|write1(H3, UD, E, O,
+        [$,|write1(H4, UD, E, O,
+        [$,|write1(H5, UD, E, O,
+        [$,|write1(H6, UD, E, O,
+        [$,|write1(H7, UD, E, O, [$]|Tl])])])])])])])];
+write_tail_unlimited_depth([H1,H2,H3,H4,H5,H6,H7,H8], E, O, Tl) ->
+    UD=-1,
+    [$,|write1(H1, UD, E, O,
+        [$,|write1(H2, UD, E, O,
+        [$,|write1(H3, UD, E, O,
+        [$,|write1(H4, UD, E, O,
+        [$,|write1(H5, UD, E, O,
+        [$,|write1(H6, UD, E, O,
+        [$,|write1(H7, UD, E, O,
+        [$,|write1(H8, UD, E, O, [$]|Tl])])])])])])])])];
+write_tail_unlimited_depth([H1,H2,H3,H4,H5,H6,H7,H8|T], E, O, Tl) ->
+    UD=-1,
+    [$,|write1(H1, UD, E, O,
+        [$,|write1(H2, UD, E, O,
+        [$,|write1(H3, UD, E, O,
+        [$,|write1(H4, UD, E, O,
+        [$,|write1(H5, UD, E, O,
+        [$,|write1(H6, UD, E, O,
+        [$,|write1(H7, UD, E, O,
+        [$,|write1(H8, UD, E, O, write_tail_unlimited_depth(T, E, O, Tl))])])])])])])])];
+write_tail_unlimited_depth([H1|ImproperTail], E, O, Tl) ->
+    [$,|write1(H1, 1, E, O, write_tail_unlimited_depth(ImproperTail, E, O, Tl))];
+write_tail_unlimited_depth(ImproperTail, E, O, Tl) ->
+    [$||write1(ImproperTail, -1, E, O, [$]|Tl])].
+
+write_tuple_tail(T, I, _D, _E, _O, Tl) when I > tuple_size(T) ->
+    [$}|Tl];
+write_tuple_tail(_, _I, 1, _E, _O, Tl) ->
+    pre_static(",...}",Tl);
+write_tuple_tail(T, I, D, E, O, Tl) ->
+    [$,|write1(element(I, T), D-1, E, O, write_tuple_tail(T, I+1, D-1, E, O, Tl))].
+
+write_tuple_tail_unlimited(T, I, _E, _O, Tl) when I > tuple_size(T) ->
+    [$}|Tl];
+write_tuple_tail_unlimited(T, I, E, O, Tl) ->
+    [$,|write1(element(I, T), -1, E, O, write_tuple_tail_unlimited(T, I+1, E, O, Tl))].
+
+% Check whether the limiting factor is the tuple size or the depth,
+% so we can efficiently pattern match on the optimal parameter
+write_tuple(T, D, E, O, Tl) when tuple_size(T) >= D ->
+    write_partial_tuple(T, D, E, O, Tl);
+write_tuple(T, D, E, O, Tl) ->
+    write_entire_tuple(T, D, E, O, Tl).
+
+write_entire_tuple({T1}, D, E, O, Tl) ->
+    [${|write1(T1, D-1, E, O,[$}|Tl])];
+write_entire_tuple({T1,T2}, D, E, O, Tl) ->
+    [${|write1(T1, D-1, E, O,
+        [$,|write1(T2, D-2, E, O,[$}|Tl])])];
+write_entire_tuple({T1,T2,T3}, D, E, O, Tl) ->
+    [${|write1(T1, D-1, E, O,
+        [$,|write1(T2, D-2, E, O,
+        [$,|write1(T3, D-3, E, O,[$}|Tl])])])];
+write_entire_tuple({T1,T2,T3,T4}, D, E, O, Tl) ->
+    [${|write1(T1, D-1, E, O,
+        [$,|write1(T2, D-2, E, O,
+        [$,|write1(T3, D-3, E, O,
+        [$,|write1(T4, D-4, E, O,[$}|Tl])])])])];
+write_entire_tuple({T1,T2,T3,T4,T5}, D, E, O, Tl) ->
+    [${|write1(T1, D-1, E, O,
+        [$,|write1(T2, D-2, E, O,
+        [$,|write1(T3, D-3, E, O,
+        [$,|write1(T4, D-4, E, O,
+        [$,|write1(T5, D-5, E, O,[$}|Tl])])])])])];
+write_entire_tuple({T1,T2,T3,T4,T5,T6}, D, E, O, Tl) ->
+    [${|write1(T1, D-1, E, O,
+        [$,|write1(T2, D-2, E, O,
+        [$,|write1(T3, D-3, E, O,
+        [$,|write1(T4, D-4, E, O,
+        [$,|write1(T5, D-5, E, O,
+        [$,|write1(T6, D-6, E, O,[$}|Tl])])])])])])];
+write_entire_tuple({T1,T2,T3,T4,T5,T6,T7}, D, E, O, Tl) ->
+    [${|write1(T1, D-1, E, O,
+        [$,|write1(T2, D-2, E, O,
+        [$,|write1(T3, D-3, E, O,
+        [$,|write1(T4, D-4, E, O,
+        [$,|write1(T5, D-5, E, O,
+        [$,|write1(T6, D-6, E, O,
+        [$,|write1(T7, D-7, E, O,[$}|Tl])])])])])])])];
+write_entire_tuple({T1,T2,T3,T4,T5,T6,T7,T8}, D, E, O, Tl) ->
+    [${|write1(T1, D-1, E, O,
+        [$,|write1(T2, D-2, E, O,
+        [$,|write1(T3, D-3, E, O,
+        [$,|write1(T4, D-4, E, O,
+        [$,|write1(T5, D-5, E, O,
+        [$,|write1(T6, D-6, E, O,
+        [$,|write1(T7, D-7, E, O,
+        [$,|write1(T8, D-8, E, O, [$}|Tl])])])])])])])])];
+write_entire_tuple(T, D, E, O, Tl) ->
+    [${|write1(element(1,T), D-1, E, O,
+        [$,|write1(element(2,T), D-2, E, O,
+        [$,|write1(element(3,T), D-3, E, O,
+        [$,|write1(element(4,T), D-4, E, O,
+        [$,|write1(element(5,T), D-5, E, O,
+        [$,|write1(element(6,T), D-6, E, O,
+        [$,|write1(element(7,T), D-7, E, O,
+        [$,|write1(element(8,T), D-8, E, O, write_tuple_tail(T, 9, D-8, E, O, Tl))])])])])])])])].
+
+write_partial_tuple(T, 2, E, O, Tl) ->
+    [${|write1(element(1,T), 1, E, O, pre_static(",...}",Tl))];
+write_partial_tuple(T, 3, E, O, Tl) ->
+    [${|write1(element(1,T), 2, E, O,
+        [$,|write1(element(2,T), 1, E, O, pre_static(",...}", Tl))])];
+write_partial_tuple(T, 4, E, O, Tl) ->
+    [${|write1(element(1,T), 3, E, O,
+        [$,|write1(element(2,T), 2, E, O,
+        [$,|write1(element(3,T), 1, E, O, pre_static(",...}", Tl))])])];
+write_partial_tuple(T, 5, E, O, Tl) ->
+    [${|write1(element(1,T), 4, E, O,
+        [$,|write1(element(2,T), 3, E, O,
+        [$,|write1(element(3,T), 2, E, O,
+        [$,|write1(element(4,T), 1, E, O, pre_static(",...}", Tl))])])])];
+write_partial_tuple(T, 6, E, O, Tl) ->
+    [${|write1(element(1,T), 5, E, O,
+        [$,|write1(element(2,T), 4, E, O,
+        [$,|write1(element(3,T), 3, E, O,
+        [$,|write1(element(4,T), 2, E, O,
+        [$,|write1(element(5,T), 1, E, O, pre_static(",...}", Tl))])])])])];
+write_partial_tuple(T, 7, E, O, Tl) ->
+    [${|write1(element(1,T), 6, E, O,
+        [$,|write1(element(2,T), 5, E, O,
+        [$,|write1(element(3,T), 4, E, O,
+        [$,|write1(element(4,T), 3, E, O,
+        [$,|write1(element(5,T), 2, E, O,
+        [$,|write1(element(6,T), 1, E, O, pre_static(",...}", Tl))])])])])])];
+write_partial_tuple(T, 8, E, O, Tl) ->
+    [${|write1(element(1,T), 7, E, O,
+        [$,|write1(element(2,T), 6, E, O,
+        [$,|write1(element(3,T), 5, E, O,
+        [$,|write1(element(4,T), 4, E, O,
+        [$,|write1(element(5,T), 3, E, O,
+        [$,|write1(element(6,T), 2, E, O,
+        [$,|write1(element(7,T), 1, E, O, pre_static(",...}", Tl))])])])])])])];
+write_partial_tuple(T, D, E, O, Tl) ->
+    [${|write1(element(1,T), D-1, E, O,
+        [$,|write1(element(2,T), D-2, E, O,
+        [$,|write1(element(3,T), D-3, E, O,
+        [$,|write1(element(4,T), D-4, E, O,
+        [$,|write1(element(5,T), D-5, E, O,
+        [$,|write1(element(6,T), D-6, E, O,
+        [$,|write1(element(7,T), D-7, E, O, write_tuple_tail(T, 8, D-7, E, O, Tl))])])])])])])].
+
+write_tuple_unlimited_depth({T1}, E, O, Tl) ->
+    UD=-1,
+    [${|write1(T1, UD, E, O,[$}|Tl])];
+write_tuple_unlimited_depth({T1,T2}, E, O, Tl) ->
+    UD=-1,
+    [${|write1(T1, UD, E, O,
+        [$,|write1(T2, UD, E, O,[$}|Tl])])];
+write_tuple_unlimited_depth({T1,T2,T3}, E, O, Tl) ->
+    UD=-1,
+    [${|write1(T1, UD, E, O,
+        [$,|write1(T2, UD, E, O,
+        [$,|write1(T3, UD, E, O,[$}|Tl])])])];
+write_tuple_unlimited_depth({T1,T2,T3,T4}, E, O, Tl) ->
+    UD=-1,
+    [${|write1(T1, UD, E, O,
+        [$,|write1(T2, UD, E, O,
+        [$,|write1(T3, UD, E, O,
+        [$,|write1(T4, UD, E, O,[$}|Tl])])])])];
+write_tuple_unlimited_depth({T1,T2,T3,T4,T5}, E, O, Tl) ->
+    UD=-1,
+    [${|write1(T1, UD, E, O,
+        [$,|write1(T2, UD, E, O,
+        [$,|write1(T3, UD, E, O,
+        [$,|write1(T4, UD, E, O,
+        [$,|write1(T5, UD, E, O,[$}|Tl])])])])])];
+write_tuple_unlimited_depth({T1,T2,T3,T4,T5,T6}, E, O, Tl) ->
+    UD=-1,
+    [${|write1(T1, UD, E, O,
+        [$,|write1(T2, UD, E, O,
+        [$,|write1(T3, UD, E, O,
+        [$,|write1(T4, UD, E, O,
+        [$,|write1(T5, UD, E, O,
+        [$,|write1(T6, UD, E, O,[$}|Tl])])])])])])];
+write_tuple_unlimited_depth({T1,T2,T3,T4,T5,T6,T7}, E, O, Tl) ->
+    UD=-1,
+    [${|write1(T1, UD, E, O,
+        [$,|write1(T2, UD, E, O,
+        [$,|write1(T3, UD, E, O,
+        [$,|write1(T4, UD, E, O,
+        [$,|write1(T5, UD, E, O,
+        [$,|write1(T6, UD, E, O,
+        [$,|write1(T7, UD, E, O,[$}|Tl])])])])])])])];
+write_tuple_unlimited_depth({T1,T2,T3,T4,T5,T6,T7,T8}, E, O, Tl) ->
+    UD=-1,
+    [${|write1(T1, UD, E, O,
+        [$,|write1(T2, UD, E, O,
+        [$,|write1(T3, UD, E, O,
+        [$,|write1(T4, UD, E, O,
+        [$,|write1(T5, UD, E, O,
+        [$,|write1(T6, UD, E, O,
+        [$,|write1(T7, UD, E, O,
+        [$,|write1(T8, UD, E, O, [$}|Tl])])])])])])])])];
+write_tuple_unlimited_depth(T, E, O, Tl) ->
+    UD=-1,
+    [${|write1(element(1,T), UD, E, O,
+        [$,|write1(element(2,T), UD, E, O,
+        [$,|write1(element(3,T), UD, E, O,
+        [$,|write1(element(4,T), UD, E, O,
+        [$,|write1(element(5,T), UD, E, O,
+        [$,|write1(element(6,T), UD, E, O,
+        [$,|write1(element(7,T), UD, E, O,
+        [$,|write1(element(8,T), UD, E, O, write_tuple_tail_unlimited(T, 9, E, O, Tl))])])])])])])])].
 
 write_port(Port) ->
     erlang:port_to_list(Port).
@@ -585,42 +878,107 @@ write_port(Port) ->
 write_ref(Ref) ->
     erlang:ref_to_list(Ref).
 
-write_map(_, 1, _E, _O) -> "#{}";
-write_map(Map, D, E, O) when is_integer(D) ->
+write_map(_, 1, _E, _O, Tl) -> pre_static("#{}",Tl);
+write_map(Map, _D, _E, _O, Tl) when map_size(Map) =:= 0 -> pre_static("#{}",Tl);
+write_map(Map, D, E, O, Tl) when is_integer(D) ->
     I = maps:iterator(Map, O),
+    {K, V, NextI} = maps:next(I),
+    D0 = D - 1,
+    [$#,${ | write_map_assoc(K, V, D0, E, O, write_map_body(NextI, D0, D0, E, O, Tl))].
+
+write_map_body(_, 1, _D0, _E, _O, Tl) -> pre_static(",...}",Tl);
+write_map_body(I, D, D0, E, O, Tl) ->
     case maps:next(I) of
         {K, V, NextI} ->
-            D0 = D - 1,
-            W = write_map_assoc(K, V, D0, E, O),
-            [$#,${,[W | write_map_body(NextI, D0, D0, E, O)],$}];
-        none -> "#{}"
+            [$, | write_map_assoc(K, V, D0, E, O, write_map_body(NextI, D - 1, D0, E, O, Tl))];
+        none -> [$}|Tl]
     end.
 
-write_map_body(_, 1, _D0, _E, _O) -> ",...";
-write_map_body(I, D, D0, E, O) ->
+write_map_unlimited_depth(Map, _E, _O, Tl) when map_size(Map) =:= 0 ->
+    pre_static("#{}",Tl);
+% Faster, but produces an intermediary list proportional to the size of the
+% map, so we limit to a conservative, finite size
+write_map_unlimited_depth(Map, E, O=undefined, Tl) when map_size(Map) < 8 ->
+    UD=-1,
+    case maps:to_list(Map) of
+      [{K1,V1}] ->
+        [$#,${| write_map_assoc(K1, V1, UD, E, O, [$}|Tl])];
+      [{K1,V1},{K2,V2}] ->
+        [$#,${| write_map_assoc(K1, V1, UD, E, O,
+          [$,|write_map_assoc(K2, V2, UD, E, O, [$}|Tl])])];
+      [{K1,V1},{K2,V2},{K3,V3}] ->
+        [$#,${| write_map_assoc(K1, V1, UD, E, O,
+          [$,|write_map_assoc(K2, V2, UD, E, O,
+          [$,|write_map_assoc(K3, V3, UD, E, O, [$]|Tl])])])];
+      [{K1,V1},{K2,V2},{K3,V3},{K4,V4}] ->
+        [$#,${| write_map_assoc(K1, V1, UD, E, O,
+          [$,|write_map_assoc(K2, V2, UD, E, O,
+          [$,|write_map_assoc(K3, V3, UD, E, O,
+          [$,|write_map_assoc(K4, V4, UD, E, O, [$]|Tl])])])])];
+      [{K1,V1},{K2,V2},{K3,V3},{K4,V4},{K5,V5}] ->
+        [$#,${| write_map_assoc(K1, V1, UD, E, O,
+          [$,|write_map_assoc(K2, V2, UD, E, O,
+          [$,|write_map_assoc(K3, V3, UD, E, O,
+          [$,|write_map_assoc(K4, V4, UD, E, O,
+          [$,|write_map_assoc(K5, V5, UD, E, O, [$]|Tl])])])])])];
+      [{K1,V1},{K2,V2},{K3,V3},{K4,V4},{K5,V5},{K6,V6}] ->
+        [$#,${| write_map_assoc(K1, V1, UD, E, O,
+          [$,|write_map_assoc(K2, V2, UD, E, O,
+          [$,|write_map_assoc(K3, V3, UD, E, O,
+          [$,|write_map_assoc(K4, V4, UD, E, O,
+          [$,|write_map_assoc(K5, V5, UD, E, O,
+          [$,|write_map_assoc(K6, V6, UD, E, O, [$]|Tl])])])])])])];
+      [{K1,V1},{K2,V2},{K3,V3},{K4,V4},{K5,V5},{K6,V6},{K7,V7}] ->
+        [$#,${| write_map_assoc(K1, V1, UD, E, O,
+          [$,|write_map_assoc(K2, V2, UD, E, O,
+          [$,|write_map_assoc(K3, V3, UD, E, O,
+          [$,|write_map_assoc(K4, V4, UD, E, O,
+          [$,|write_map_assoc(K5, V5, UD, E, O,
+          [$,|write_map_assoc(K6, V6, UD, E, O,
+          [$,|write_map_assoc(K7, V7, UD, E, O, [$]|Tl])])])])])])])];
+      [{K1,V1},{K2,V2},{K3,V3},{K4,V4},{K5,V5},{K6,V6},{K7,V7},{K8,V8}] ->
+        [$#,${| write_map_assoc(K1, V1, UD, E, O,
+          [$,|write_map_assoc(K2, V2, UD, E, O,
+          [$,|write_map_assoc(K3, V3, UD, E, O,
+          [$,|write_map_assoc(K4, V4, UD, E, O,
+          [$,|write_map_assoc(K5, V5, UD, E, O,
+          [$,|write_map_assoc(K6, V6, UD, E, O,
+          [$,|write_map_assoc(K7, V7, UD, E, O,
+          [$,|write_map_assoc(K8, V8, UD, E, O, [$]|Tl])])])])])])])])]
+    end;
+write_map_unlimited_depth(Map, E, O, Tl) ->
+    I = maps:iterator(Map, O),
+    {K, V, NextI} = maps:next(I),
+    [$#,${ | write_map_assoc(K, V, -1, E, O, write_map_body_unlimited_depth(NextI, E, O, Tl))].
+
+write_map_body_unlimited_depth(I, E, O, Tl) ->
     case maps:next(I) of
         {K, V, NextI} ->
-            W = write_map_assoc(K, V, D0, E, O),
-            [$,,W|write_map_body(NextI, D - 1, D0, E, O)];
-        none -> ""
+            [$, | write_map_assoc(K, V, -1, E, O, write_map_body_unlimited_depth(NextI, E, O, Tl))];
+        none ->
+            [$}|Tl]
     end.
 
-write_map_assoc(K, V, D, E, O) ->
-    [write1(K, D, E, O)," => ",write1(V, D, E, O)].
+write_map_assoc(K, V, D, E, O, Tl) ->
+    write1(K, D, E, O, [" => "|write1(V, D, E, O, Tl)]).
 
-write_binary(B, D) when is_integer(D) ->
-    {S, _} = write_binary(B, D, -1),
+write_binary_acc(<<>>, _D, Tl) ->
+    pre_static("<<>>",Tl);
+write_binary_acc(B, D, Tl) when is_integer(D) ->
+    {S, _} = write_binary(B, D, -1, Tl),
     S.
 
 -doc false.
-write_binary(B, D, T) when is_integer(T) ->
-    {S, Rest} = write_binary_body(B, D, tsub(T, 4), []),
-    {[$<,$<,lists:reverse(S),$>,$>], Rest}.
+write_binary(B, D, T) ->
+    write_binary(B, D, T, []).
+write_binary(B, D, T, Tl) when is_integer(T) ->
+    {S, Rest} = write_binary_body(B, D, tsub(T, 4), Tl),
+    {[[$<,$<|lists:reverse(S)]|">>"], Rest}.
 
 write_binary_body(<<>> = B, _D, _T, Acc) ->
     {Acc, B};
 write_binary_body(B, D, T, Acc) when D =:= 1; T =:= 0->
-    {["..."|Acc], B};
+    {pre_static("...",Acc), B};
 write_binary_body(<<X:8>>, _D, _T, Acc) ->
     {[integer_to_list(X)|Acc], <<>>};
 write_binary_body(<<X:8,Rest/bitstring>>, D, T, Acc) ->
@@ -656,7 +1014,9 @@ get_option(Key, TupleList, Default) ->
       Atom :: atom().
 
 write_atom(Atom) ->
-    write_possibly_quoted_atom(Atom, fun write_string/2).
+    write_possibly_quoted_atom(Atom, false).
+write_atom_acc(Atom, Tl) ->
+    write_possibly_quoted_atom_acc(Atom, false, Tl).
 
 -doc """
 Returns the list of characters needed to print atom `Atom`. Non-Latin-1
@@ -667,15 +1027,32 @@ characters are escaped.
       Atom :: atom().
 
 write_atom_as_latin1(Atom) ->
-    write_possibly_quoted_atom(Atom, fun write_string_as_latin1/2).
+    write_possibly_quoted_atom(Atom, true).
+write_atom_as_latin1_acc(Atom, Tl) ->
+    write_possibly_quoted_atom_acc(Atom, true, Tl).
 
-write_possibly_quoted_atom(Atom, PFun) ->
+write_possibly_quoted_atom(Atom, Latin1) ->
     Chars = atom_to_list(Atom),
     case quote_atom(Atom, Chars) of
-	true ->
-            PFun(Chars, $');   %'
-	false ->
-	    Chars
+        true ->
+            case Latin1 of
+                true -> write_string_as_latin1(Chars, $');   %'
+                false -> write_string(Chars, $')   %'
+            end;
+        false ->
+            Chars
+    end.
+
+write_possibly_quoted_atom_acc(Atom, Latin1, Tl) ->
+    Chars = atom_to_list(Atom),
+    case quote_atom(Atom, Chars) of
+        true ->
+            case Latin1 of
+                true -> write_string_as_latin1_acc(Chars, $', Tl);   %'
+                false -> write_string_acc(Chars, $', Tl)   %'
+            end;
+        false ->
+            pre_dynamic(Chars,Tl)
     end.
 
 %% quote_atom(Atom, CharList)
@@ -690,29 +1067,31 @@ quote_atom(Atom, Cs0) ->
 	true -> true;
 	false ->
 	    case Cs0 of
+        [] -> true;
 		[C|Cs] when is_integer(C), C >= $a, C =< $z ->
 		    not name_chars(Cs);
 		[C|Cs] when is_integer(C), C >= $ß, C =< $ÿ, C =/= $÷ ->
 		    not name_chars(Cs);
-		[C|_] when is_integer(C) -> true;
-                [] -> true
+		[C|_] when is_integer(C) -> true
 	    end
     end.
 
-name_chars([C|Cs]) when is_integer(C) ->
+name_chars([]) -> true;
+name_chars([C|Cs]) ->
     case name_char(C) of
 	true -> name_chars(Cs);
 	false -> false
-    end;
-name_chars([]) -> true.
+    end.
 
-name_char(C) when C >= $a, C =< $z -> true;
-name_char(C) when C >= $ß, C =< $ÿ, C =/= $÷ -> true;
-name_char(C) when C >= $A, C =< $Z -> true;
-name_char(C) when C >= $À, C =< $Þ, C =/= $× -> true;
-name_char(C) when C >= $0, C =< $9 -> true;
 name_char($_) -> true;
 name_char($@) -> true;
+name_char(C) when
+    C >= $a, C =< $z;
+    C >= $ß, C =< $ÿ, C =/= $÷;
+    C >= $A, C =< $Z;
+    C >= $À, C =< $Þ, C =/= $×;
+    C >= $0, C =< $9 ->
+        true;
 name_char(_) -> false.
 
 %%% There are two functions to write Unicode strings:
@@ -733,8 +1112,13 @@ write_string(S) ->
 -doc false.
 -spec write_string(string(), char()) -> chars().
 
+write_string("", $") ->
+    "\"\"";
 write_string(S, Q) ->
-    [Q|write_string1(unicode_as_unicode, S, Q)].
+    [Q|write_string_unicode_as_unicode(S, Q)].
+
+write_string_acc(S, Q, Tl) ->
+    [Q|write_string_unicode_as_unicode_acc(S, Q, Tl)].
 
 %% Backwards compatibility.
 -doc false.
@@ -771,14 +1155,28 @@ write_string_as_latin1(S) ->
 
 write_string_as_latin1(S, Q) ->
     [Q|write_string1(unicode_as_latin1, S, Q)].
+write_string_as_latin1_acc(S, Q, Tl) ->
+    [Q|write_string1_acc(unicode_as_latin1, S, Q, Tl)].
 
 write_string1(_,[], Q) ->
     [Q];
 write_string1(Enc,[C|Cs], Q) when is_integer(C) ->
     string_char(Enc,C, Q, write_string1(Enc,Cs, Q)).
+write_string1_acc(_,[], Q, Tl) ->
+    [Q|Tl];
+write_string1_acc(Enc,[C|Cs], Q, Tl) when is_integer(C) ->
+    string_char(Enc,C, Q, write_string1_acc(Enc,Cs, Q, Tl)).
 
 string_char(_,Q, Q, Tail) -> [$\\,Q|Tail];	%Must check these first!
 string_char(_,$\\, _, Tail) -> [$\\,$\\|Tail];
+string_char(_,$\n, _, Tail) -> [$\\,$n|Tail];	%\n = LF
+string_char(_,$\r, _, Tail) -> [$\\,$r|Tail];	%\r = CR
+string_char(_,$\t, _, Tail) -> [$\\,$t|Tail];	%\t = TAB
+string_char(_,$\v, _, Tail) -> [$\\,$v|Tail];	%\v = VT
+string_char(_,$\b, _, Tail) -> [$\\,$b|Tail];	%\b = BS
+string_char(_,$\f, _, Tail) -> [$\\,$f|Tail];	%\f = FF
+string_char(_,$\e, _, Tail) -> [$\\,$e|Tail];	%\e = ESC
+string_char(_,$\d, _, Tail) -> [$\\,$d|Tail];	%\d = DEL
 string_char(_,C, _, Tail) when C >= $\s, C =< $~ ->
     [C|Tail];
 string_char(latin1,C, _, Tail) when C >= $\240, C =< $\377 ->
@@ -788,16 +1186,34 @@ string_char(unicode_as_unicode,C, _, Tail) when C >= $\240 ->
 string_char(unicode_as_latin1,C, _, Tail) when C >= $\240, C =< $\377 ->
     [C|Tail];
 string_char(unicode_as_latin1,C, _, Tail) when C >= $\377 ->
-    "\\x{"++erlang:integer_to_list(C, 16)++"}"++Tail;
-string_char(_,$\n, _, Tail) -> [$\\,$n|Tail];	%\n = LF
-string_char(_,$\r, _, Tail) -> [$\\,$r|Tail];	%\r = CR
-string_char(_,$\t, _, Tail) -> [$\\,$t|Tail];	%\t = TAB
-string_char(_,$\v, _, Tail) -> [$\\,$v|Tail];	%\v = VT
-string_char(_,$\b, _, Tail) -> [$\\,$b|Tail];	%\b = BS
-string_char(_,$\f, _, Tail) -> [$\\,$f|Tail];	%\f = FF
-string_char(_,$\e, _, Tail) -> [$\\,$e|Tail];	%\e = ESC
-string_char(_,$\d, _, Tail) -> [$\\,$d|Tail];	%\d = DEL
-string_char(_,C, _, Tail) when C < $\240->	%Other control characters.
+    [$\\, $x, ${ | erlang:integer_to_list(C, 16)++[$} | Tail]];
+string_char(_,C, _, Tail) when C < $\240 ->	%Other control characters.
+    C1 = (C bsr 6) + $0,
+    C2 = ((C bsr 3) band 7) + $0,
+    C3 = (C band 7) + $0,
+    [$\\,C1,C2,C3|Tail].
+
+% Same as write_string1, but specialised to unicode for performance
+write_string_unicode_as_unicode(Cs, Q) ->
+    write_string_unicode_as_unicode_acc(Cs, Q, "").
+write_string_unicode_as_unicode_acc([], Q, Tl) ->
+    [Q|Tl];
+write_string_unicode_as_unicode_acc([C|Cs], Q, Tl) when is_integer(C) ->
+    string_char_unicode_as_unicode(C, Q, write_string_unicode_as_unicode_acc(Cs, Q, Tl)).
+
+string_char_unicode_as_unicode(Q, Q, Tail) -> [$\\,Q|Tail];	%Must check these first!
+string_char_unicode_as_unicode($\\, _, Tail) -> [$\\,$\\|Tail];
+string_char_unicode_as_unicode($\n, _, Tail) -> [$\\,$n|Tail];	%\n = LF
+string_char_unicode_as_unicode($\r, _, Tail) -> [$\\,$r|Tail];	%\r = CR
+string_char_unicode_as_unicode($\t, _, Tail) -> [$\\,$t|Tail];	%\t = TAB
+string_char_unicode_as_unicode($\v, _, Tail) -> [$\\,$v|Tail];	%\v = VT
+string_char_unicode_as_unicode($\b, _, Tail) -> [$\\,$b|Tail];	%\b = BS
+string_char_unicode_as_unicode($\f, _, Tail) -> [$\\,$f|Tail];	%\f = FF
+string_char_unicode_as_unicode($\e, _, Tail) -> [$\\,$e|Tail];	%\e = ESC
+string_char_unicode_as_unicode($\d, _, Tail) -> [$\\,$d|Tail];	%\d = DEL
+string_char_unicode_as_unicode(C, _, Tail) when C >= $\s, C =< $~ ; C >= $\240 ->
+    [C|Tail];
+string_char_unicode_as_unicode(C, _, Tail) when C < $\240 ->	%Other control characters.
     C1 = (C bsr 6) + $0,
     C2 = ((C bsr 3) band 7) + $0,
     C3 = (C band 7) + $0,
@@ -863,9 +1279,9 @@ otherwise `false`.
 -spec latin1_char_list(Term) -> boolean() when
       Term :: term().
 
+latin1_char_list([]) -> true;
 latin1_char_list([C|Cs]) when is_integer(C), C >= $\000, C =< $\377 ->
     latin1_char_list(Cs);
-latin1_char_list([]) -> true;
 latin1_char_list(_) -> false.			%Everything else is false
 
 -doc """
@@ -875,11 +1291,12 @@ otherwise `false`.
 -spec char_list(Term) -> boolean() when
       Term :: term().
 
-char_list([C|Cs]) when is_integer(C), C >= 0, C < 16#D800;
-       is_integer(C), C > 16#DFFF, C < 16#FFFE;
-       is_integer(C), C > 16#FFFF, C =< 16#10FFFF ->
-    char_list(Cs);
 char_list([]) -> true;
+char_list([C|Cs])
+    when is_integer(C), C >= 0, C < 16#D800;
+         is_integer(C), C > 16#DFFF, C < 16#FFFE;
+         is_integer(C), C > 16#FFFF, C =< 16#10FFFF ->
+    char_list(Cs);
 char_list(_) -> false.			%Everything else is false
 
 -doc """
@@ -893,13 +1310,14 @@ Latin-1 range, otherwise `false`.
 deep_latin1_char_list(Cs) ->
     deep_latin1_char_list(Cs, []).
 
+deep_latin1_char_list([], [Cs|More]) ->
+    deep_latin1_char_list(Cs, More);
+deep_latin1_char_list([], []) ->
+    true;
 deep_latin1_char_list([C|Cs], More) when is_list(C) ->
     deep_latin1_char_list(C, [Cs|More]);
 deep_latin1_char_list([C|Cs], More) when is_integer(C), C >= $\000, C =< $\377 ->
     deep_latin1_char_list(Cs, More);
-deep_latin1_char_list([], [Cs|More]) ->
-    deep_latin1_char_list(Cs, More);
-deep_latin1_char_list([], []) -> true;
 deep_latin1_char_list(_, _More) ->			%Everything else is false
     false.
 
@@ -913,6 +1331,10 @@ range, otherwise `false`.
 deep_char_list(Cs) ->
     deep_char_list(Cs, []).
 
+deep_char_list([], [Cs|More]) ->
+    deep_char_list(Cs, More);
+deep_char_list([], []) ->
+    true;
 deep_char_list([C|Cs], More) when is_list(C) ->
     deep_char_list(C, [Cs|More]);
 deep_char_list([C|Cs], More)
@@ -920,9 +1342,6 @@ deep_char_list([C|Cs], More)
        is_integer(C), C > 16#DFFF, C < 16#FFFE;
        is_integer(C), C > 16#FFFF, C =< 16#10FFFF ->
     deep_char_list(Cs, More);
-deep_char_list([], [Cs|More]) ->
-    deep_char_list(Cs, More);
-deep_char_list([], []) -> true;
 deep_char_list(_, _More) ->		%Everything else is false
     false.
 
@@ -942,10 +1361,6 @@ otherwise `false`.
 -spec printable_latin1_list(Term) -> boolean() when
       Term :: term().
 
-printable_latin1_list([C|Cs]) when is_integer(C), C >= $\040, C =< $\176 ->
-    printable_latin1_list(Cs);
-printable_latin1_list([C|Cs]) when is_integer(C), C >= $\240, C =< $\377 ->
-    printable_latin1_list(Cs);
 printable_latin1_list([$\n|Cs]) -> printable_latin1_list(Cs);
 printable_latin1_list([$\r|Cs]) -> printable_latin1_list(Cs);
 printable_latin1_list([$\t|Cs]) -> printable_latin1_list(Cs);
@@ -954,14 +1369,18 @@ printable_latin1_list([$\b|Cs]) -> printable_latin1_list(Cs);
 printable_latin1_list([$\f|Cs]) -> printable_latin1_list(Cs);
 printable_latin1_list([$\e|Cs]) -> printable_latin1_list(Cs);
 printable_latin1_list([]) -> true;
+printable_latin1_list([C|Cs])
+    when is_integer(C), C >= $\040, C =< $\176;
+         is_integer(C), C >= $\240, C =< $\377 ->
+    printable_latin1_list(Cs);
 printable_latin1_list(_) -> false.			%Everything else is false
 
 %% printable_list([Char]) -> boolean()
 %%  Return true if CharList is a list of printable characters, else
 %%  false. The notion of printable in Unicode terms is somewhat floating.
 %%  Everything that is not a control character and not invalid unicode
-%%  will be considered printable. 
-%%  What the user has noted as printable characters is what actually 
+%%  will be considered printable.
+%%  What the user has noted as printable characters is what actually
 %%  specifies when this function will return true. If the VM is started
 %%  with +pc latin1, only the latin1 range will be deemed as printable
 %%  if on the other hand +pc unicode is given, all characters in the Unicode
@@ -979,7 +1398,7 @@ to the Erlang VM; see `io:printable_range/0` and
       Term :: term().
 
 printable_list(L) ->
-    %% There will be more alternatives returns from io:printable range 
+    %% There will be more alternatives returns from io:printable range
     %% in the future. To not have a catch-all clause is deliberate.
     case io:printable_range() of
 	latin1 ->
@@ -996,13 +1415,6 @@ otherwise `false`.
 -spec printable_unicode_list(Term) -> boolean() when
       Term :: term().
 
-printable_unicode_list([C|Cs]) when is_integer(C), C >= $\040, C =< $\176 ->
-    printable_unicode_list(Cs);
-printable_unicode_list([C|Cs])
-  when is_integer(C), C >= 16#A0, C < 16#D800;
-       is_integer(C), C > 16#DFFF, C < 16#FFFE;
-       is_integer(C), C > 16#FFFF, C =< 16#10FFFF ->
-    printable_unicode_list(Cs);
 printable_unicode_list([$\n|Cs]) -> printable_unicode_list(Cs);
 printable_unicode_list([$\r|Cs]) -> printable_unicode_list(Cs);
 printable_unicode_list([$\t|Cs]) -> printable_unicode_list(Cs);
@@ -1011,6 +1423,12 @@ printable_unicode_list([$\b|Cs]) -> printable_unicode_list(Cs);
 printable_unicode_list([$\f|Cs]) -> printable_unicode_list(Cs);
 printable_unicode_list([$\e|Cs]) -> printable_unicode_list(Cs);
 printable_unicode_list([]) -> true;
+printable_unicode_list([C|Cs])
+  when is_integer(C), C >= $\040, C =< $\176;
+       is_integer(C), C >= 16#A0, C < 16#D800;
+       is_integer(C), C > 16#DFFF, C < 16#FFFE;
+       is_integer(C), C > 16#FFFF, C =< 16#10FFFF ->
+    printable_unicode_list(Cs);
 printable_unicode_list(_) -> false.		%Everything else is false
 
 %% List = nl()
@@ -1050,7 +1468,7 @@ cafu(_Other,_N,Count,_ByteCount,SavePos) -> % Non Utf8 character at end
 collect_chars(Tag, Data, N) ->
     collect_chars(Tag, Data, latin1, N).
 
-%% Now we are aware of encoding...    
+%% Now we are aware of encoding...
 -doc false.
 collect_chars(start, Data, unicode, N) when is_binary(Data), is_integer(N) ->
     {Size,Npos} = count_and_find_utf8(Data,N),
@@ -1072,14 +1490,14 @@ collect_chars(start, Data, latin1, N) when is_binary(Data), is_integer(N) ->
        true ->
 	    {stop,Data,<<>>}
     end;
-collect_chars(start,Data,_,N) when is_list(Data), is_integer(N) ->
-    collect_chars_list([], N, Data);
 collect_chars(start, eof, _,_) ->
     {stop,eof,eof};
 collect_chars({binary,[<<>>],_N}, eof, _,_) ->
     {stop,eof,eof};
 collect_chars({binary,Stack,_N}, eof, _,_) ->
     {stop,binrev(Stack),eof};
+collect_chars(start,Data,_,N) when is_list(Data), is_integer(N) ->
+    collect_chars_list([], N, Data);
 collect_chars({binary,Stack,N}, Data,unicode, _) when is_integer(N) ->
     {Size,Npos} = count_and_find_utf8(Data,N),
     if Size > N ->
@@ -1114,22 +1532,22 @@ collect_chars({Left,Sofar}, Chars, _, _N) when is_integer(Left) ->
     collect_chars1(Left, Chars, Sofar).
 
 collect_chars1(N, Chars, Stack) when N =< 0 ->
-    {done,lists:reverse(Stack, []),Chars};
+    {done,lists:reverse(Stack),Chars};
 collect_chars1(N, [C|Rest], Stack) ->
     collect_chars1(N-1, Rest, [C|Stack]);
 collect_chars1(_N, eof, []) ->
     {done,eof,[]};
 collect_chars1(_N, eof, Stack) ->
-    {done,lists:reverse(Stack, []),[]};
+    {done,lists:reverse(Stack),[]};
 collect_chars1(N, [], Stack) ->
     {more,{N,Stack}}.
 
 collect_chars_list(Stack, 0, Data) ->
-    {stop,lists:reverse(Stack, []),Data};
+    {stop,lists:reverse(Stack),Data};
 collect_chars_list([], _N, eof) ->
     {stop,eof,eof};
 collect_chars_list(Stack, _N, eof) ->
-    {stop,lists:reverse(Stack, []),eof};
+    {stop,lists:reverse(Stack),eof};
 collect_chars_list(Stack, N, []) ->
     {list,Stack,N};
 collect_chars_list(Stack,N, [H|T]) ->
@@ -1141,10 +1559,10 @@ collect_chars_list(Stack,N, [H|T]) ->
 %%	NewState
 %%% BC (with pre-R13).
 -doc false.
-collect_line(Tag, Data, Any) -> 
+collect_line(Tag, Data, Any) ->
     collect_line(Tag, Data, latin1, Any).
 
-%% Now we are aware of encoding...    
+%% Now we are aware of encoding...
 -doc false.
 collect_line(start, Data, Encoding, _) when is_binary(Data) ->
     collect_line_bin(Data, Data, [], Encoding);
@@ -1159,7 +1577,7 @@ collect_line(Stack, Data, _, _) when is_list(Data) ->
 collect_line([B|_]=Stack, eof, _, _) when is_binary(B) ->
     {stop,binrev(Stack),eof};
 collect_line(Stack, eof, _, _) ->
-    {stop,lists:reverse(Stack, []),eof}.
+    {stop,lists:reverse(Stack),eof}.
 
 
 collect_line_bin(<<$\n,T/binary>>, Data, Stack0, _) ->
@@ -1196,7 +1614,7 @@ collect_line_list([H|T], Stack) ->
 collect_line_list([], Stack) ->
     Stack.
 
-%% Translator function to emulate a new (R9C and later) 
+%% Translator function to emulate a new (R9C and later)
 %% I/O client when you have an old one.
 %%
 %% Implements a middleman that is get_until server and get_chars client.
@@ -1206,7 +1624,7 @@ collect_line_list([], Stack) ->
 get_until(Any,Data,Arg) ->
     get_until(Any,Data,latin1,Arg).
 
-%% Now we are aware of encoding...    
+%% Now we are aware of encoding...
 -doc false.
 get_until(start, Data, Encoding, XtraArg) ->
     %% We use the type of the initial data as an indicator of what
@@ -1224,11 +1642,11 @@ get_until({IsDataBinary, Cont}, Data, Encoding, {Mod, Func, XtraArgs}) ->
 	    end,
     case apply(Mod, Func, [Cont,Chars|XtraArgs]) of
 	{done,Result,Buf} ->
-	    {stop,if IsDataBinary, 
-		     is_list(Result), 
+	    {stop,if IsDataBinary,
+		     is_list(Result),
 		     Encoding =:= unicode ->
 			  unicode:characters_to_binary(Result,unicode,unicode);
-		     IsDataBinary, 
+		     IsDataBinary,
 		     is_list(Result) ->
 			  erlang:iolist_to_binary(Result);
 %%		     IsDataBinary,
@@ -1236,7 +1654,7 @@ get_until({IsDataBinary, Cont}, Data, Encoding, {Mod, Func, XtraArgs}) ->
 %% 		     Encoding =:= latin1 ->
 %% 			  % Should check for only latin1, but skip that for
 %% 			  % efficiency reasons.
-%% 			  [ exit({cannot_convert, unicode, latin1}) || 
+%% 			  [ exit({cannot_convert, unicode, latin1}) ||
 %% 			      X <- List, X > 255 ];
 		     true ->
 			  Result
@@ -1247,7 +1665,7 @@ get_until({IsDataBinary, Cont}, Data, Encoding, {Mod, Func, XtraArgs}) ->
     end.
 
 binrev(L) ->
-    list_to_binary(lists:reverse(L, [])).
+    list_to_binary(lists:reverse(L)).
 
 binrev(L, T) ->
     list_to_binary(lists:reverse(L, T)).
@@ -1259,7 +1677,9 @@ binrev(L, T) ->
 %% and io_lib_pretty:print(). The leaves ('...') should never be
 %% seen when printed with the same depth. Bitstrings are never
 %% truncated, which is OK as long as they are not sent to other nodes.
-limit_term(Term, Depth) when is_integer(Depth), Depth >= -1 ->
+limit_term(Term, Depth) when is_integer(Depth), Depth < 0 ->
+    Term;
+limit_term(Term, Depth) when is_integer(Depth) ->
     try test_limit(Term, Depth) of
         ok -> Term
     catch
@@ -1268,17 +1688,16 @@ limit_term(Term, Depth) when is_integer(Depth), Depth >= -1 ->
     end.
 
 limit(_, 0) -> '...';
+limit([_|_], 1) ->
+	['...'];
 limit([H|T]=L, D) ->
-    if
-	D =:= 1 -> ['...'];
-	true ->
-            case printable_list(L) of
-                true -> L;
-                false ->
-                    [limit(H, D-1)|limit_tail(T, D-1)]
-            end
+    case printable_list(L) of
+        true -> L;
+        false ->
+            [limit(H, D-1)|limit_tail(T, D-1)]
     end;
-limit(Term, D) when is_map(Term) ->
+limit(<<_/bitstring>>=Term, D) -> limit_bitstring(Term, D);
+limit(#{}=Term, D) ->
     limit_map(Term, D);
 limit({}=T, _D) -> T;
 limit(T, D) when is_tuple(T) ->
@@ -1288,7 +1707,6 @@ limit(T, D) when is_tuple(T) ->
             list_to_tuple([limit(element(1, T), D-1)|
                            limit_tuple(T, 2, D-1)])
     end;
-limit(<<_/bitstring>>=Term, D) -> limit_bitstring(Term, D);
 limit(Term, _D) -> Term.
 
 limit_tail([], _D) -> [];
@@ -1330,38 +1748,39 @@ limit_map_assoc(K, V, D) ->
 limit_bitstring(B, _D) -> B. % Keeps all printable binaries.
 
 test_limit(_, 0) -> throw(limit);
+test_limit([_|_], 1) ->
+	throw(limit);
 test_limit([H|T]=L, D) when is_integer(D) ->
-    if
-	D =:= 1 -> throw(limit);
-	true ->
-            case printable_list(L) of
-                true -> ok;
-                false ->
-                    test_limit(H, D-1),
-                    test_limit_tail(T, D-1)
-            end
+    case printable_list(L) of
+        true -> ok;
+        false ->
+            D1=D-1,
+            test_limit(H, D1),
+            test_limit_tail(T, D1)
     end;
-test_limit(Term, D) when is_map(Term) ->
-    test_limit_map(Term, D);
 test_limit({}, _D) -> ok;
+test_limit(<<_/bitstring>>=Term, D) -> test_limit_bitstring(Term, D);
+test_limit(#{}=Term, D) ->
+    test_limit_map(Term, D);
 test_limit(T, D) when is_tuple(T) ->
     test_limit_tuple(T, 1, tuple_size(T), D);
-test_limit(<<_/bitstring>>=Term, D) -> test_limit_bitstring(Term, D);
 test_limit(_Term, _D) -> ok.
 
 test_limit_tail([], _D) -> ok;
 test_limit_tail(_, 1) -> throw(limit);
 test_limit_tail([H|T], D) ->
-    test_limit(H, D-1),
-    test_limit_tail(T, D-1);
+    D1=D-1,
+    test_limit(H, D1),
+    test_limit_tail(T, D1);
 test_limit_tail(Other, D) ->
     test_limit(Other, D-1).
 
 test_limit_tuple(_T, I, Sz, _D) when I > Sz -> ok;
 test_limit_tuple(_, _, _, 1) -> throw(limit);
 test_limit_tuple(T, I, Sz, D) ->
-    test_limit(element(I, T), D-1),
-    test_limit_tuple(T, I+1, Sz, D-1).
+    D1=D-1,
+    test_limit(element(I, T), D1),
+    test_limit_tuple(T, I+1, Sz, D1).
 
 test_limit_map(Map, D) ->
     test_limit_map_body(maps:iterator(Map), D).
@@ -1377,8 +1796,9 @@ test_limit_map_body(I, D) ->
     end.
 
 test_limit_map_assoc(K, V, D) ->
-    test_limit(K, D - 1),
-    test_limit(V, D - 1).
+    D1=D-1,
+    test_limit(K, D1),
+    test_limit(V, D1).
 
 test_limit_bitstring(_, _) -> ok.
 

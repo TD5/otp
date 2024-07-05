@@ -191,7 +191,7 @@ should also be OK.
 
 -define(pow(A, _), A * A). % correct with exponent as defined above.
 
--define(div2(X), X bsr 1). 
+-define(div2(X), X bsr 1).
 
 -define(mul2(X), X bsl 1).
 
@@ -318,7 +318,7 @@ update(Key, Val, {S, T}) ->
 
 %% See `lookup' for notes on the term comparison order.
 
-update_1(Key, Value, {Key1, V, Smaller, Bigger}) when Key < Key1 -> 
+update_1(Key, Value, {Key1, V, Smaller, Bigger}) when Key < Key1 ->
     {Key1, V, update_1(Key, Value, Smaller), Bigger};
 update_1(Key, Value, {Key1, V, Smaller, Bigger}) when Key > Key1 ->
     {Key1, V, Smaller, update_1(Key, Value, Bigger)};
@@ -339,7 +339,11 @@ insert(Key, Val, {S, T}) when is_integer(S) ->
     S1 = S+1,
     {S1, insert_1(Key, Val, T, ?pow(S1, ?p))}.
 
-insert_1(Key, Value, {Key1, V, Smaller, Bigger}, S) when Key < Key1 -> 
+insert_1(Key, Value, nil, 0) ->
+    {{Key, Value, nil, nil}, 1, 1};
+insert_1(Key, Value, nil, _S) ->
+    {Key, Value, nil, nil};
+insert_1(Key, Value, {Key1, V, Smaller, Bigger}, S) when Key < Key1 ->
     case insert_1(Key, Value, Smaller, ?div2(S)) of
         {T1, H1, S1} when is_integer(H1), is_integer(S1) ->
 	    T = {Key1, V, T1, Bigger},
@@ -348,7 +352,7 @@ insert_1(Key, Value, {Key1, V, Smaller, Bigger}, S) when Key < Key1 ->
 	    SS = S1 + S2 + 1,
 	    P = ?pow(SS, ?p),
 	    if
-		H > P -> 
+		H > P ->
 		    balance(T, SS);
 		true ->
 		    {T, H, SS}
@@ -356,7 +360,7 @@ insert_1(Key, Value, {Key1, V, Smaller, Bigger}, S) when Key < Key1 ->
 	T1 ->
 	    {Key1, V, T1, Bigger}
     end;
-insert_1(Key, Value, {Key1, V, Smaller, Bigger}, S) when Key > Key1 -> 
+insert_1(Key, Value, {Key1, V, Smaller, Bigger}, S) when Key > Key1 ->
     case insert_1(Key, Value, Bigger, ?div2(S)) of
         {T1, H1, S1} when is_integer(H1), is_integer(S1) ->
 	    T = {Key1, V, Smaller, T1},
@@ -365,7 +369,7 @@ insert_1(Key, Value, {Key1, V, Smaller, Bigger}, S) when Key > Key1 ->
 	    SS = S1 + S2 + 1,
 	    P = ?pow(SS, ?p),
 	    if
-		H > P -> 
+		H > P ->
 		    balance(T, SS);
 		true ->
 		    {T, H, SS}
@@ -373,10 +377,6 @@ insert_1(Key, Value, {Key1, V, Smaller, Bigger}, S) when Key > Key1 ->
 	T1 ->
 	    {Key1, V, Smaller, T1}
     end;
-insert_1(Key, Value, nil, S) when S =:= 0 ->
-    {{Key, Value, nil, nil}, 1, 1};
-insert_1(Key, Value, nil, _S) ->
-    {Key, Value, nil, nil};
 insert_1(Key, _, _, _) ->
     erlang:error({key_exists, Key}).
 
@@ -433,6 +433,8 @@ balance_list(L, S) ->
     {T, []} = balance_list_1(L, S),
     T.
 
+balance_list_1(L, 0) ->
+    {nil, L};
 balance_list_1(L, S) when S > 1 ->
     Sm = S - 1,
     S2 = Sm div 2,
@@ -442,9 +444,7 @@ balance_list_1(L, S) when S > 1 ->
     T = {K, V, T1, T2},
     {T, L2};
 balance_list_1([{Key, Val} | L], 1) ->
-    {{Key, Val, nil, nil}, L};
-balance_list_1(L, 0) ->
-    {nil, L}.
+    {{Key, Val, nil, nil}, L}.
 
 -doc """
 Turns an ordered list `List` of key-value tuples into a tree. The list must not
@@ -684,7 +684,7 @@ larger_1(Key, {_Key, _Value, _Smaller, Larger}) ->
 -doc "Converts a tree into an ordered list of key-value tuples.".
 -spec to_list(Tree) -> [{Key, Value}] when
       Tree :: tree(Key, Value).
-			   
+
 to_list({_, T}) ->
     to_list(T, []).
 

@@ -98,7 +98,7 @@
 %%          (debug == log && statistics)
 %% Returns: {ok, Pid} | {ok, Pid, Reference} | ignore |{error, Reason} |
 %%          {error, {already_started, Pid}} |
-%%    The 'already_started' is returned only if Name is given 
+%%    The 'already_started' is returned only if Name is given
 %%-----------------------------------------------------------------
 
 -spec start(module(), linkage(), emgr_name(), module(), term(), [option()]) ->
@@ -124,13 +124,13 @@ start(GenMod, LinkP, Mod, Args, Options) ->
 do_spawn(GenMod, link, Mod, Args, Options) ->
     Time = timeout(Options),
     proc_lib:start_link(?MODULE, init_it,
-			[GenMod, self(), self(), Mod, Args, Options], 
+			[GenMod, self(), self(), Mod, Args, Options],
 			Time,
 			spawn_opts(Options));
 do_spawn(GenMod, monitor, Mod, Args, Options) ->
     Time = timeout(Options),
     Ret = proc_lib:start_monitor(?MODULE, init_it,
-                                 [GenMod, self(), self(), Mod, Args, Options], 
+                                 [GenMod, self(), self(), Mod, Args, Options],
                                  Time,
                                  spawn_opts(Options)),
     monitor_return(Ret);
@@ -212,7 +212,7 @@ init_it2(GenMod, Starter, Parent, Name, Mod, Args, Options) ->
 %%% New call function which uses the new monitor BIF
 %%% call(ServerId, Label, Request)
 
-call(Process, Label, Request) -> 
+call(Process, Label, Request) ->
     call(Process, Label, Request, ?default_timeout).
 
 %% Optimize a common case.
@@ -308,7 +308,7 @@ send_request(Process, Tag, Request) ->
                    Label::term(), ReqIdCol::request_id_collection()) ->
           request_id_collection().
 send_request(Process, Tag, Request, Label, ReqIdCol) when is_map(ReqIdCol) ->
-    maps:put(send_request(Process, Tag, Request), Label, ReqIdCol).
+    ReqIdCol#{send_request(Process, Tag, Request) => Label}.
 
 -dialyzer({no_improper_lists, do_send_request/3}).
 
@@ -478,7 +478,8 @@ collection_result({'DOWN', ReqId, _, Object, Reason}, ReqIdCol, Delete) ->
     collection_result({error, {Reason, Object}}, ReqId, ReqIdCol, Delete).
 
 collection_result(Resp, ReqId, ReqIdCol, false) ->
-    {Resp, maps:get(ReqId, ReqIdCol), ReqIdCol};
+    #{ReqId := L}=ReqIdCol,
+    {Resp, L, ReqIdCol};
 collection_result(Resp, ReqId, ReqIdCol, true) ->
     {Label, NewReqIdCol} = maps:take(ReqId, ReqIdCol),
     {Resp, Label, NewReqIdCol}.
@@ -529,7 +530,7 @@ reqids_add(ReqId, _, ReqIdCol) when is_reference(ReqId),
     error(badarg);
 reqids_add(ReqId, Label, ReqIdCol) when is_reference(ReqId),
                                         is_map(ReqIdCol) ->
-    maps:put(ReqId, Label, ReqIdCol);
+    ReqIdCol#{ReqId => Label};
 reqids_add(_, _, _) ->
     error(badarg).
 

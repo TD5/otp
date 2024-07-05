@@ -459,7 +459,7 @@ send_request(N, M, F, A, L, C) when is_atom(N),
     Res = make_ref(),
     ReqId = spawn_request(N, ?MODULE, execute_call, [Res, M, F, A],
                           [{reply, error_only}, monitor]),
-    maps:put(ReqId, [Res|L], C);
+    C#{ReqId => [Res|L]};
 send_request(_N, _M, _F, _A, _L, _C) ->
     error({?MODULE, badarg}).
 
@@ -637,7 +637,7 @@ wait_response([Res|ReqId] = RId) when is_reference(Res),
     wait_response(RId, 0);
 wait_response(_) ->
     error({?MODULE, badarg}).
-    
+
 -dialyzer([{nowarn_function, wait_response/2}, no_return]).
 
 -doc """
@@ -804,7 +804,7 @@ communication may, of course, reach the calling process.
       Message :: term(),
       RequestId :: request_id(),
       Result :: term().
-          
+
 check_response({spawn_reply, ReqId, error, Reason},
                [Res|ReqId]) when is_reference(Res),
                                  is_reference(ReqId) ->
@@ -945,7 +945,7 @@ reqids_add([_|ReqId], _, ReqIdCollection) when is_reference(ReqId),
 reqids_add([Res|ReqId], Label, ReqIdCollection) when is_reference(Res),
                                                      is_reference(ReqId),
                                                      is_map(ReqIdCollection) ->
-    maps:put(ReqId, [Res|Label], ReqIdCollection);
+    ReqIdCollection#{ReqId => [Res|Label]};
 reqids_add(_, _, _) ->
     error({?MODULE, badarg}).
 
@@ -1606,4 +1606,3 @@ mcall_map_replies([], _Rpls, Res) ->
 mcall_map_replies([RID|RIDs], Rpls, Res) ->
     Timeout = {error, {?MODULE, timeout}},
     mcall_map_replies(RIDs, Rpls, [maps:get(RID, Rpls, Timeout) | Res]).
-    

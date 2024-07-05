@@ -184,7 +184,7 @@ providing one key for module `t` and another key for all other modules:
 -export_type([chnk_rsn/0]).
 -export_type([beam/0]).
 
--import(lists, [append/1, delete/2, foreach/2, keysort/2, 
+-import(lists, [append/1, delete/2, foreach/2, keysort/2,
 		member/2, reverse/1, sort/1, splitwith/2]).
 
 %%-------------------------------------------------------------------------
@@ -439,7 +439,7 @@ In particular, the debug information (chunk `debug_info` and `abstract_code`) is
 strip(FileName, AdditionalChunks) ->
     try strip_file(FileName, AdditionalChunks)
     catch Error -> Error end.
-    
+
 -doc """
 Removes all chunks except those used by the loader from `Files`.
 
@@ -583,10 +583,10 @@ format_error({not_a_beam_file, File}) ->
 format_error({file_error, File, Reason}) ->
     io_lib:format("~tp: ~tp~n", [File, file:format_error(Reason)]);
 format_error({missing_chunk, File, ChunkId}) ->
-    io_lib:format("~tp: Not a BEAM file: no IFF \"~s\" chunk~n", 
+    io_lib:format("~tp: Not a BEAM file: no IFF \"~s\" chunk~n",
 		  [File, ChunkId]);
 format_error({invalid_beam_file, File, Pos}) ->
-    io_lib:format("~tp: Invalid format of BEAM file near byte number ~p~n", 
+    io_lib:format("~tp: Invalid format of BEAM file near byte number ~p~n",
 		  [File, Pos]);
 format_error({chunk_too_big, File, ChunkId, Size, Len}) ->
     io_lib:format("~tp: Size of chunk \"~s\" is ~p bytes, "
@@ -597,7 +597,7 @@ format_error({chunks_different, Id}) ->
 format_error(different_chunks) ->
     "The two files have different chunks\n";
 format_error({modules_different, Module1, Module2}) ->
-    io_lib:format("Module names ~p and ~p differ in the two files~n", 
+    io_lib:format("Module names ~p and ~p differ in the two files~n",
 		  [Module1, Module2]);
 format_error({not_a_directory, Name}) ->
     io_lib:format("~tp: Not a directory~n", [Name]);
@@ -614,7 +614,7 @@ format_error({missing_backend, File, Backend}) ->
 format_error(E) ->
     io_lib:format("~tp~n", [E]).
 
-%% 
+%%
 %% Exported functions for encrypted debug info.
 %%
 
@@ -723,7 +723,7 @@ diff_directories(Dir1, Dir2) ->
     foreach(fun(D) -> io:format("** different: ~tp~n", [D]) end, Diff),
     ok.
 
-diff_only(_Dir, []) -> 
+diff_only(_Dir, []) ->
     ok;
 diff_only(Dir, Only) ->
     io:format("Only in ~tp: ~tp~n", [Dir, Only]).
@@ -780,7 +780,7 @@ cmp_lists([{Id, C1} | R1], [{Id, C2} | R2]) ->
     end;
 cmp_lists(_, _) ->
     error(different_chunks).
-    
+
 strip_rel(Root, AdditionalChunks) ->
     ok = assert_directory(Root),
     strip_fils(filelib:wildcard(filename:join(Root, "lib/*/ebin/*.beam")), AdditionalChunks).
@@ -795,7 +795,7 @@ strip_file(File, AdditionalChunks) ->
     {ok, Stripped0} = build_module(Chunks),
     Stripped = compress(Stripped0),
     case File of
-	_ when is_binary(File) ->
+	<<_/binary>> ->
 	    {ok, {Mod, Stripped}};
 	_ ->
 	    FileName = beam_filename(File),
@@ -819,8 +819,8 @@ build_chunks([{Id, Data} | Chunks]) ->
     Size = byte_size(Data),
     Chunk = [<<BId/binary, Size:32>>, Data | pad(Size)],
     [Chunk | build_chunks(Chunks)];
-build_chunks([]) -> 
-    [].
+build_chunks([]=Nil) ->
+    Nil.
 
 pad(Size) ->
     case Size rem 4 of
@@ -851,8 +851,7 @@ read_significant_chunks(File, ChunkList) ->
 	    {ok, {Module, Chunks}}
     end.
 
-filter_significant_chunks([{_, Data}=Pair|Cs], Mandatory, File, Mod)
-  when is_binary(Data) ->
+filter_significant_chunks([{_, <<_/binary>>}=Pair|Cs], Mandatory, File, Mod) ->
     [Pair|filter_significant_chunks(Cs, Mandatory, File, Mod)];
 filter_significant_chunks([{Id, missing_chunk}|Cs], Mandatory, File, Mod) ->
     case member(Id, Mandatory) of
@@ -861,7 +860,7 @@ filter_significant_chunks([{Id, missing_chunk}|Cs], Mandatory, File, Mod) ->
 	true ->
 	    error({missing_chunk, File, Id})
     end;
-filter_significant_chunks([], _, _, _) -> [].
+filter_significant_chunks([]=Nil, _, _, _) -> Nil.
 
 filter_funtab([{"FunT"=Tag, <<L:4/binary, Data0/binary>>}|Cs]) ->
     Data = filter_funtab_1(Data0, <<0:32>>),
@@ -869,14 +868,14 @@ filter_funtab([{"FunT"=Tag, <<L:4/binary, Data0/binary>>}|Cs]) ->
     [{Tag, Funtab}|filter_funtab(Cs)];
 filter_funtab([H|T]) ->
     [H|filter_funtab(T)];
-filter_funtab([]) -> [].
+filter_funtab([]=Nil) -> Nil.
 
 filter_funtab_1(<<Important:20/binary,_OldUniq:4/binary,T/binary>>, Zero) ->
     [Important,Zero|filter_funtab_1(T, Zero)];
-filter_funtab_1(Tail, _) when is_binary(Tail) -> [Tail].
+filter_funtab_1(<<_/binary>>=Tail, _) -> [Tail].
 
 read_all_chunks(File0) when is_atom(File0);
-			    is_list(File0); 
+			    is_list(File0);
 			    is_binary(File0) ->
     try
         File = beam_filename(File0),
@@ -900,7 +899,7 @@ read_chunk_data(File0, ChunkNames0, Options)
     AT = ets:new(beam_symbols, []),
     T = {empty, AT},
     try chunks_to_data(Names, Chunks, File, Chunks, Module, T, [])
-    after ets:delete(AT) 
+    after ets:delete(AT)
     end.
 
 %% -> {ok, list()} | throw(Error)
@@ -951,16 +950,16 @@ scan_beam2(FD, What) ->
 	{NFD, {ok, <<"FOR1", _Size:32, "BEAM">>}} ->
 	    Start = 12,
 	    scan_beam(NFD, Start, What, 17, []);
-	_Error -> 
+	_Error ->
 	    error({not_a_beam_file, filename(FD)})
     end.
 
 scan_beam(_FD, _Pos, [], Mod, Data) when Mod =/= 17 ->
-    {ok, Mod, Data};    
+    {ok, Mod, Data};
 scan_beam(FD, Pos, What, Mod, Data) ->
     case pread(FD, Pos, 8) of
 	{_NFD, eof} when Mod =:= 17 ->
-	    error({missing_chunk, filename(FD), "Atom"});	    
+	    error({missing_chunk, filename(FD), "Atom"});
 	{_NFD, eof} when What =:= info ->
 	    {ok, Mod, reverse(Data)};
 	{NFD, eof} ->
@@ -980,9 +979,9 @@ get_atom_data(Cs, Id, FD, Size, Pos, Pos2, Data, Encoding) ->
     <<_Num:32, Chunk2/binary>> = Chunk,
     {Module, _} = extract_atom(Chunk2, Encoding),
     C = case Cs of
-	    info -> 
+	    info ->
 		{Id, Pos, Size};
-	    _ -> 
+	    _ ->
 		{Id, Chunk}
 	end,
     scan_beam(NFD, Pos2, NewCs, Module, [C | Data]).
@@ -1003,7 +1002,7 @@ get_data(Chunks, Id, FD, Size, Pos, Pos2, Mod, Data) ->
 	      end,
     NewChunks = del_chunk(Id, Chunks),
     scan_beam(NFD, Pos2, NewChunks, Mod, NewData).
-     
+
 del_chunk(_Id, info) ->
     info;
 del_chunk(Id, Chunks) ->
@@ -1132,7 +1131,7 @@ chunk_to_data(ChunkName, Chunk, File,
 	{'EXIT', _} ->
 	    error({invalid_chunk, File, chunk_name_to_id(ChunkName, File)})
     end;
-chunk_to_data(ChunkId, Chunk, _File, 
+chunk_to_data(ChunkId, Chunk, _File,
 	      _Cs, AtomTable, _Module) when is_list(ChunkId) ->
     {AtomTable, {ChunkId, Chunk}}. % Chunk is a binary
 
@@ -1147,7 +1146,7 @@ chunk_name_to_id(abstract_code, _)   -> "Abst";
 chunk_name_to_id(debug_info, _)      -> "Dbgi";
 chunk_name_to_id(compile_info, _)    -> "CInf";
 chunk_name_to_id(documentation, _)   -> "Docs";
-chunk_name_to_id(Other, File) -> 
+chunk_name_to_id(Other, File) ->
     error({unknown_chunk, File, Other}).
 
 %% Extract attributes
@@ -1192,7 +1191,7 @@ atm(AT, N) ->
 %% AT is updated.
 ensure_atoms({empty, AT}, Cs) ->
     case lists:keyfind("AtU8", 1, Cs) of
-	{_Id, AtomChunk} when is_binary(AtomChunk) ->
+	{_Id, <<_/binary>>=AtomChunk} ->
 	    extract_atoms(AtomChunk, AT, utf8);
 	_ ->
 	    {_Id, AtomChunk} = lists:keyfind("Atom", 1, Cs),
@@ -1222,7 +1221,7 @@ extract_atom(<<Len, B/binary>>, Encoding) ->
 	     bin :: binary(),
 	     source :: binary() | string()}).
 
-open_file(Binary0) when is_binary(Binary0) ->
+open_file(<<_/binary>>=Binary0) ->
     Binary = maybe_uncompress(Binary0),
     #bb{bin = Binary, source = Binary};
 open_file(FileName) ->
@@ -1261,10 +1260,10 @@ pread(FD, AtPos, Size) ->
 
 filename(BB) when is_binary(BB#bb.source) ->
     BB#bb.source;
-filename(BB) -> 
-    list_to_atom(BB#bb.source).    
+filename(BB) ->
+    list_to_atom(BB#bb.source).
 
-beam_filename(Bin) when is_binary(Bin) ->
+beam_filename(<<_/binary>>=Bin) ->
     Bin;
 beam_filename(File) ->
     filename:rootname(File, ".beam") ++ ".beam".
@@ -1388,7 +1387,7 @@ get_crypto_key(What) ->
     call_crypto_server({get_crypto_key, What}).
 
 call_crypto_server(Req) ->
-    try 
+    try
 	gen_server:call(?CRYPTO_KEY_SERVER, Req, infinity)
     catch
 	exit:{noproc,_} ->
@@ -1434,7 +1433,7 @@ handle_call({get_crypto_key, _}=R, From, #state{crypto_key_f=undefined}=S) ->
 handle_call({get_crypto_key, What}, From, #state{crypto_key_f=F}=S) ->
     try
 	Result = F(What),
-	%% The result may hold information that we don't want 
+	%% The result may hold information that we don't want
 	%% lying around. Reply first, then GC, then noreply.
 	gen_server:reply(From, Result),
 	erlang:garbage_collect(),
@@ -1447,7 +1446,7 @@ handle_call({crypto_key_fun, F}, {_,_} = From, S) ->
     case S#state.crypto_key_f of
 	undefined ->
 	    if is_function(F, 1) ->
-		    {Result, Fun, Reply} = 
+		    {Result, Fun, Reply} =
 			case catch F(init) of
 			    ok ->
 				{true, F, ok};
@@ -1456,7 +1455,7 @@ handle_call({crypto_key_fun, F}, {_,_} = From, S) ->
 				    is_function(F1, 1) ->
 					{true, F1, ok};
 				    true ->
-					{false, undefined, 
+					{false, undefined,
 					 {error, badfun}}
 				end;
 			    {error, Reason} ->
@@ -1550,8 +1549,8 @@ try_load_crypto_fun(KeyInfo) when is_list(KeyInfo) ->
     foreach(
       fun({debug_info, Mode, M, Key}) when is_atom(M) ->
 	      ets:insert(T, {{debug_info,Mode,M,[]}, Key});
-	 ({debug_info, Mode, [], Key}) ->
-	      ets:insert(T, {{debug_info, Mode, [], []}, Key});
+	 ({debug_info, Mode, Nil=[], Key}) ->
+	      ets:insert(T, {{debug_info, Mode, Nil, Nil}, Key});
 	 (Other) ->
 	      error("unknown key: ~p~n", [Other])
       end, KeyInfo),

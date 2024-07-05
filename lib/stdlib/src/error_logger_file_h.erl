@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 1996-2024. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 -module(error_logger_file_h).
@@ -76,7 +76,7 @@ handle_info({'EXIT', Fd, _Reason}, #st{fd=Fd,prev_handler=PrevHandler}) ->
     case PrevHandler of
 	[] ->
 	    remove_handler;
-	_ -> 
+	_ ->
 	    {swap_handler, install_prev, [], PrevHandler, go_back}
     end;
 handle_info(_, State) ->
@@ -130,8 +130,8 @@ format_body(State, [{Format,Args}|T]) ->
 		format(State, "ERROR: ~tp - ~tp\n", [Format,Args])
 	end,
     [S|format_body(State, T)];
-format_body(_State, []) ->
-    [].
+format_body(_State, []=Nil) ->
+    Nil.
 
 format(#st{depth=unlimited}, Format, Args) ->
     io_lib:format(Format, Args);
@@ -148,8 +148,8 @@ limit_format([#{control_char:=C0}=M0|T], Depth) when C0 =:= $p;
     [M|limit_format(T, Depth)];
 limit_format([H|T], Depth) ->
     [H|limit_format(T, Depth)];
-limit_format([], _) ->
-    [].
+limit_format([]=Nil, _) ->
+    Nil.
 
 parse_event({error, _GL, {Pid, Format, Args}}) ->
     {"ERROR REPORT",Pid,[{Format,Args}]};
@@ -179,8 +179,8 @@ format_term_list([{Tag,Data}|T]) ->
     [{"    ~tp: ~tp\n",[Tag,Data]}|format_term_list(T)];
 format_term_list([Data|T]) ->
     [{"    ~tp\n",[Data]}|format_term_list(T)];
-format_term_list([]) ->
-    [].
+format_term_list([]=Nil) ->
+    Nil.
 
 string_p([]) ->
     false;

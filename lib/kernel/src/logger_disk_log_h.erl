@@ -249,22 +249,24 @@ check_config(HConfig) ->
             {error,{invalid_config,?MODULE,#{Key=>Value}}}
     end.
 
-check_h_config([{file,File}|Config]) when is_list(File) ->
-    check_h_config(Config);
+check_h_config([]) ->
+    ok;
 check_h_config([{max_no_files,undefined}|Config]) ->
-    check_h_config(Config);
-check_h_config([{max_no_files,N}|Config]) when is_integer(N), N>0 ->
     check_h_config(Config);
 check_h_config([{max_no_bytes,infinity}|Config]) ->
     check_h_config(Config);
+check_h_config([{type,wrap}|Config]) ->
+    check_h_config(Config);
+check_h_config([{type,halt}|Config]) ->
+    check_h_config(Config);
+check_h_config([{file,File}|Config]) when is_list(File) ->
+    check_h_config(Config);
+check_h_config([{max_no_files,N}|Config]) when is_integer(N), N>0 ->
+    check_h_config(Config);
 check_h_config([{max_no_bytes,N}|Config]) when is_integer(N), N>0 ->
     check_h_config(Config);
-check_h_config([{type,Type}|Config]) when Type==wrap; Type==halt ->
-    check_h_config(Config);
 check_h_config([Other | _]) ->
-    {error,Other};
-check_h_config([]) ->
-    ok.
+    {error,Other}.
 
 merge_default_logopts(Name,HConfig) ->
     Type = maps:get(type,HConfig,wrap),
@@ -332,11 +334,11 @@ open_disk_log(Name,File,Type,MaxNoBytes,MaxNoFiles) ->
                     {format, external},
                     {notify, true},
                     {quiet,  true},
-                    {mode,   read_write}],            
+                    {mode,   read_write}],
             case disk_log:open(Opts) of
                 {ok,Name} ->
                     ok;
-                Error = {error,_Reason} ->            
+                Error = {error,_Reason} ->
                     Error
             end;
         Error ->

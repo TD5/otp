@@ -25,7 +25,7 @@
 
 -include_lib("syntax_tools/include/merl.hrl").
 
--export([all/0, suite/0,groups/0,init_per_suite/1, end_per_suite/1, 
+-export([all/0, suite/0,groups/0,init_per_suite/1, end_per_suite/1,
 	 init_per_group/2,end_per_group/2,
 	 misc/1,const_cond/1,basic_not/1,complex_not/1,nested_nots/1,
 	 semicolon/1,complex_semicolon/1,comma/1,
@@ -45,10 +45,10 @@
 
 suite() -> [{ct_hooks,[ts_install_cth]}].
 
-all() -> 
+all() ->
     slow_group() ++ [{group,p}].
 
-groups() -> 
+groups() ->
     [{p,[parallel],
       [misc,const_cond,basic_not,complex_not,nested_nots,
        semicolon,complex_semicolon,comma,or_guard,
@@ -155,9 +155,9 @@ misc_3(LenUp, LenDw) ->
 misc_4() when <<(is_atom((#{} #{ ok := ok })) orelse <<>>)/bytes>> >= ok ->
     ok.
 
-get_data({o,Active,Raw}, BytesToRead, Buffer) 
+get_data({o,Active,Raw}, BytesToRead, Buffer)
   when Raw =:= raw; Raw =:= 0 ->
-    if 
+    if
 	Active =/= false orelse BytesToRead =:= 0  ->
 	    {ok,Buffer,<<>>};
 	true ->
@@ -557,7 +557,7 @@ csemi4b(_, _, _, _) -> error.
 csemi4c(A, X, B, Y) when (tuple_size(A) > 1) or (X > 1);
 			 (Y > 1) or (tuple_size(B) > 1) -> ok;
 csemi4c(_, _, _, _) -> error.
-    
+
 csemi4d(A, X, B, Y) when (X > 1) or (tuple_size(A) > 1);
 			 (Y > 1) or (tuple_size(B) > 1) -> ok;
 csemi4d(_, _, _, _) -> error.
@@ -584,7 +584,7 @@ csemi4_orelse_b(_, _, _, _) -> error.
 csemi4_orelse_c(A, X, B, Y) when (tuple_size(A) > 1) orelse (X > 1);
                            (Y > 1) orelse (tuple_size(B) > 1) -> ok;
 csemi4_orelse_c(_, _, _, _) -> error.
-    
+
 csemi4_orelse_d(A, X, B, Y) when (X > 1) or (tuple_size(A) > 1);
 			 (Y > 1) or (tuple_size(B) > 1) -> ok;
 csemi4_orelse_d(_, _, _, _) -> error.
@@ -594,7 +594,7 @@ csemi5(_, _) -> error.
 
 csemi6(A, B) when hd([tuple_size(A)]) > 1; abs(B) > 2 -> ok;
 csemi6(_, _) -> error.
-    
+
 csemi7(A, B, C) when A#{a:=B} > #{a=>1}; abs(C) > 2 -> ok;
 csemi7(_, _, _) -> error.
 
@@ -675,7 +675,7 @@ comma(Config) when is_list(Config) ->
 			     end),
 		  exit
 	  end, exit),
-    
+
     ok.
 
 or_guard(Config) when is_list(Config) ->
@@ -801,7 +801,7 @@ complex_or_guards(Config) when is_list(Config) ->
     ok = complex_or_2({true,{a,b,c,d}}),
 
     error = complex_or_2({blurf,{a,b,c}}),
-    
+
     error = complex_or_2({true}),
     error = complex_or_2({true,no_tuple}),
     error = complex_or_2({true,[]}),
@@ -975,7 +975,7 @@ and_guard(Config) when is_list(Config) ->
 		end, exit),
 
     ok = relprod({'Set',a,b}, {'Set',a,b}),
-    
+
     ok = and_same_var(42),
     {'EXIT',{if_clause,_}} = (catch and_same_var(x)),
     ok.
@@ -1353,7 +1353,7 @@ rb(_, _, _) -> false.
 -define(T(Op,A,B),
 	ok = if A Op B -> ok; true -> error end,
 	ok = if not (A Op B) -> error; true -> ok end,
-	(fun(X, Y, True, False) -> 
+	(fun(X, Y, True, False) ->
 		 ok = if X Op Y -> ok; true -> error end,
 		 ok = if False; X Op Y; False -> ok; true -> error end,
 		 ok = if X Op Y, True -> ok; true -> error end,
@@ -2053,7 +2053,7 @@ eval_combination_expr({Op1,Lit1,Op2,Lit2}, Val) ->
 literal_type_tests(Config) when is_list(Config) ->
     %% Generate an Erlang module with all different type of type tests.
     Tests = make_test([{T,L} || T <- type_tests(), L <- literals()] ++
-			    [{is_function,L1,L2} || 
+			    [{is_function,L1,L2} ||
 				L1 <- literals(), L2 <- literals()]),
     Mod = literal_test,
     Anno = erl_anno:new(0),
@@ -2072,7 +2072,7 @@ literal_type_tests(Config) when is_list(Config) ->
     Mod:test(),
     true = code:delete(Mod),
     code:purge(Mod),
-			       
+
     %% Test compile:form/2.  Turn off all optimizations.
     {ok,Mod,Code2} = compile:forms(Form, [binary,report,time,
 						no_copt,no_postopt]),
@@ -2092,20 +2092,28 @@ make_test([]) -> [].
 test(T, L) ->
     S0 = io_lib:format("begin io:format(\"~~p~n\", [{~p,~p}]), if ~w(~w) -> true; true -> false end end. ", [T,L,T,L]),
     S = lists:flatten(S0),
-    {ok,Toks,_Line} = erl_scan:string(S),
-    {ok,E} = erl_parse:parse_exprs(Toks),
-    {value,Val,_Bs} = erl_eval:exprs(E, []),
-    Anno = erl_anno:new(0),
-    {match,Anno,{atom,Anno,Val},hd(E)}.
+    try
+        {ok,Toks,_Line} = erl_scan:string(S),
+        {ok,E} = erl_parse:parse_exprs(Toks),
+        {value,Val,_Bs} = erl_eval:exprs(E, []),
+        Anno = erl_anno:new(0),
+        {match,Anno,{atom,Anno,Val},hd(E)}
+    catch C:R:ST ->
+            ct:fail("Test crashed for expr string:~n  ~ts~n  ~w~n~ts~n", [S,S0,erl_error:format_exception(C,R,ST)])
+    end.
 
 test(T, L1, L2) ->
     S0 = io_lib:format("begin io:format(\"~~p~n\", [{~p,~p,~p}]), if ~w(~w, ~w) -> true; true -> false end end. ", [T,L1,L2,T,L1,L2]),
     S = lists:flatten(S0),
-    {ok,Toks,_Line} = erl_scan:string(S),
-    {ok,E} = erl_parse:parse_exprs(Toks),
-    {value,Val,_Bs} = erl_eval:exprs(E, []),
-    Anno = erl_anno:new(0),
-    {match,Anno,{atom,Anno,Val},hd(E)}.
+    try
+        {ok,Toks,_Line} = erl_scan:string(S),
+        {ok,E} = erl_parse:parse_exprs(Toks),
+        {value,Val,_Bs} = erl_eval:exprs(E, []),
+        Anno = erl_anno:new(0),
+        {match,Anno,{atom,Anno,Val},hd(E)}
+    catch C:R:ST ->
+            ct:fail("Test crashed for expr string:~n  ~ts~n  ~w~n~ts~n", [S,S0,erl_error:format_exception(C,R,ST)])
+    end.
 
 smoke_disasm(Config, Mod, Bin) ->
     Priv = proplists:get_value(priv_dir, Config),
@@ -2220,7 +2228,7 @@ basic_rt(_) ->
 traverse_dcd(Config) when is_list(Config) ->
     L0 = [{log_header,dcd_log,"1.0",a,b,c},{log_header,dcd_log,"2.0",a,b,c},
 	  {log_header,dcd_log,"0.0",a,b,c},blurf],
-    {cont,[{log_header,dcd_log,"0.0",a,b,c},blurf],log,funny} = 
+    {cont,[{log_header,dcd_log,"0.0",a,b,c},blurf],log,funny} =
 	traverse_dcd({cont,L0}, log, funny),
     L1 = [{log_header,dcd_log,"1.0"}],
     {cont,L1,log,funny} = traverse_dcd({cont,L1}, log, funny),
@@ -2261,8 +2269,8 @@ check_qlc_hrl(Config) when is_list(Config) ->
 cqlc(M, F, As, St) ->
     Arity = length(As),
     case As of
-        [{lc,_L,_E,_Qs}|_] when M =:= qlc, F =:= q, 
-                                Arity < 3, 
+        [{lc,_L,_E,_Qs}|_] when M =:= qlc, F =:= q,
+                                Arity < 3,
                                 not (((element(1, St) =:= r1) orelse fail) and (tuple_size(St) =:= 3) and element(2, St)) ->
             foo;
         _ ->
@@ -2312,7 +2320,7 @@ t_tuple_size(Config) when is_list(Config) ->
     good_ip({1,2,3,4,5,6,7,8}),
     error = validate_ip({42,11}),
     error = validate_ip(atom),
-    
+
     ok.
 
 do_tuple_size(T) when tuple_size(T) =:= 4 ->

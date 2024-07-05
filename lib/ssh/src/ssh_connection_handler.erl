@@ -171,7 +171,7 @@ disconnect(Code, DetailedText, Module, Line) ->
 %%--------------------------------------------------------------------
 %%% Open a channel in the connection to the peer, that is, do the ssh
 %%% signalling with the peer.
--spec open_channel(connection_ref(), 
+-spec open_channel(connection_ref(),
 		   string(),
 		   iodata(),
 		   pos_integer() | undefined,
@@ -181,7 +181,7 @@ disconnect(Code, DetailedText, Module, Line) ->
 
 %% . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
 open_channel(ConnectionHandler,
-	     ChannelType, ChannelSpecificData, InitialWindowSize, MaxPacketSize, 
+	     ChannelType, ChannelSpecificData, InitialWindowSize, MaxPacketSize,
 	     Timeout) ->
     call(ConnectionHandler,
 	 {open,
@@ -522,7 +522,7 @@ handshake(Msg, #data{starter = User}) ->
 
 -type renegotiate_flag() :: init | renegotiate.
 
--type state_name() :: 
+-type state_name() ::
         {hello,                     role()                    }
       | {kexinit,                   role(), renegotiate_flag()}
       | {key_exchange,              role(), renegotiate_flag()}
@@ -609,7 +609,7 @@ handle_event(internal, socket_ready, {hello,_}=StateName, #data{ssh_params = Ssh
 	    {keep_state, D#data{inet_initial_recbuf_size=Size}, [{state_timeout,Time,no_hello_received}] };
 
 	Other ->
-            ?call_disconnectfun_and_log_cond("Option return", 
+            ?call_disconnectfun_and_log_cond("Option return",
                                              io_lib:format("Unexpected getopts return:~n  ~p",[Other]),
                                              StateName, D),
 	    {stop, {shutdown,{unexpected_getopts_return, Other}}}
@@ -751,7 +751,7 @@ handle_event(internal, {conn_msg,Msg}, StateName, #data{connection_state = Conne
             {stop_and_reply, {shutdown,normal}, Repls, D};
 
 	{Replies, Connection} when is_list(Replies) ->
-	    {Repls, D} = 
+	    {Repls, D} =
 		case StateName of
 		    {connected,_} ->
 			send_replies(Replies, D0#data{connection_state=Connection});
@@ -1925,7 +1925,7 @@ do_log(F, Reason0, #data{ssh_params=S}) ->
         _ ->
             error_logger:F("Erlang SSH ~s ~s.~n"
                            "~s~n",
-                           [ssh_log_version(), crypto_log_info(), 
+                           [ssh_log_version(), crypto_log_info(),
                             Reason])
     end.
 

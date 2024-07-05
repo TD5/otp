@@ -444,7 +444,7 @@ substitute_negations_1([{Key, Key1} | As], P) ->
 		    %% other tuple is interpreted as `false', as done in
 		    %% `get_bool'.
 		    property(Key1, true)
-	    end;		    
+	    end;
        true ->
 	    substitute_negations_1(As, P)
     end;

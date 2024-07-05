@@ -773,8 +773,7 @@ xml_namespace_indented() ->
 
 output_element_to_str(E) ->
     Output = xmerl:export([E], xmerl_xml_indent),
-    [Str] = io_lib:format("~s", [lists:flatten(Output)]),
-    Str.
+    io_lib:format("~s", [lists:flatten(Output)]).
 
 %%======================================================================
 %% New formatter tests

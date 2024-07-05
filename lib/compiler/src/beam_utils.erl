@@ -127,7 +127,15 @@ label(Old, D, Fb) ->
         _ -> Fb(Old)
     end.
 
+split_even([S1,D1,S2,D2,S3,D3,S4,D4], Ss, Ds) ->
+    {lists:reverse(Ss, [S1,S2,S3,S4]), lists:reverse(Ds, [D1,D2,D3,D4])};
+split_even([S1,D1,S2,D2,S3,D3,S4,D4|Rs], Ss, Ds) ->
+    split_even(Rs, [S4,S3,S2,S1|Ss], [D4,D3,D2,D1|Ds]);
+split_even([S1,D1,S2,D2,S3,D3], Ss, Ds) ->
+    {lists:reverse(Ss, [S1,S2,S3]), lists:reverse(Ds, [D1,D2,D3])};
+split_even([S1,D1,S2,D2], Ss, Ds) ->
+    {lists:reverse(Ss, [S1,S2]), lists:reverse(Ds, [D1,D2])};
+split_even([S1,D1], Ss, Ds) ->
+    {lists:reverse(Ss, [S1]), lists:reverse(Ds, [D1])};
 split_even([], Ss, Ds) ->
-    {reverse(Ss),reverse(Ds)};
-split_even([S,D|Rs], Ss, Ds) ->
-    split_even(Rs, [S|Ss], [D|Ds]).
+    {reverse(Ss),reverse(Ds)}.

@@ -30,16 +30,16 @@
 -export([delete_subs/2]).
 -export([expand_groups/3, search_and_override/3]).
 
--define(val(Key, List), proplists:get_value(Key, List)). 
+-define(val(Key, List), proplists:get_value(Key, List)).
 -define(val(Key, List, Def), proplists:get_value(Key, List, Def)).
 -define(rev(L), lists:reverse(L)).
 
-find_groups(Mod, GrNames, TCs, GroupDefs) when is_atom(GrNames) ; 
+find_groups(Mod, GrNames, TCs, GroupDefs) when is_atom(GrNames) ;
 					       (length(GrNames) == 1) ->
     find_groups1(Mod, GrNames, TCs, GroupDefs);
 
 find_groups(Mod, Groups, TCs, GroupDefs) when Groups /= [] ->
-    lists:append([find_groups1(Mod, [GrNames], TCs, GroupDefs) || 
+    lists:append([find_groups1(Mod, [GrNames], TCs, GroupDefs) ||
 		     GrNames <- Groups]);
 
 find_groups(_Mod, [], _TCs, _GroupDefs) ->
@@ -60,15 +60,15 @@ find_groups1(Mod, GrNames, TCs, GroupDefs) ->
 	end,
     TCs1 = if (is_atom(TCs) and (TCs /= all)) or is_tuple(TCs) ->
 		   [TCs];
-	      true -> 
-		   TCs 
+	      true ->
+		   TCs
 	   end,
     Found = find(Mod, GrNames1, TCs1, GroupDefs, [],
 		 GroupDefs, FindAll),
     [Conf || Conf <- Found, Conf /= 'NOMATCH'].
 
 %% Locate all groups
-find(Mod, all, all, [{Name,Props,Tests} | Gs], Known, Defs, _) 
+find(Mod, all, all, [{Name,Props,Tests} | Gs], Known, Defs, _)
   when is_atom(Name), is_list(Props), is_list(Tests) ->
     cyclic_test(Mod, Name, Known),
     trim(make_conf(Mod, Name, Props,
@@ -77,7 +77,7 @@ find(Mod, all, all, [{Name,Props,Tests} | Gs], Known, Defs, _)
 	find(Mod, all, all, Gs, Known, Defs, true);
 
 %% Locate particular TCs in all groups
-find(Mod, all, TCs, [{Name,Props,Tests} | Gs], Known, Defs, _) 
+find(Mod, all, TCs, [{Name,Props,Tests} | Gs], Known, Defs, _)
   when is_atom(Name), is_list(Props), is_list(Tests) ->
     cyclic_test(Mod, Name, Known),
     Tests1 = modify_tc_list(Tests, TCs, []),
@@ -148,9 +148,9 @@ find(Mod, GrNames, TCs, [{Name,Props,Tests} | Gs], Known,
 		   find(Mod, GrNames, TCs, Tests1, [Name|Known],
 			Defs, FindAll))) ++
 	find(Mod, GrNames, TCs, Gs, Known, Defs, FindAll);
-  
+
 %% A nested group defined on top level found
-find(Mod, GrNames, TCs, [{group,Name1} | Gs], Known, Defs, FindAll) 
+find(Mod, GrNames, TCs, [{group,Name1} | Gs], Known, Defs, FindAll)
   when is_atom(Name1) ->
     find(Mod, GrNames, TCs, [expand(Mod, Name1, Defs) | Gs], Known,
 	 Defs, FindAll);
@@ -237,7 +237,7 @@ find(Mod, _GrNames, _TCs, [BadTerm | _Gs], Known, _Defs, _FindAll) ->
 	       true ->
 		    "group "++atom_to_list(lists:last(Known))++
 			" in "++atom_to_list(Mod)++":groups/0"
-	    end,		 
+	    end,
     Term = io_lib:format("~tp", [BadTerm]),
     E = "Bad term "++lists:flatten(Term)++" in "++Where,
     throw({error,list_to_atom(E)});
@@ -282,9 +282,9 @@ trim(Tests) when is_list(Tests) ->
 		      end, Tests),
     case lists:keymember(conf, 1, Tests1) of
 	true ->					% at least one successful group
-	    lists:flatmap(fun({conf,Test}) -> [Test];
-			     ('NOMATCH') -> [];	% ignore any 'NOMATCH'
-			     (Test) -> [Test]
+	    lists:filtermap(fun({conf,Test}) -> {true,Test};
+			     ('NOMATCH') -> false;	% ignore any 'NOMATCH'
+			     (_Test) -> true
 			  end, Tests1);
 	false ->
 	    case lists:member('NOMATCH', Tests1) of
@@ -317,7 +317,7 @@ modify_tc_list(GrSpecTs, all, []) ->
 
 modify_tc_list(GrSpecTs, TSCs, []) ->
     modify_tc_list1(GrSpecTs, TSCs);
-    
+
 modify_tc_list(GrSpecTs, _TSCs, _) ->
     [Test || Test <- GrSpecTs, not is_atom(Test), element(1,Test)=/=testcase].
 
@@ -430,7 +430,7 @@ cyclic_test(Mod, Name, Names) ->
 
 expand(Mod, Name, Defs) ->
     case lists:keysearch(Name, 1, Defs) of
-	{value,Def} -> 
+	{value,Def} ->
 	    Def;
 	false ->
 	    E = "Invalid group "++atom_to_list(Name)++
@@ -455,7 +455,7 @@ make_all_conf(Mod, Props, TestSpec) ->
 		[] ->
 		    exit({invalid_group_spec,Mod});
 		_ConfTests ->
-		    make_conf(Mod, all, Props, TestSpec) 
+		    make_conf(Mod, all, Props, TestSpec)
 	    end
     end.
 
@@ -523,22 +523,22 @@ expand_groups({group,Name,ORProps,SubORSpec}, ConfTests, Mod) ->
 					 [{suite,SuiteName}|ORProps]
 				 end,
 			[{conf,[{name,Name}|Props1],Init,Ts,End}];
-		    _    -> 
+		    _    ->
 			[]
 		end
-	end,					 
+	end,
     case lists:flatmap(FindConf, ConfTests) of
 	[] ->
 	    throw({error,invalid_ref_msg(Name, Mod)});
-	Matching when SubORSpec == [] -> 
+	Matching when SubORSpec == [] ->
 	    Matching;
-	Matching -> 
+	Matching ->
 	    override_props(Matching, SubORSpec, Name,Mod)
     end;
 expand_groups(SeqOrTC, _ConfTests, _Mod) ->
     SeqOrTC.
 
-%% search deep for the matching conf test and modify it and any 
+%% search deep for the matching conf test and modify it and any
 %% sub tests according to the override specification
 search_and_override([Conf = {conf,Props,Init,Tests,End}], ORSpec, Mod) ->
     InsProps = fun(GrName, undefined, Ps) ->
@@ -575,7 +575,7 @@ override_props([], SubORSpec, Name,Mod) ->
     Es = [invalid_ref_msg(Name, element(1,Spec), Mod) || Spec <- SubORSpec],
     throw({error,Es}).
 
-override_sub_props([], New, ORSpec, _) ->    
+override_sub_props([], New, ORSpec, _) ->
     {?rev(New),ORSpec};
 override_sub_props([T = {conf,Props,Init,Tests,End} | Ts],
 		   New, ORSpec, Mod) ->

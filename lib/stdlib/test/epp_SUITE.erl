@@ -288,7 +288,7 @@ check_errors([{error, Info} | Rest]) ->
 	{L,C} when is_integer(L), is_integer(C), C >= 1 -> ok
     end,
     Str = lists:flatten(Mod:format_error(Desc)),
-    [Str] = io_lib:format("~s", [Str]),
+    Str = lists:flatten(io_lib:format("~s", [Str])),
     check_errors(Rest);
 check_errors([_ | Rest]) ->
     check_errors(Rest).
@@ -405,7 +405,7 @@ otp_5362(Config) when is_list(Config) ->
     ok = file:write_file(File_Incl3, Incl3),
 
     {ok, incl_5362, InclWarnings} = compile:file(File_Incl, Copts),
-    true = message_compare(
+    message_compare(
                    [{File_Incl3,[{{1,1},erl_lint,{unused_function,{glurk,1}}},
                                  {{1,7},erl_lint,{unused_var,'Foo'}}]},
                     {File_Incl,[{{7,15},erl_lint,{unused_function,{hi,1}}},
@@ -439,7 +439,7 @@ otp_5362(Config) when is_list(Config) ->
     ok = file:write_file(File_Back_hrl, list_to_binary(Back_hrl)),
 
     {ok, back_5362, BackWarnings} = compile:file(File_Back, Copts),
-    true = message_compare(
+    message_compare(
                    [{File_Back,[{{4,19},erl_lint,{unused_var,'V'}}]}],
                    BackWarnings),
     file:delete(File_Back),
@@ -467,7 +467,7 @@ otp_5362(Config) when is_list(Config) ->
 
     {ok, change_5362, ChangeWarnings} =
         compile:file(File_Change, Copts),
-    true = message_compare(
+    message_compare(
                    [{File_Change,[{{1002,21},erl_lint,{unused_var,'B'}}]},
                     {"other.file",[{{105,21},erl_lint,{unused_var,'A'}}]}],
                    lists:usort(ChangeWarnings)),
@@ -497,7 +497,7 @@ otp_5362(Config) when is_list(Config) ->
             ">>,
     ok = file:write_file(File_Blank, Blank),
     {ok, blank_5362, BlankWarnings} = compile:file(File_Blank, Copts),
-    true = message_compare(
+    message_compare(
              [{File_Blank,[{{18,3},erl_lint,{unused_var,'Q'}},
                            {{20,18},erl_lint,{unused_var,'A'}},
                            {{44,18},erl_lint,{unused_var,'B'}},
@@ -805,7 +805,7 @@ otp_8130(Config) when is_list(Config) ->
           {otp_8130_c6,
            <<"-define(M3(), A).\n"
              "t() -> A = 1, ?3.14159}.\n">>,
-           {errors,[{{2,16},epp,{call,[$?,"3.14159"]}}],[]}},
+           {errors,[{{2,16},epp,{call,"?3.14159"}}],[]}},
 
           {otp_8130_c7,
            <<"\nt() -> ?A.\n">>,
@@ -904,7 +904,7 @@ otp_8130(Config) when is_list(Config) ->
                     {{3,19},epp,{undefined,'A',none}}],[]}}
 
           ],
-    [] = compile(Config, Cs),
+    ?assertEqual([], compile(Config, Cs)),
 
     Cks = [{otp_check_1,
             <<"\n-include_lib(\"epp_test.erl\").\n">>,
@@ -1668,11 +1668,11 @@ otp_14285(Config) when is_list(Config) ->
               h() ->
                   ?'a\x{400}no'().
               "/utf8>>,
-           {errors,[{{6,20},epp,{call,[63,[91,["97",44,"1024",44,"98"],93]]}},
+           {errors,[{{6,20},epp,{call,[63,[91,"97",",1024",44,57,56],93]}},
                     {{8,20},epp,{undefined,'a\x{400}no',0}}],
             []}}
          ],
-    [] = compile(Config, Cs),
+    ?assertEqual([], compile(Config, Cs)),
     ok.
 
 %% OTP-11728. Bugfix circular macro.
@@ -2142,13 +2142,12 @@ eval_tests(Config, Fun, Tests) ->
                  Test
          end || Test <- Tests],
     F = fun({N,P,Opts,E}, BadL) ->
-                %% io:format("Testing ~p~n", [P]),
                 Return = Fun(Config, P, Opts),
                 %% The result should be the same when enabling maybe ... end
                 %% (making 'else' a keyword instead of an atom).
                 Return = Fun(Config, P, [{feature,maybe_expr,enable}|Opts]),
-                case message_compare(E, Return) of
-                    true ->
+                case Return of
+                    E ->
                         case E of
                             {errors, Errors} ->
                                 call_format_error(Errors);
@@ -2156,7 +2155,7 @@ eval_tests(Config, Fun, Tests) ->
                                 ok
                         end,
                         BadL;
-                    false ->
+                    _ ->
                         io:format("~nTest ~p failed. Expected~n  ~p~n"
                                   "but got~n  ~p~n", [N, E, Return]),
 			fail()
@@ -2267,5 +2266,5 @@ run_test(Config, Test0, Opts0) ->
 fail() ->
     ct:fail(failed).
 
-message_compare(T, T) ->
-    T =:= T.
+message_compare(A, B) ->
+    ?assertEqual(A,B).

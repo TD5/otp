@@ -172,7 +172,7 @@ true
 -doc(#{title => <<"Original API">>}).
 -spec to_list(Q :: queue(Item)) -> list(Item).
 to_list({In,Out}) when is_list(In), is_list(Out) ->
-    Out++lists:reverse(In, []);
+    Out++lists:reverse(In);
 to_list(Q) ->
     erlang:error(badarg, [Q]).
 
@@ -286,7 +286,7 @@ out({[],[]}=Q) ->
 out({[V],[]}) ->
     {{value,V},{[],[]}};
 out({[Y|In],[]}) ->
-    [V|Out] = lists:reverse(In, []),
+    [V|Out] = lists:reverse(In),
     {{value,V},{[Y],Out}};
 out({In,[V]}) when is_list(In) ->
     {{value,V},r2f(In)};
@@ -323,7 +323,7 @@ out_r({[],[]}=Q) ->
 out_r({[],[V]}) ->
     {{value,V},{[],[]}};
 out_r({[],[Y|Out]}) ->
-    [V|In] = lists:reverse(Out, []),
+    [V|In] = lists:reverse(Out),
     {{value,V},{In,[Y]}};
 out_r({[V],Out}) when is_list(Out) ->
     {{value,V},f2r(Out)};
@@ -487,7 +487,7 @@ drop({[],[]}=Q) ->
 drop({[_],[]}) ->
     {[],[]};
 drop({[Y|R],[]}) ->
-    [_|F] = lists:reverse(R, []),
+    [_|F] = lists:reverse(R),
     {[Y],F};
 drop({R, [_]}) when is_list(R) ->
     r2f(R);
@@ -522,7 +522,7 @@ drop_r({[],[]}=Q) ->
 drop_r({[],[_]}) ->
     {[],[]};
 drop_r({[],[Y|F]}) ->
-    [_|R] = lists:reverse(F, []),
+    [_|R] = lists:reverse(F),
     {R,[Y]};
 drop_r({[_], F}) when is_list(F) ->
     f2r(F);
@@ -1260,4 +1260,4 @@ f2r([X,Y]) ->
     {[Y],[X]};
 f2r(List) ->
     {FF,RR} = lists:split(length(List) div 2, List),
-    {lists:reverse(RR, []),FF}.
+    {lists:reverse(RR),FF}.

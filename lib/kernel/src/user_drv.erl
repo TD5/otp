@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 1996-2024. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 -module(user_drv).
@@ -682,15 +682,15 @@ switch_loop(timeout, _, {_Cont, State}) ->
 switch_loop(info, _Unknown, _State) ->
     {keep_state_and_data, postpone}.
 
-switch_cmd([{atom,_,Key},{Type,_,Value}], Gr)
-  when Type =:= atom; Type =:= integer ->
-    switch_cmd({Key, Value}, Gr);
 switch_cmd([{atom,_,Key},{atom,_,V1},{atom,_,V2}], Gr) ->
     switch_cmd({Key, V1, V2}, Gr);
 switch_cmd([{atom,_,Key}], Gr) ->
     switch_cmd(Key, Gr);
 switch_cmd([{'?',_}], Gr) ->
     switch_cmd(h, Gr);
+switch_cmd([{atom,_,Key},{Type,_,Value}], Gr)
+  when Type =:= atom; Type =:= integer ->
+    switch_cmd({Key, Value}, Gr);
 
 switch_cmd(Cmd, Gr) when Cmd =:= c; Cmd =:= i; Cmd =:= k ->
     switch_cmd({Cmd, gr_cur_index(Gr)}, Gr);

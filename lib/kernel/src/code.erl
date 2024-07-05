@@ -792,13 +792,13 @@ all_available([Path|Tail], Acc) ->
         _Error ->
             all_available(Tail, Acc)
     end;
-all_available([], AllModules) ->
+all_available([]=Nil, AllModules) ->
     AllLoaded = [{atom_to_list(M),Path,true} || {M,Path} <- all_loaded()],
     AllAvailable =
         maps:fold(
           fun(File, Path, Acc) ->
                   [{filename:rootname(File), filename:append(Path, File), false} | Acc]
-          end, [], AllModules),
+          end, Nil, AllModules),
     OrderFun = fun F({A,_,_},{B,_,_}) ->
                        F(A,B);
                    F(A,B) ->
@@ -1514,8 +1514,8 @@ prepare_loading_3(Prep) ->
 
 prepare_check_uniq([{M,_,_}|T], Ms) ->
     prepare_check_uniq(T, [M|Ms]);
-prepare_check_uniq([], Ms) ->
-    prepare_check_uniq_1(lists:sort(Ms), []).
+prepare_check_uniq([]=Nil, Ms) ->
+    prepare_check_uniq_1(lists:sort(Ms), Nil).
 
 prepare_check_uniq_1([M|[M|_]=Ms], Acc) ->
     prepare_check_uniq_1(Ms, [{M,duplicated}|Acc]);
@@ -1637,7 +1637,7 @@ call(Req) ->
 -spec start_link() -> {'ok', pid()}.
 start_link() ->
     do_start().
-    
+
 %%-----------------------------------------------------------------
 %% In the init phase, code must not use any modules not yet loaded,
 %% either pre_loaded (e.g. init) or first in the script (e.g.
@@ -1951,10 +1951,10 @@ clash() ->
 
 %% Internal for clash/0
 
-search([]) -> [];
+search([]=Nil) -> Nil;
 search([{Dir, File} | Tail]) ->
     case lists:keyfind(File, 2, Tail) of
-	false -> 
+	false ->
 	    search(Tail);
 	{Dir2, File} ->
 	    io:format("** ~ts hides ~ts~n",
@@ -1963,22 +1963,22 @@ search([{Dir, File} | Tail]) ->
 	    [clash | search(Tail)]
     end.
 
-build([]) -> [];
+build([]=Nil) -> Nil;
 build([Dir|Tail]) ->
     Files = filter(objfile_extension(), Dir,
 		   erl_prim_loader:list_dir(Dir)),
     [decorate(Files, Dir) | build(Tail)].
 
-decorate([], _) -> [];
+decorate([]=Nil, _) -> Nil;
 decorate([File|Tail], Dir) ->
     [{Dir, File} | decorate(Tail, Dir)].
 
 filter(_Ext, Dir, error) ->
     io:format("** Bad path can't read ~ts~n", [Dir]), [];
-filter(Ext, _, {ok,Files}) -> 
+filter(Ext, _, {ok,Files}) ->
     filter2(Ext, length(Ext), Files).
 
-filter2(_Ext, _Extlen, []) -> [];
+filter2(_Ext, _Extlen, []=Nil) -> Nil;
 filter2(Ext, Extlen, [File|Tail]) ->
     case has_ext(Ext, Extlen, File) of
 	true -> [File | filter2(Ext, Extlen, Tail)];
@@ -2119,8 +2119,8 @@ modified_modules() ->
 path_files() ->
     path_files(code:get_path()).
 
-path_files([]) ->
-    [];
+path_files([]=Nil) ->
+    Nil;
 path_files([Path|Tail]) ->
     case erl_prim_loader:list_dir(Path) of
         {ok, Files} ->

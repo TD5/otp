@@ -718,7 +718,7 @@ The options in `OptionList` modify the defaults as follows:
 -spec create(file:filename_all(), filelist(), [create_opt()]) ->
                     ok | {error, term()} | {error, {string(), term()}}.
 create(Name, FileList, Options) when is_list(Name); is_binary(Name) ->
-    Mode = lists:filter(fun(X) -> (X=:=compressed) or (X=:=cooked)
+    Mode = lists:filter(fun(X) -> (X=:=compressed) orelse (X=:=cooked)
                         end, Options),
     case open(Name, [write|Mode]) of
         {ok, TarFile} ->
@@ -1187,7 +1187,7 @@ write_octal(Block, Pos, Size, X) ->
 write_string(Block, Pos, Size, Str, PaxAttr, Pax0) ->
     NotAscii = not is_ascii(Str),
     if PaxAttr =/= ?PAX_NONE andalso (length(Str) > Size orelse NotAscii) ->
-            Pax1 = maps:put(PaxAttr, Str, Pax0),
+            Pax1 = Pax0#{PaxAttr => Str},
             {Block, Pax1};
        true ->
             Formatted = format_string(Str, Size),
@@ -1199,7 +1199,7 @@ write_numeric(Block, Pos, Size, X, PaxAttr, Pax0) ->
     if byte_size(Octal) < Size ->
             {write_to_block(Block, [Octal, 0], Pos), Pax0};
        PaxAttr =/= ?PAX_NONE ->
-            Pax1 = maps:put(PaxAttr, X, Pax0),
+            Pax1 = Pax0#{PaxAttr => X},
             {Block, Pax1};
        true ->
             throw({error, {write_failed, numeric_field_too_long}})
@@ -1769,13 +1769,11 @@ foldl_read1(Fun, Accu0, Reader0, Opts, ExtraHeaders) ->
                     foldl_read1(Fun, Accu0, Reader3, Opts, ExtraHeaders3);
                 ?TYPE_GNU_LONGNAME ->
                     {RealName, Reader3} = get_real_name(Reader2),
-                    ExtraHeaders2 = maps:put(?PAX_PATH,
-                                             parse_string(RealName), ExtraHeaders),
+                    ExtraHeaders2 = ExtraHeaders#{?PAX_PATH => parse_string(RealName)},
                     foldl_read1(Fun, Accu0, Reader3, Opts, ExtraHeaders2);
                 ?TYPE_GNU_LONGLINK ->
                     {RealName, Reader3} = get_real_name(Reader2),
-                    ExtraHeaders2 = maps:put(?PAX_LINKPATH,
-                                             parse_string(RealName), ExtraHeaders),
+                    ExtraHeaders2 = ExtraHeaders#{?PAX_LINKPATH => parse_string(RealName)},
                     foldl_read1(Fun, Accu0, Reader3, Opts, ExtraHeaders2);
                 _ ->
                     Header1 = merge_pax(Header, ExtraHeaders),
@@ -1868,7 +1866,7 @@ do_parse_pax(Reader, <<>>, Headers) ->
     {Headers, Reader};
 do_parse_pax(Reader, Bin, Headers) ->
     {Key, Value, Residual} = parse_pax_record(Bin),
-    NewHeaders = maps:put(Key, Value, Headers),
+    NewHeaders = Headers#{Key => Value},
     do_parse_pax(Reader, Residual, NewHeaders).
 
 %% Parse an extended attribute

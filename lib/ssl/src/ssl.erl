@@ -2391,12 +2391,12 @@ handshake_cancel(Socket) ->
       SslSocket :: sslsocket(),
       Reason :: any().
 %%--------------------------------------------------------------------
-close(#sslsocket{pid = [Pid|_]}) when is_pid(Pid) ->
-    ssl_gen_statem:close(Pid, {close, ?DEFAULT_TIMEOUT});
 close(#sslsocket{pid = {dtls, #config{dtls_handler = {_, _}}}} = DTLSListen) ->
     dtls_socket:close_listen(DTLSListen, ?DEFAULT_TIMEOUT);
 close(#sslsocket{pid = {ListenSocket, #config{transport_info={Transport,_,_,_,_}}}}) ->
-    Transport:close(ListenSocket).
+    Transport:close(ListenSocket);
+close(#sslsocket{pid = [Pid|_]}) when is_pid(Pid) ->
+    ssl_gen_statem:close(Pid, {close, ?DEFAULT_TIMEOUT}).
 
 %%--------------------------------------------------------------------
 -doc """
@@ -2450,17 +2450,17 @@ A notable return value is `{error, closed}` indicating that the socket is
 closed.
 """.
 %%--------------------------------------------------------------------
-send(#sslsocket{pid = [Pid]}, Data) when is_pid(Pid) ->
-    ssl_gen_statem:send(Pid, Data);
-send(#sslsocket{pid = [_, Pid]}, Data) when is_pid(Pid) ->
-    tls_sender:send_data(Pid,  erlang:iolist_to_iovec(Data));
 send(#sslsocket{pid = {_, #config{transport_info={_, udp, _, _}}}}, _) ->
     {error,enotconn}; %% Emulate connection behaviour
 send(#sslsocket{pid = {dtls,_}}, _) ->
     {error,enotconn};  %% Emulate connection behaviour
 send(#sslsocket{pid = {ListenSocket, #config{transport_info = Info}}}, Data) ->
     Transport = element(1, Info),
-    tls_socket:send(Transport, ListenSocket, Data). %% {error,enotconn}
+    tls_socket:send(Transport, ListenSocket, Data); %% {error,enotconn}
+send(#sslsocket{pid = [Pid]}, Data) when is_pid(Pid) ->
+    ssl_gen_statem:send(Pid, Data);
+send(#sslsocket{pid = [_, Pid]}, Data) when is_pid(Pid) ->
+    tls_sender:send_data(Pid,  erlang:iolist_to_iovec(Data)).
 
 %%--------------------------------------------------------------------
 -doc(#{title => <<"Client and Server API">>,
@@ -2522,9 +2522,6 @@ messages from the socket.
 %% Description: Changes process that receives the messages when active = true
 %% or once.
 %%--------------------------------------------------------------------
-controlling_process(#sslsocket{pid = [Pid|_]}, NewOwner)
-  when is_pid(Pid), is_pid(NewOwner) ->
-    ssl_gen_statem:new_user(Pid, NewOwner);
 controlling_process(#sslsocket{pid = {dtls, _}}, NewOwner)
   when is_pid(NewOwner) ->
     ok; %% Meaningless but let it be allowed to conform with TLS 
@@ -2533,7 +2530,10 @@ controlling_process(#sslsocket{pid = {Listen,
 		    NewOwner)
   when is_pid(NewOwner) ->
     %% Meaningless but let it be allowed to conform with normal sockets
-    Transport:controlling_process(Listen, NewOwner).
+    Transport:controlling_process(Listen, NewOwner);
+controlling_process(#sslsocket{pid = [Pid|_]}, NewOwner)
+  when is_pid(Pid), is_pid(NewOwner) ->
+    ssl_gen_statem:new_user(Pid, NewOwner).
 
 %%--------------------------------------------------------------------
 -doc(#{title => <<"Utility Functions">>}).
@@ -2612,16 +2612,16 @@ connection_information(#sslsocket{pid = [Pid|_]}, Items)
 %%
 %% Description: same as inet:peername/1.
 %%--------------------------------------------------------------------
-peername(#sslsocket{pid = [Pid|_], fd = {Transport, Socket,_}}) when is_pid(Pid)->
-    dtls_socket:peername(Transport, Socket);
-peername(#sslsocket{pid = [Pid|_], fd = {Transport, Socket,_,_}}) when is_pid(Pid)->
-    tls_socket:peername(Transport, Socket);
 peername(#sslsocket{pid = {dtls, #config{dtls_handler = {_Pid,_}}}}) ->
     dtls_socket:peername(dtls, undefined);
 peername(#sslsocket{pid = {ListenSocket,  #config{transport_info = {Transport,_,_,_,_}}}}) ->
     tls_socket:peername(Transport, ListenSocket); %% Will return {error, enotconn}
 peername(#sslsocket{pid = {dtls,_}}) ->
-    {error,enotconn}.
+    {error,enotconn};
+peername(#sslsocket{pid = [Pid|_], fd = {Transport, Socket,_}}) when is_pid(Pid)->
+    dtls_socket:peername(Transport, Socket);
+peername(#sslsocket{pid = [Pid|_], fd = {Transport, Socket,_,_}}) when is_pid(Pid)->
+    tls_socket:peername(Transport, Socket).
 
 %%--------------------------------------------------------------------
 -doc(#{title => <<"Utility Functions">>}).
@@ -5039,4 +5039,3 @@ format_ocsp_params(Map) ->
     Stapling = maps:get(stapling, Map, '?'),
     Nonce = maps:get(ocsp_nonce, Map, '?'),
     io_lib:format("Stapling = ~W Nonce = ~W", [Stapling, 5, Nonce, 5]).
-

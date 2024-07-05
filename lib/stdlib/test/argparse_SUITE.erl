@@ -1045,7 +1045,7 @@ validator_exception_format(Config) when is_list(Config) ->
             ?assertEqual("command specification is invalid", unicode:characters_to_list(G)),
             ?assertEqual("command \"" ++ prog() ++ " one two\": invalid field 'commands', reason: expected command()",
                 unicode:characters_to_list(RR1)),
-            ?assertEqual(["atom"], Cmd)
+            ?assertEqual("atom", Cmd)
     end,
     %% check argument
     try
@@ -1058,7 +1058,7 @@ validator_exception_format(Config) when is_list(Config) ->
             ?assertEqual("command \"" ++ prog() ++
                 "\", argument '', invalid field 'name': argument must be a map containing 'name' field",
                 unicode:characters_to_list(RR2)),
-            ?assertEqual(["#{}"], Cmd2)
+            ?assertEqual("#{}", Cmd2)
     end.
 
 %%--------------------------------------------------------------------

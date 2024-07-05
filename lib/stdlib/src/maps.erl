@@ -403,7 +403,7 @@ merge_with_1({K, V2, Iterator}, Map1, Map2, Combiner) ->
             NewMap1 = Map1#{ K := Combiner(K, V1, V2) },
             merge_with_1(maps:next(Iterator), NewMap1, Map2, Combiner);
         #{ } ->
-            merge_with_1(maps:next(Iterator), maps:put(K, V2, Map1), Map2, Combiner)
+            merge_with_1(maps:next(Iterator), Map1#{K => V2}, Map2, Combiner)
     end;
 merge_with_1(none, Result, _, _) ->
     Result.
@@ -1018,17 +1018,17 @@ ok
       Order :: iterator_order(Key),
       Iterator :: iterator(Key, Value).
 
-iterator(M, undefined) when is_map(M) ->
+iterator(#{}=M, undefined) ->
     [0 | M];
-iterator(M, ordered) when is_map(M) ->
+iterator(#{}=M, ordered) ->
     CmpFun = fun(A, B) -> erts_internal:cmp_term(A, B) =< 0 end,
     Keys = lists:sort(CmpFun, maps:keys(M)),
     [Keys | M];
-iterator(M, reversed) when is_map(M) ->
+iterator(#{}=M, reversed) ->
     CmpFun = fun(A, B) -> erts_internal:cmp_term(B, A) =< 0 end,
     Keys = lists:sort(CmpFun, maps:keys(M)),
     [Keys | M];
-iterator(M, CmpFun) when is_map(M), is_function(CmpFun, 2) ->
+iterator(#{}=M, CmpFun) when is_function(CmpFun, 2) ->
     Keys = lists:sort(CmpFun, maps:keys(M)),
     [Keys | M];
 iterator(M, Order) ->
@@ -1096,7 +1096,9 @@ _Example:_
     Map2 :: map(),
     K :: term().
 
-without(Ks,M) when is_list(Ks), is_map(M) ->
+without([],#{}=M) ->
+    M;
+without([_|_]=Ks,#{}=M) ->
     lists:foldl(fun maps:remove/2, M, Ks);
 without(Ks,M) ->
     error_with_info(error_type(M), [Ks,M]).

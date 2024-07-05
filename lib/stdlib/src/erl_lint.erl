@@ -1282,7 +1282,7 @@ behaviour_callbacks(Anno, B, St0) ->
     end.
 
 behaviour_deprecated([{{Anno, B}, Bfs, _OBfs} | T], Exports, St) ->
-    behaviour_deprecated(T, Exports, 
+    behaviour_deprecated(T, Exports,
                          behaviour_deprecated(Anno, B, Bfs, Exports, St));
 behaviour_deprecated([], _Exports, St) ->
     St.
@@ -2709,7 +2709,7 @@ expr({call,Anno,{atom,Aa,F},As}, Vt, St0) ->
     AutoSuppressed = is_autoimport_suppressed(St2#lint.no_auto,{F,A}),
     Warn = is_warn_enabled(bif_clash, St2) and (not bif_clash_specifically_disabled(St2,{F,A})),
     Imported = imported(F, A, St2),
-    case ((not IsLocal) andalso (Imported =:= no) andalso 
+    case ((not IsLocal) andalso (Imported =:= no) andalso
 	  IsAutoBif andalso (not AutoSuppressed)) of
         true ->
 	    St3 = deprecated_function(Anno, erlang, F, As, St2),

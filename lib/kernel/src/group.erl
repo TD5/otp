@@ -381,8 +381,8 @@ send_drv_reqs(_Drv, []) -> ok;
 send_drv_reqs(Drv, Rs) ->
     send_drv(Drv, {requests,Rs}).
 
-expand_encoding([]) ->
-    [];
+expand_encoding([]=Nil) ->
+    Nil;
 expand_encoding([latin1 | T]) ->
     [{encoding,latin1} | expand_encoding(T)];
 expand_encoding([unicode | T]) ->
@@ -393,7 +393,7 @@ expand_encoding([H|T]) ->
 setopts(Opts0,Drv,Buf) ->
     Opts = proplists:unfold(
 	     proplists:substitute_negations(
-	       [{list,binary}], 
+	       [{list,binary}],
 	       expand_encoding(Opts0))),
     case check_valid_opts(Opts) of
 	true ->
@@ -550,7 +550,7 @@ get_chars_apply(Pbs, M, F, Xa, Drv, Shell, Buf, State0, LineCont, Encoding) ->
             case LineCont of
                 {[_|_], _, _} ->
                     [CL1|LB1] = lists:reverse(string:split(FormattedLine, "\n", all)),
-                    LineCont1 = {LB1,{lists:reverse(CL1++"\n"), []},[]},
+                    LineCont1 = {LB1,{[$\n|lists:reverse(CL1)], []},[]},
                     MultiLinePrompt = lists:duplicate(shell:prompt_width(Pbs), $\s),
                     send_drv_reqs(Drv, [{redraw_prompt, Pbs, MultiLinePrompt, LineCont1},new_prompt]);
                 _ -> skip %% oldshell mode
@@ -747,7 +747,7 @@ get_line1({Expand, Before, Cs0, Cont,Rs}, Drv, Shell, Ls0, Encoding)
              {_, []} -> Cs1;
              {Cs1, _} when Cs1 =/= [] -> Cs1;
              _ ->
-                 NlMatchStr = unicode:characters_to_binary("\n"++MatchStr),
+                 NlMatchStr = unicode:characters_to_binary([$\n|MatchStr]),
                  NLines = case Expand of
                                 expand -> 7;
                                 expand_full -> 0
@@ -1022,9 +1022,9 @@ edit_line(eof, Chars, Rs) ->
 edit_line([],Chars, Rs) ->
     {Chars,[],lists:reverse(Rs)};
 edit_line([$\r,$\n|Cs],Chars, Rs) ->
-    {[$\n | Chars], remainder_after_nl(Cs), lists:reverse([{put_chars, unicode, "\n"}|Rs])};
+    {[$\n | Chars], remainder_after_nl(Cs), lists:reverse(Rs, [{put_chars, unicode, "\n"}])};
 edit_line([NL|Cs],Chars, Rs) when NL =:= $\r; NL =:= $\n ->
-    {[$\n | Chars], remainder_after_nl(Cs), lists:reverse([{put_chars, unicode, "\n"}|Rs])};
+    {[$\n | Chars], remainder_after_nl(Cs), lists:reverse(Rs, [{put_chars, unicode, "\n"}])};
 edit_line([Erase|Cs],[], Rs) when Erase =:= $\177; Erase =:= $\^H ->
     edit_line(Cs,[], Rs);
 edit_line([Erase|Cs],[_|Chars], Rs) when Erase =:= $\177; Erase =:= $\^H ->
@@ -1041,7 +1041,7 @@ edit_line_raw(eof, Chars, Rs) ->
 edit_line_raw([],Chars, Rs) ->
     {Chars,[],lists:reverse(Rs)};
 edit_line_raw([NL|Cs],Chars, Rs) when NL =:= $\n ->
-    {[$\n | Chars], remainder_after_nl(Cs), lists:reverse([{put_chars, unicode, "\n"}|Rs])};
+    {[$\n | Chars], remainder_after_nl(Cs), lists:reverse(Rs, [{put_chars, unicode, "\n"}])};
 edit_line_raw([Char|Cs],Chars, Rs) ->
     edit_line_raw(Cs,[Char|Chars], [{put_chars, unicode, [Char]}|Rs]).
 

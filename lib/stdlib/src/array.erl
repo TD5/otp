@@ -979,7 +979,7 @@ from_list(_, _) ->
 %% Building the leaf nodes (padding the last one as necessary) and
 %% counting the total number of elements.
 from_list_1(0, Xs, D, N, As, Es) ->
-    E = list_to_tuple(lists:reverse(As)),
+    E = list_to_tuple_rev(As),
     case Xs of
 	[] ->
 	    case Es of
@@ -1294,7 +1294,7 @@ from_orddict_0(Xs, _, _, _,_) ->
 
 from_orddict_1(Ix, Ix, Xs, N, _D, As) ->
     %% Leaf is full
-    E = list_to_tuple(lists:reverse(As)),
+    E = list_to_tuple_rev(As),
     {Xs, E, N};
 from_orddict_1(Ix, Max, Xs, N0, D, As) ->
     case Xs of
@@ -1466,12 +1466,12 @@ map(_, _) ->
 %% be a generally useful property.
 
 map_1(N, E=?NODEPATTERN(S), Ix, F, D) ->
-    list_to_tuple(lists:reverse([S | map_2(1, E, Ix, F, D, [],
-					   N div S + 1, N rem S, S)]));
+    list_to_tuple_rev([S | map_2(1, E, Ix, F, D, [],
+					   N div S + 1, N rem S, S)]);
 map_1(N, E, Ix, F, D) when is_integer(E) ->
     map_1(N, unfold(E, D), Ix, F, D);
 map_1(N, E, Ix, F, D) ->
-    list_to_tuple(lists:reverse(map_3(1, E, Ix, F, D, N+1, []))).
+    list_to_tuple_rev(map_3(1, E, Ix, F, D, N+1, [])).
 
 map_2(I, E, Ix, F, D, L, I, R, _S) ->
     map_2_1(I+1, E, [map_1(R, element(I, E), Ix, F, D) | L]);
@@ -1556,13 +1556,13 @@ sparse_map(_, _) ->
 %% TODO: we can probably optimize away the use of div/rem here
 
 sparse_map_1(N, E=?NODEPATTERN(S), Ix, F, D) ->
-    list_to_tuple(lists:reverse([S | sparse_map_2(1, E, Ix, F, D, [],
+    list_to_tuple_rev([S | sparse_map_2(1, E, Ix, F, D, [],
 						  N div S + 1,
-						  N rem S, S)]));
+						  N rem S, S)]);
 sparse_map_1(_N, E, _Ix, _F, _D) when is_integer(E) ->
     E;
 sparse_map_1(_N, E, Ix, F, D) ->
-    list_to_tuple(lists:reverse(sparse_map_3(1, E, Ix, F, D, []))).
+    list_to_tuple_rev(sparse_map_3(1, E, Ix, F, D, [])).
 
 sparse_map_2(I, E, Ix, F, D, L, I, R, _S) ->
     sparse_map_2_1(I+1, E,
@@ -1923,6 +1923,37 @@ sparse_size(A) ->
 	{value, I} when is_integer(I) ->
 	    I + 1
     end.
+
+% Optimised version of list_to_tuple(lists:reverse(Foo))
+% By placing the function definition in this file, we also
+% save on remote function calls.
+-compile({inline, [{list_to_tuple_rev,1}]}).
+list_to_tuple_rev([]) ->
+    {};
+list_to_tuple_rev([A,B]) ->
+    {B,A};
+list_to_tuple_rev([A,B,C]) ->
+    {C,B,A};
+list_to_tuple_rev([A,B,C,D]) ->
+    {D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E]) ->
+    {E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F]) ->
+    {F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G]) ->
+    {G,F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G,H]) ->
+    {H,G,F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G,H,I]) ->
+    {I,H,G,F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G,H,I,J]) ->
+    {J,I,H,G,F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G,H,I,J,K]) ->
+    {K,J,I,H,G,F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G,H,I,J,K,L]) ->
+    {L,K,J,I,H,G,F,E,D,C,B,A};
+list_to_tuple_rev(L) ->
+    list_to_tuple(lists:reverse(L,[])).
 
 
 -ifdef(EUNIT).

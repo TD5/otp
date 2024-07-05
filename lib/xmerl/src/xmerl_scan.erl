@@ -3163,7 +3163,7 @@ scan_nmtoken(Str = [H|_], S, Acc, Prefix, Local, _NSC,true) when ?whitespace(H) 
     {list_to_atom(NmString), namespace_info(Prefix, Local), Str, S};
 scan_nmtoken(Str = [$:|_], S, Acc, [], _Local, no_colons,_IsLatin1) ->
     ?fatal({invalid_NCName,
-	    lists:sublist(lists:reverse(Acc) ++ Str, 1, 6)}, S);
+	    lists:sublist(lists:reverse(Acc,Str), 1, 6)}, S);
 scan_nmtoken([$:|T], S0, Acc, [], Local, NSC, IsLatin1) ->
     ?bump_col(1),
     scan_nmtoken(T, S, [$:|Acc], lists:reverse(Local), [], NSC,IsLatin1);
@@ -3172,7 +3172,7 @@ scan_nmtoken(Str = [$:|_T], S, Acc, _Prefix, _Local, _NSC = true,_IsLatin1) ->
     %% Conformity with "Namespaces in XML" requires
     %% at most one colon in a name
     ?fatal({invalid_NCName,
-	    lists:sublist(lists:reverse(Acc) ++ Str, 1, 6)}, S);
+	    lists:sublist(lists:reverse(Acc,Str), 1, 6)}, S);
 
 %% non-namechar also marks the end of a name
 scan_nmtoken(Str, S0, Acc, Prefix, Local, NSC,IsLatin1) ->

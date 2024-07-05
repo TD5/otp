@@ -1,9 +1,9 @@
 %% -*- erlang-indent-level: 4 -*-
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 1999-2024. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -15,7 +15,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 -module(eval_bits).
@@ -46,7 +46,7 @@
 
 %%% Part 1: expression evaluation (binary construction)
 
-%% @spec expr_grp(Fields::[field()], Bindings::bindings(), 
+%% @spec expr_grp(Fields::[field()], Bindings::bindings(),
 %%                EvalFun::evalfun(), ErrorFun::errorfun()) ->
 %%                  {value, binary(), bindings()}
 %%
@@ -105,7 +105,7 @@ eval_field({bin_element, Anno, {string, _, S}, Size0, Options0}, Bs0, Fun, Error
      end,Bs1};
 eval_field({bin_element,Anno,E,Size0,Options0}, Bs0, Fun, ErrorFun, Pos) ->
     {value,V,Bs1} = Fun(E, Bs0),
-    {Size1,[Type,{unit,Unit},Sign,Endian]} = 
+    {Size1,[Type,{unit,Unit},Sign,Endian]} =
         make_bit_type(Anno, Size0, Options0, ErrorFun),
     {value,Size,Bs} = Fun(Size1, Bs1),
     {fun() -> eval_exp_field1(Anno, V, Size, Unit, Type, Endian, Sign, ErrorFun, Pos) end,Bs}.
@@ -175,7 +175,7 @@ eval_exp_field(Val, Size, Unit, binary, _, _) ->
 
 %%% Part 2: matching in binary comprehensions
 %% @spec bin_gen(BinPattern::{bin,integer(),[field()]}, Bin::binary(),
-%%               GlobalEnv::bindings(), LocalEnv::bindings(),  
+%%               GlobalEnv::bindings(), LocalEnv::bindings(),
 %%               MatchFun::matchfun(), EvalFun::evalfun(),
 %%               ErrorFun::errorfun()) ->
 %%                 {match, binary(), bindings()} | {nomatch, binary()} | done
@@ -205,7 +205,7 @@ bin_gen([], Bin, Bs0, _BBs0, _Mfun, _Efun, _ErrorFun, true) ->
     {match, Bin, Bs0};
 bin_gen([], Bin, _Bs0, _BBs0, _Mfun, _Efun, _ErrorFun, false) ->
     {nomatch, Bin}.
-  
+
 bin_gen_field({bin_element,_,{string,_,S},default,default},
               Bin, Bs, BBs, _Mfun, _Efun, _ErrorFun) ->
     Bits = try list_to_binary(S)
@@ -225,7 +225,7 @@ bin_gen_field({bin_element,Anno,{string,SAnno,S},Size0,Options0},
     {Size1, [Type,{unit,Unit},Sign,Endian]} =
         make_bit_type(Anno, Size0, Options0, ErrorFun),
     case catch Efun(Size1, BBs0) of
-        {value, Size, _BBs} -> % 
+        {value, Size, _BBs} -> %
             F = fun(C, Bin, Bs, BBs) ->
                         bin_gen_field1(Bin, Type, Size, Unit, Sign, Endian,
                                        {integer,SAnno,C}, Bs, BBs, Mfun)
@@ -234,7 +234,7 @@ bin_gen_field({bin_element,Anno,{string,SAnno,S},Size0,Options0},
     end;
 bin_gen_field({bin_element,Anno,VE,Size0,Options0},
               Bin, Bs0, BBs0, Mfun, Efun, ErrorFun) ->
-    {Size1, [Type,{unit,Unit},Sign,Endian]} = 
+    {Size1, [Type,{unit,Unit},Sign,Endian]} =
         make_bit_type(Anno, Size0, Options0, ErrorFun),
     V = erl_eval:partial_eval(VE),
     NewV = coerce_to_float(V, Type),
@@ -272,9 +272,9 @@ bin_gen_field1(Bin, Type, Size, Unit, Sign, Endian, NewV, Bs0, BBs0, Mfun) ->
             done
     end.
 
-%%% Part 3: binary pattern matching 
+%%% Part 3: binary pattern matching
 %% @spec match_bits(Fields::[field()], Bin::binary(),
-%%                  GlobalEnv::bindings(), LocalEnv::bindings(),  
+%%                  GlobalEnv::bindings(), LocalEnv::bindings(),
 %%                  MatchFun::matchfun(),EvalFun::evalfun(),
 %%                  ErrorFun::errorfun()) ->
 %%                  {match, bindings()}
@@ -320,7 +320,7 @@ match_field_1({bin_element,Anno,{string,SAnno,S},Size0,Options0},
     match_field_string(S, Bin0, Bs0, BBs0, F);
 match_field_1({bin_element,Anno,VE,Size0,Options0},
               Bin, Bs0, BBs0, Mfun, Efun, ErrorFun) ->
-    {Size1, [Type,{unit,Unit},Sign,Endian]} = 
+    {Size1, [Type,{unit,Unit},Sign,Endian]} =
         make_bit_type(Anno, Size0, Options0, ErrorFun),
     V = erl_eval:partial_eval(VE),
     NewV = coerce_to_float(V, Type),
@@ -348,7 +348,7 @@ coerce_to_float({integer,Anno,I}=E, float) ->
 	error:badarg -> E;
 	error:badarith -> E
     end;
-coerce_to_float(E, _Type) -> 
+coerce_to_float(E, _Type) ->
     E.
 
 add_bin_binding(_, {var,_,'_'}, _Bs, BBs) ->
@@ -411,13 +411,13 @@ get_integer(Bin, Size, unsigned, big) ->
     <<Val:Size,Rest/binary-unit:1>> = Bin,
     {Val,Rest}.
 
-get_float(Bin, Size, little) -> 
+get_float(Bin, Size, little) ->
     <<Val:Size/float-little,Rest/binary-unit:1>> = Bin,
     {Val,Rest};
-get_float(Bin, Size, native) -> 
+get_float(Bin, Size, native) ->
     <<Val:Size/float-native,Rest/binary-unit:1>> = Bin,
     {Val,Rest};
-get_float(Bin, Size, big) -> 
+get_float(Bin, Size, big) ->
     <<Val:Size/float,Rest/binary-unit:1>> = Bin,
     {Val,Rest}.
 

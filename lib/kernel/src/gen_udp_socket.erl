@@ -250,7 +250,7 @@ do_open(Mod, BindAddr, Domain, OpenOpts, Opts, ExtraOpts) ->
             ?badarg_exit(Error)
     end.
 
-    
+
 extra_opts(Fd) when is_integer(Fd) ->
     if
         Fd < 0 ->
@@ -359,7 +359,7 @@ net_getifaddrs(local = _Domain) ->
 net_getifaddrs(Domain) ->
     net:getifaddrs(Domain).
 
-    
+
 call_bind(_Server, undefined) ->
     ok;
 call_bind(Server, BindAddr) ->
@@ -386,9 +386,9 @@ send(_Socket, _Data) ->
 
 
 -compile({inline, [make_iov/1]}).
-make_iov(Bin) when is_binary(Bin) -> [Bin];
+make_iov(<<_/binary>>=Bin) -> [Bin];
 make_iov(IOV) when is_list(IOV)   -> IOV.
-    
+
 -compile({inline, [dest2sockaddr/1]}).
 dest2sockaddr({Addr, Port})
   when is_tuple(Addr) andalso (tuple_size(Addr) =:= 4) andalso
@@ -430,7 +430,7 @@ make_cmsghdr({ttl = Type, Byte}) ->
     #{level => ip, type => Type, data => Byte};
 make_cmsghdr(_Arg) ->
     ?BADARG([_Arg]).
-    
+
 
 send(Socket, Destination, Data) ->
     do_sendto(Socket, dest2sockaddr(Destination), Data).
@@ -531,7 +531,7 @@ do_sendmsg(?MODULE_socket(_Server, Socket), SockAddr, IOV, Ctrl)
             Any
     end.
 
-    
+
 %% -------------------------------------------------------------------------
 
 recv(Socket, Length) ->
@@ -540,7 +540,7 @@ recv(Socket, Length) ->
 %% This is a bit weird. If two calls to recv is made with short intervals
 %% from different processes, with say timeout 10s and then 5s. The second
 %% call will be postponed until the first has been processed, which can
-%% take up to 10s. If the first times out (after 10s) the second is 
+%% take up to 10s. If the first times out (after 10s) the second is
 %% supposed to have been timed out already by the time it gets processed.
 %% Can we postpone? And can we make conditional postpone?
 
@@ -806,16 +806,16 @@ setopts_split(FilterTags, [Opt | Opts], True, False) ->
 %% Set operation on atom sets that are atoms or maps with atom tags.
 %% Returns true if sets have at least one common member, false otherwise.
 %% X is atom() or map(), Y is map().
-member(X, Y) when is_atom(X) andalso is_map(Y) ->
-    case Y of
-        #{X := _} -> true;
-        #{} -> false
-    end;
-member(X, Y) when is_map(X) andalso is_map(Y) ->
+member(X=#{}, Y=#{}) ->
     maps:fold(
       fun (_, _, true) -> true;
           (Key, _, false) -> maps:is_key(Key, Y)
-      end, false, X).
+      end, false, X);
+member(X, Y=#{}) when is_atom(X) ->
+    case Y of
+        #{X := _} -> true;
+        #{} -> false
+    end.
 
 
 conv_setopt(binary) -> {mode, binary};
@@ -862,7 +862,7 @@ socket_setopt_opt(Socket, Opt, Tag, Value) ->
     %% ?DBG(Res),
     %% _ = socket:setopt(Socket, otp, debug, false),
     Res.
-    
+
 
 socket_setopt_opts([], _Socket, _Tag, _Value) ->
     ok;
@@ -906,7 +906,7 @@ socket_setopt_opts(Opts, Socket, Tag, Value) ->
 %% This happens when we set the recbuf options.
 %% As a side effect, we also set our internal buffer,
 %% but with a limiter.
-socket_setopt_value(recbuf, Value, {otp, rcvbuf}) 
+socket_setopt_value(recbuf, Value, {otp, rcvbuf})
   when (Value > ?RECBUF) ->
     ?RECBUF;
 socket_setopt_value(_Tag, Value, _) ->
@@ -983,8 +983,8 @@ socket_getopt_opts(Opts, Socket, Tag) ->
             {error, einval}
     end.
 
-    
-    
+
+
 %% socket_getopt_value(pktoptions, {ok, PktOpts0}) when is_list(PktOpts0) ->
 %%     PktOpts = [{Type, Value} || #{type := Type, value := Value} <- PktOpts0],
 %%     {ok, PktOpts};
@@ -995,7 +995,7 @@ start_opts([{sys_debug, D} | Opts]) ->
     [{debug, D} | start_opts(Opts)];
 start_opts([Opt | Opts]) ->
     [Opt | start_opts(Opts)];
-start_opts([]) -> [].
+start_opts([]=Nil) -> Nil.
 
 
 %% Categories: socket, ignore, start, server_read, server_write, einval
@@ -1024,7 +1024,7 @@ opt_categories(Tag) when is_atom(Tag) ->
 
         %% Some options may trigger us to choose recvmsg (instead of recvfrom)
         %% Or trigger us to choose recvfrom *if* was previously selected
-        
+
         _ when (Tag =:= recvtos) orelse
                (Tag =:= recvttl) orelse
                (Tag =:= recvtclass) ->
@@ -1137,7 +1137,7 @@ socket_opt() ->
       %% This is a special case.
       %% Only supported on Linux and then only actually for IPv6,
       %% but unofficially also for ip...barf...
-      %% In both cases this is *no longer valid* as the RFC which 
+      %% In both cases this is *no longer valid* as the RFC which
       %% introduced this, RFC 2292, is *obsoleted* by RFC 3542, where
       %% this "feature" *does not exist*...
       pktoptions  => [{inet, ip, pktoptions}, {inet6, ipv6, pktoptions}]
@@ -1284,7 +1284,7 @@ init(Arg) ->
     error_logger:error_report([{badarg, {?MODULE, init, [Arg]}}]),
     error(badarg, [Arg]).
 
-                        
+
 socket_open(Domain, Proto, #{fd := FD} = ExtraOpts, Extra) ->
     Opts =
         (maps:merge(Extra, maps:remove(fd, ExtraOpts)))
@@ -1510,7 +1510,7 @@ handle_event({call, From},
                 %% If we get this error, the options where crap.
                 _ = socket:setopt(P#params.socket, {otp,meta}, meta(D_1)),
                 {error, einval};
-            
+
             {error, einval} ->
                 %% If we get this error, either the options where crap or
                 %% the socket is in a "bad state" (maybe its closed).
@@ -1529,7 +1529,7 @@ handle_event({call, From},
         end,
     Reply = {reply, From, Result},
     handle_reading(State, P_1, D_1, [Reply]);
-    
+
 
 %% Call: getstat/2
 handle_event({call, From},
@@ -1605,7 +1605,7 @@ handle_event({call, From}, {bind, BindAddr} = _BIND, _State, {P, _D}) ->
     %% ?DBG(['try bind',
     %%       {handle_event, call}, {bind_addr, BindAddr}, {state, _State}]),
     Result = socket:bind(P#params.socket, BindAddr),
-    %% ?DBG([{bind_result, Result}] ++ 
+    %% ?DBG([{bind_result, Result}] ++
     %%          case Result of
     %%              ok ->
     %%                  case socket:sockname(P#params.socket) of
@@ -1784,7 +1784,7 @@ handle_reading(#recv{info = Info} = _State,
 %% or was "closed" already)
 handle_reading(_State, P, D, ActionsR) ->
     {keep_state, {P, D}, ActionsR}.
-    
+
 
 handle_reading(P, {D, ActionsR}) ->
     handle_reading(P, D, ActionsR).
@@ -1873,7 +1873,7 @@ handle_recv(#params{recv_method = []} = P,
                         %%       {p, P}, {d, D}]),
                         INFO;
                     _ ->
-                       Reason0 
+                       Reason0
                 end,
             %% ?DBG(['recvfrom error', {reason, Reason}]),
             handle_recv_error(P, D, ActionsR, Reason)
@@ -1944,7 +1944,7 @@ cleanup_close_read(P, D, State, Reason) ->
     cleanup_recv(P, D, State, Reason).
 
 cleanup_recv(P, D, State, Reason) ->
-    %% ?DBG([{socket, P#params.socket}, {state, State}, {reason, Reason}]),    
+    %% ?DBG([{socket, P#params.socket}, {state, State}, {reason, Reason}]),
     case State of
         #recv{info = Info} ->
             _ = socket_cancel(P#params.socket, Info),
@@ -2078,7 +2078,7 @@ recv_data_deliver(
   #{mode := Mode, deliver := Deliver} = D,
   ActionsR, Data) ->
 
-    %% ?DBG([{owner, Owner}, {mode, Mode}, {deliver, Deliver}]), 
+    %% ?DBG([{owner, Owner}, {mode, Mode}, {deliver, Deliver}]),
 
     {IP, Port, AncData, DeliverData} = deliver_data(Data, Mode),
     case D of
@@ -2150,7 +2150,7 @@ deliver_data(#{addr := #{family := local = Fam, path := Path},
     {{Fam, Path}, 0, Ctrl2, Data};
 deliver_data(#{addr := #{family := Fam, addr := Addr, port := Port},
                iov  := IOV,
-               ctrl := Ctrl}, Mode) 
+               ctrl := Ctrl}, Mode)
   when ((Fam =:= inet) orelse (Fam =:= inet6)) ->
     Data  = deliver_data_mode(IOV, Mode),
     Ctrl2 = ctrl2ancdata(Ctrl),
@@ -2164,8 +2164,8 @@ deliver_data({Unspec, <<Data/binary>>}, Mode) when is_binary(Unspec) ->
 %%     ?BADARG([_Arg1, _Arg2]).
 
 
-deliver_data_mode(Data, list)   when is_binary(Data) -> binary_to_list(Data);
-deliver_data_mode(Data, binary) when is_binary(Data) -> Data;
+deliver_data_mode(<<_/binary>>=Data, list)   -> binary_to_list(Data);
+deliver_data_mode(<<_/binary>>=Data, binary) -> Data;
 deliver_data_mode(IOV,  list)   when is_list(IOV) -> deliver_data_mode_bin(IOV);
 deliver_data_mode(IOV,  binary) when is_list(IOV) -> iolist_to_binary(IOV).
 
@@ -2222,7 +2222,7 @@ state_setopts(P, D, State, [Opt | Opts]) ->
     Opt_1 = conv_setopt(Opt),
     %% ?DBG([{'option converted', Opt_1}]),
     case setopt_categories(Opt_1) of
-        %% This is a special case for options that trigger us to choose 
+        %% This is a special case for options that trigger us to choose
         %% the recv "method"; either recvfrom or recvmsg.
         %% If the recv_method list is empty => recvfrom otherwise recvmsg.
         #{socket := _, recv_method := _} ->
@@ -2405,7 +2405,7 @@ simplify_state(#recv{}) ->
 simplify_state(State) ->
     State.
 
-    
+
 getstat(Socket, D, What) ->
     %% Read counters
     Counters_1 = socket_info_counters(Socket),
@@ -2424,7 +2424,7 @@ getstat(Socket, D, What) ->
 getstat_what(D, C) ->
     getstat_what(inet:stats(), D, C).
 
-getstat_what([], _D, _C) -> [];
+getstat_what([]=Nil, _D, _C) -> Nil;
 getstat_what([Tag | What], D, C) ->
     Val =
         case Tag of
@@ -2493,7 +2493,7 @@ counter_value(Counter, D, Counters) ->
 
 
 -compile({inline, [reverse/1]}).
-reverse([]) -> [];
+reverse([]=Nil) -> Nil;
 reverse([_] = L) -> L;
 reverse([A, B]) -> [B, A];
 reverse(L) -> lists:reverse(L).
@@ -2514,7 +2514,7 @@ reverse(L1, L2) -> lists:reverse(L1, L2).
 %%     {_Date, Time}   = calendar:now_to_local_time(TS),
 %%     {Hour, Min, Sec} = Time,
 %%     FormatTS = io_lib:format("~.2.0w:~.2.0w:~.2.0w.~.3.0w",
-%%                              [Hour, Min, Sec, N3 div 1000]),  
+%%                              [Hour, Min, Sec, N3 div 1000]),
 %%     lists:flatten(FormatTS).
 
 

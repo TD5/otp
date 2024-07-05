@@ -33,7 +33,7 @@ Basic functions on Core Erlang abstract syntax trees.
 Syntax trees are defined in the module `m:cerl`.
 """.
 
--export([depth/1, fold/3, free_variables/1, get_label/1, label/1, label/2, 
+-export([depth/1, fold/3, free_variables/1, get_label/1, label/1, label/2,
 	 map/2, mapfold/3, mapfold/4, next_free_variable_name/1,
          size/1, variables/1]).
 
@@ -244,6 +244,14 @@ fold_1(F, S, T) ->
 	    case concrete(T) of
 		[_ | _] ->
 		    fold(F, fold(F, S, cons_hd(T)), cons_tl(T));
+		{T1,T2} ->
+			fold(F, fold(F, S, T1), T2);
+		{T1,T2,T3} ->
+			fold(F, fold(F, fold(F, S, T1), T2), T3);
+		{T1,T2,T3,T4} ->
+			fold(F, fold(F, fold(F, fold(F, S, T1), T2), T3), T4);
+		{T1,T2,T3,T4,T5} ->
+			fold(F, fold(F, fold(F, fold(F, fold(F, S, T1), T2), T3), T4), T5);
 		V when tuple_size(V) > 0 ->
 		    fold_list(F, S, tuple_es(T));
 		_ ->

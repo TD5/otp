@@ -1,7 +1,7 @@
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 1996-2021. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -13,7 +13,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 -module(prim_tty).
@@ -624,9 +624,9 @@ handle_request(State = #state{ options = #{ tty := false } }, Request) ->
 handle_request(State, {redraw_prompt, Pbs, Pbs2, {LB, {Bef, Aft}, LA}}) ->
     {ClearLine, Cleared} = handle_request(State, delete_line),
     CL = lists:reverse(Bef,Aft),
-    Text = Pbs ++ lists:flatten(lists:join("\n"++Pbs2, lists:reverse(LB)++[CL|LA])),
+    Text = Pbs ++ lists:flatten(lists:join("\n"++Pbs2, lists:reverse(LB,[CL|LA]))),
     Moves = if LA /= [] ->
-                    [Last|_] = lists:reverse(LA),
+                    Last=lists:last(LA),
                     {move_combo, -logical(Last), -length(LA), logical(Bef)};
                true ->
                     {move, -logical(Aft)}
@@ -667,13 +667,13 @@ handle_request(State = #state{unicode = U, cols = W, rows = R}, redraw_prompt_pr
                             BufferExpand1 = case ExpandRows > ExpandRowsLimit1 of
                                 true ->
                                         Color = lists:flatten(ansi_color(cyan, bright_white)),
-                                        StatusLine = io_lib:format(Color ++"\e[1m" ++ "rows ~w to ~w of ~w" ++ "\e[0m",
+                                        StatusLine = io_lib:format(Color ++"\e[1mrows ~w to ~w of ~w\e[0m",
                                                                    [ERow, (ERow-1) + ExpandRowsLimit1, ExpandRows]),
                                         Cols1 = max(0,W*ExpandRowsLimit1),
                                         Cols0 = max(0,W*(ERow-1)),
                                         {_, _, BufferExpandLinesInViewStart, {_, BEStartIVHalf}} = split_cols_multiline(Cols0, BufferExpandLines, U, W),
                                         {_, BufferExpandLinesInViewRev, _, {BEIVHalf, _}} = split_cols_multiline(Cols1, BufferExpandLinesInViewStart++[BEStartIVHalf], U, W),
-                                        BEIVHalf1 = case BEIVHalf of [] -> [];
+                                        BEIVHalf1 = case BEIVHalf of []=Nil -> Nil;
                                             _ -> [BEIVHalf]
                                         end,
                                         ExpandInView = lists:reverse(BEIVHalf1++BufferExpandLinesInViewRev),
@@ -912,9 +912,9 @@ handle_request(State, Req) ->
     erlang:display({unhandled_request, Req}),
     {"", State}.
 
-last_or_empty([]) -> [];
+last_or_empty([]=Nil) -> Nil;
 last_or_empty([H]) -> H;
-last_or_empty(L) -> [H|_] = lists:reverse(L), H.
+last_or_empty(L) -> lists:last(L).
 
 %% Split the buffer after N cols
 %% Returns the number of characters deleted, and the column length (N)
@@ -927,8 +927,8 @@ split_cols(0, Buff, Acc, Chars, Cols, _Unicode) ->
     {Chars, Cols, Acc, Buff};
 split_cols(N, _Buff, _Acc, _Chars, _Cols, _Unicode) when N < 0 ->
     error;
-split_cols(_N, [], Acc, Chars, Cols, _Unicode) ->
-    {Chars, Cols, Acc, []};
+split_cols(_N, []=Nil, Acc, Chars, Cols, _Unicode) ->
+    {Chars, Cols, Acc, Nil};
 split_cols(N, [Char | T], Acc, Cnt, Cols, Unicode) when is_integer(Char) ->
     split_cols(N - npwcwidth(Char), T, [Char | Acc], Cnt + 1, Cols + npwcwidth(Char, Unicode), Unicode);
 split_cols(N, [Chars | T], Acc, Cnt, Cols, Unicode) when is_list(Chars) ->
@@ -1034,9 +1034,9 @@ in_view(#state{lines_after = LinesAfter, buffer_before = Bef, buffer_after = Aft
                                 _ ->
                                     []
                             end,
-            LAInView = lists:flatten(["\n"++LA||LA<-lists:reverse(LAInViewLines)]),    
+            LAInView = lists:flatten([[$\n|LA]||LA<-lists:reverse(LAInViewLines)]),
             LBInView = lists:flatten([LB++"\n"||LB<-LBAfter0]),
-            Text = LBInView ++ lists:reverse(Bef,Aft) ++ LAInView,
+            Text = LBInView ++ lists:reverse(Bef,Aft ++ LAInView),
             Movement = move_cursor(State,
                                    cols_after_cursor(State#state{lines_after = LAInViewLines++[lists:reverse(Bef, Aft)]}),
                                    cols(Bef,U)),
@@ -1045,8 +1045,7 @@ in_view(#state{lines_after = LinesAfter, buffer_before = Bef, buffer_after = Aft
        true ->
             %% Everything fits in the current window, just output everything
             Movement = move_cursor(State, cols_after_cursor(State#state{lines_after = lists:reverse(LinesAfter)++[lists:reverse(Bef, Aft)]}), cols(Bef,U)),
-            Text = lists:flatten([LB++"\n"||LB<-lists:reverse(LinesBefore)]) ++
-                lists:reverse(Bef,Aft) ++ lists:flatten(["\n"++LA||LA<-LinesAfter]),
+            Text = lists:flatten([[LB|"\n"]||LB<-lists:reverse(LinesBefore)], lists:reverse(Bef,(Aft ++ lists:flatten([[$\n|LA]||LA<-LinesAfter])))),
             {Movement, Text, true}
     end.
 cols_after_cursor(#state{lines_after=[LAST|LinesAfter],cols=W, unicode=U}) ->
@@ -1055,8 +1054,8 @@ split_cols_multiline(Cols, Lines, U, W) ->
     split_cols_multiline(Cols, Lines, U, W, 0, []).
 split_cols_multiline(0, Lines, _U, _W, ColsAcc, AccBefore) ->
     {ColsAcc, AccBefore, Lines, {[],[]}};
-split_cols_multiline(_Cols, [], _U, _W, ColsAcc, AccBefore) ->
-    {ColsAcc, AccBefore, [], {[],[]}};
+split_cols_multiline(_Cols, []=Nil, _U, _W, ColsAcc, AccBefore) ->
+    {ColsAcc, AccBefore, Nil, {[],[]}};
 split_cols_multiline(Cols, [L|Lines], U, W, ColsAcc, AccBefore) ->
     case cols(L, U) > Cols of
         true ->
@@ -1235,7 +1234,7 @@ insert_buf(State, Bin, LineAcc, Acc) ->
             end;
         [Cluster | Rest] when is_list(Cluster) ->
             insert_buf(State, Rest, [Cluster | LineAcc], Acc);
-        %% We have gotten a code point that may be part of the previous grapheme cluster. 
+        %% We have gotten a code point that may be part of the previous grapheme cluster.
         [Char | Rest] when Char >= 128, LineAcc =:= [], State#state.buffer_before =/= [],
                            State#state.buffer_expand =:= undefined ->
             [PrevChar | BB] = State#state.buffer_before,
@@ -1249,7 +1248,7 @@ insert_buf(State, Bin, LineAcc, Acc) ->
                     %% it and insert it into the before_buffer
                     %% TODO: If an xnfix was done on PrevChar,
                     %%       then we should rewrite the entire grapheme cluster.
-                    {_, ToWrite} = lists:split(length(lists:flatten([PrevChar])), Cluster),
+                    {_, ToWrite} = lists:split(lists:flatlength([PrevChar]), Cluster),
                     insert_buf(State#state{ buffer_before = [Cluster | BB] },
                                ClusterRest, LineAcc,
                                [Acc, unicode:characters_to_binary(ToWrite)])
@@ -1263,7 +1262,7 @@ insert_buf(State, Bin, LineAcc, Acc) ->
                 {false, 8#177} -> %% DEL
                     insert_buf(State, Rest, ["^?" | LineAcc], Acc);
                 {false, _} ->
-                    insert_buf(State, Rest, ["^" ++ [Char bor 8#40] | LineAcc], Acc)
+                    insert_buf(State, Rest, [[$^ | [Char bor 8#40]] | LineAcc], Acc)
             end
     end.
 
@@ -1415,4 +1414,3 @@ tgoto_nif(_Ent, _Arg1, _Arg2) ->
     erlang:nif_error(undef).
 tty_read_signal(_TTY, _Ref) ->
     erlang:nif_error(undef).
-
