@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 1996-2024. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 
 -module(ordsets).
@@ -71,14 +71,14 @@ by the functions in this module.
 -spec is_set(Ordset) -> boolean() when
       Ordset :: term().
 
-is_set([E|Es]) -> is_set(Es, E);
 is_set([]) -> true;
+is_set([E|Es]) -> is_set(Es, E);
 is_set(_) -> false.
 
+is_set([], _) -> true;
 is_set([E2|Es], E1) when E1 < E2 ->
     is_set(Es, E2);
-is_set([_|_], _) -> false;
-is_set([], _) -> true.
+is_set([_|_], _) -> false.
 
 %% size(OrdSet) -> int().
 %%  Return the number of elements in OrdSet.
@@ -96,7 +96,8 @@ size(S) -> length(S).
 -spec is_empty(Ordset) -> boolean() when
       Ordset :: ordset(_).
 
-is_empty(S) -> S=:=[].
+is_empty([]) -> true;
+is_empty(_) -> false.
 
 %% is_equal(OrdSet1, OrdSet2) -> boolean().
 %%  Return 'true' if OrdSet1 and OrdSet2 contain the same elements,
@@ -142,10 +143,10 @@ from_list(L) ->
       Element :: term(),
       Ordset :: ordset(_).
 
+is_element(_, []) -> false;
 is_element(E, [H|Es]) when E > H -> is_element(E, Es);
 is_element(E, [H|_]) when E < H -> false;
-is_element(_E, [_H|_]) -> true;			%E == H
-is_element(_, []) -> false.
+is_element(_E, [_H|_]) -> true.			%E == H
 
 %% add_element(Element, OrdSet) -> OrdSet.
 %%  Return OrdSet with Element inserted in it.
@@ -158,10 +159,10 @@ is_element(_, []) -> false.
 
 %-spec add_element(E, ordset(T)) -> [T | E,...].
 
+add_element(E, []) -> [E];
 add_element(E, [H|Es]) when E > H -> [H|add_element(E, Es)];
 add_element(E, [H|_]=Set) when E < H -> [E|Set];
-add_element(_E, [_H|_]=Set) -> Set;		%E == H
-add_element(E, []) -> [E].
+add_element(_E, [_H|_]=Set) -> Set.		%E == H
 
 %% del_element(Element, OrdSet) -> OrdSet.
 %%  Return OrdSet but with Element removed.
@@ -172,10 +173,10 @@ add_element(E, []) -> [E].
       Ordset1 :: ordset(T),
       Ordset2 :: ordset(T).
 
+del_element(_, []) -> [];
 del_element(E, [H|Es]) when E > H -> [H|del_element(E, Es)];
 del_element(E, [H|_]=Set) when E < H -> Set;
-del_element(_E, [_H|Es]) -> Es;			%E == H
-del_element(_, []) -> [].
+del_element(_E, [_H|Es]) -> Es.			%E == H
 
 %% union(OrdSet1, OrdSet2) -> OrdSet
 %%  Return the union of OrdSet1 and OrdSet2.
@@ -186,14 +187,14 @@ del_element(_, []) -> [].
       Ordset2 :: ordset(T2),
       Ordset3 :: ordset(T1 | T2).
 
+union([], Es2) -> Es2;
+union(Es1, []) -> Es1;
 union([E1|Es1], [E2|_]=Set2) when E1 < E2 ->
     [E1|union(Es1, Set2)];
 union([E1|_]=Set1, [E2|Es2]) when E1 > E2 ->
     [E2|union(Es2, Set1)];			% switch arguments!
 union([E1|Es1], [_E2|Es2]) ->			%E1 == E2
-    [E1|union(Es1, Es2)];
-union([], Es2) -> Es2;
-union(Es1, []) -> Es1.
+    [E1|union(Es1, Es2)].
 
 %% union([OrdSet]) -> OrdSet
 %%  Return the union of the list of ordered sets.
@@ -215,16 +216,16 @@ union(OrdsetList) ->
       Ordset2 :: ordset(_),
       Ordset3 :: ordset(_).
 
+intersection([]=Nil, _) ->
+    Nil;
+intersection(_, []=Nil) ->
+    Nil;
 intersection([E1|Es1], [E2|_]=Set2) when E1 < E2 ->
     intersection(Es1, Set2);
 intersection([E1|_]=Set1, [E2|Es2]) when E1 > E2 ->
     intersection(Es2, Set1);			% switch arguments!
 intersection([E1|Es1], [_E2|Es2]) ->		%E1 == E2
-    [E1|intersection(Es1, Es2)];
-intersection([], _) ->
-    [];
-intersection(_, []) ->
-    [].
+    [E1|intersection(Es1, Es2)].
 
 %% intersection([OrdSet]) -> OrdSet.
 %%  Return the intersection of the list of ordered sets.
@@ -253,16 +254,16 @@ common), otherwise `false`.
       Ordset1 :: ordset(_),
       Ordset2 :: ordset(_).
 
+is_disjoint([], _) ->
+    true;
+is_disjoint(_, []) ->
+    true;
 is_disjoint([E1|Es1], [E2|_]=Set2) when E1 < E2 ->
     is_disjoint(Es1, Set2);
 is_disjoint([E1|_]=Set1, [E2|Es2]) when E1 > E2 ->
     is_disjoint(Es2, Set1);			% switch arguments!
 is_disjoint([_E1|_Es1], [_E2|_Es2]) ->		%E1 == E2
-    false;
-is_disjoint([], _) ->
-    true;
-is_disjoint(_, []) ->
-    true.
+    false.
 
 %% subtract(OrdSet1, OrdSet2) -> OrdSet.
 %%  Return all and only the elements of OrdSet1 which are not also in
@@ -274,14 +275,14 @@ is_disjoint(_, []) ->
       Ordset2 :: ordset(_),
       Ordset3 :: ordset(_).
 
+subtract([]=Nil, _) -> Nil;
+subtract(Es1, []) -> Es1;
 subtract([E1|Es1], [E2|_]=Set2) when E1 < E2 ->
     [E1|subtract(Es1, Set2)];
 subtract([E1|_]=Set1, [E2|Es2]) when E1 > E2 ->
     subtract(Set1, Es2);
 subtract([_E1|Es1], [_E2|Es2]) ->		%E1 == E2
-    subtract(Es1, Es2);
-subtract([], _) -> [];
-subtract(Es1, []) -> Es1.
+    subtract(Es1, Es2).
 
 %% is_subset(OrdSet1, OrdSet2) -> boolean().
 %%  Return 'true' when every element of OrdSet1 is also a member of
@@ -295,14 +296,14 @@ otherwise `false`.
       Ordset1 :: ordset(_),
       Ordset2 :: ordset(_).
 
+is_subset([], _) -> true;
+is_subset(_, []) -> false;
 is_subset([E1|_], [E2|_]) when E1 < E2 ->	%E1 not in Set2
     false;
 is_subset([E1|_]=Set1, [E2|Es2]) when E1 > E2 ->
     is_subset(Set1, Es2);
 is_subset([_E1|Es1], [_E2|Es2]) ->		%E1 == E2
-    is_subset(Es1, Es2);
-is_subset([], _) -> true;
-is_subset(_, []) -> false.
+    is_subset(Es1, Es2).
 
 %% fold(Fun, Accumulator, OrdSet) -> Accumulator.
 %%  Fold function Fun over all elements in OrdSet and return Accumulator.

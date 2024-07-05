@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 1996-2024. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 -module(erl_eval).
@@ -458,18 +458,18 @@ expr({record,Anno,_,Name,_}, Bs, _Lf, Ef, RBs, _FUVs) ->
 expr({map,Anno,Binding,Es}, Bs0, Lf, Ef, RBs, FUVs) ->
     {value, Map0, Bs1} = expr(Binding, Bs0, Lf, Ef, none, FUVs),
     {Vs,Bs2} = eval_map_fields(Es, Bs0, Lf, Ef, FUVs),
-    _ = maps:put(k, v, Map0),			%Validate map.
+    _ = Map0#{k => v},			%Validate map.
     Map1 = lists:foldl(fun ({map_assoc,K,V}, Mi) ->
-			       maps:put(K, V, Mi);
+			       Mi#{K => V};
 			   ({map_exact,K,V}, Mi) ->
-			       maps:update(K, V, Mi)
+			       Mi#{K := V}
 		       end, Map0, Vs),
     ret_expr(Map1, merge_bindings(Bs2, Bs1, Anno, Ef), RBs);
 expr({map,_,Es}, Bs0, Lf, Ef, RBs, FUVs) ->
     {Vs,Bs} = eval_map_fields(Es, Bs0, Lf, Ef, FUVs),
     ret_expr(lists:foldl(fun
-		({map_assoc,K,V}, Mi) -> maps:put(K,V,Mi)
-	    end, maps:new(), Vs), Bs, RBs);
+		({map_assoc,K,V}, Mi) -> Mi#{K => V}
+	    end, #{}, Vs), Bs, RBs);
 
 expr({block,_,Es}, Bs, Lf, Ef, RBs, FUVs) ->
     exprs(Es, Bs, Lf, Ef, RBs, FUVs);
@@ -744,7 +744,7 @@ fun_used_bindings(Fun, Cs, Bs, FUVs) ->
 
 hide_calls(LC, MaxLine) ->
     LineId0 = MaxLine + 1,
-    {NLC, _, D} = hide(LC, LineId0, maps:new()),
+    {NLC, _, D} = hide(LC, LineId0, #{}),
     {NLC, D}.
 
 %% Local calls are hidden from qlc so they are not expanded.
@@ -757,7 +757,7 @@ hide({call,A,{atom,_,N}=Atom,Args}, Id0, D0) ->
                 Anno = erl_anno:new(Id),
                 {call,Anno,{remote,A,{atom,A,m},{atom,A,f}},NArgs}
         end,
-    {C, Id+1, maps:put(Id, {call,Atom}, D)};
+    {C, Id+1, D#{Id => {call,Atom}}};
 hide(T0, Id0, D0) when is_tuple(T0) ->
     {L, Id, D} = hide(tuple_to_list(T0), Id0, D0),
     {list_to_tuple(L), Id, D};
@@ -980,10 +980,10 @@ eval_generator({b_generate,Anno,P,Bin0}, Bs0, Lf, Ef, FUVs, Acc0, CompFun) ->
 eval_generator({m_generate,Anno,P,Map0}, Bs0, Lf, Ef, FUVs, Acc0, CompFun) ->
     {map_field_exact,_,K,V} = P,
     {value,Map,_Bs1} = expr(Map0, Bs0, Lf, Ef, none, FUVs),
-    Iter = case is_map(Map) of
-               true ->
+    Iter = case Map of
+               #{} ->
                    maps:iterator(Map);
-               false ->
+               _ ->
                    %% Validate iterator.
                    try maps:foreach(fun(_, _) -> ok end, Map) of
                        _ ->
@@ -1563,10 +1563,10 @@ bindings(Bs) when is_list(Bs) -> orddict:to_list(Bs).
 -spec(binding(Name, BindingStruct) -> {value, value()} | unbound when
       Name :: name(),
       BindingStruct :: binding_struct()).
-binding(Name, Bs) when is_map(Bs) ->
-    case maps:find(Name, Bs) of
-        {ok,Val} -> {value,Val};
-        error -> unbound
+binding(Name, Bs=#{}) ->
+    case Bs of
+        #{Name := Val} -> {value,Val};
+        _ -> unbound
     end;
 binding(Name, Bs) when is_list(Bs) ->
     case orddict:find(Name, Bs) of
@@ -1582,7 +1582,7 @@ structure.
       Name :: name(),
       Value :: value(),
       BindingStruct :: binding_struct()).
-add_binding(Name, Val, Bs) when is_map(Bs) -> maps:put(Name, Val, Bs);
+add_binding(Name, Val, #{}=Bs) -> Bs#{Name => Val};
 add_binding(Name, Val, Bs) when is_list(Bs) -> orddict:store(Name, Val, Bs).
 
 -doc """
@@ -1592,14 +1592,13 @@ structure.
 -spec(del_binding(Name, BindingStruct) -> binding_struct() when
       Name :: name(),
       BindingStruct :: binding_struct()).
-del_binding(Name, Bs) when is_map(Bs) -> maps:remove(Name, Bs);
+del_binding(Name, #{}=Bs) -> maps:remove(Name, Bs);
 del_binding(Name, Bs) when is_list(Bs) -> orddict:erase(Name, Bs).
 
 add_bindings(Bs1, Bs2) when is_map(Bs1), is_map(Bs2) ->
     maps:merge(Bs2, Bs1);
 add_bindings(Bs1, Bs2) ->
-    foldl(fun ({Name,Val}, Bs) -> orddict:store(Name, Val, Bs) end,
-	  Bs2, orddict:to_list(Bs1)).
+    orddict:merge(Bs2, Bs1).
 
 merge_bindings(Bs1, Bs2, Anno, Ef) when is_map(Bs1), is_map(Bs2) ->
     maps:merge_with(fun
@@ -1616,10 +1615,10 @@ merge_bindings(Bs1, Bs2, Anno, Ef) ->
 		  end end,
 	  Bs2, orddict:to_list(Bs1)).
 
-new_bindings(Bs) when is_map(Bs) -> maps:new();
+new_bindings(Bs) when is_map(Bs) -> #{};
 new_bindings(Bs) when is_list(Bs) -> orddict:new().
 
-filter_bindings(Fun, Bs) when is_map(Bs) -> maps:filter(Fun, Bs);
+filter_bindings(Fun, #{}=Bs) -> maps:filter(Fun, Bs);
 filter_bindings(Fun, Bs) when is_list(Bs) -> orddict:filter(Fun, Bs).
 
 to_terms(Abstrs) ->
@@ -1664,7 +1663,7 @@ tokens_fixup([T|Ts]=Ts0) ->
 
 token_fixup(Ts) ->
     {AnnoL, NewTs, FixupTag} = unscannable(Ts),
-    String = lists:append([erl_anno:text(A) || A <- AnnoL]),
+    String = lists:flatmap(fun erl_anno:text/1, AnnoL),
     _ = validate_tag(FixupTag, String),
     NewAnno = erl_anno:set_text(fixup_text(FixupTag), hd(AnnoL)),
     {{string, NewAnno, String}, NewTs}.
@@ -1692,6 +1691,14 @@ expr_fixup({string,A,S}=T) ->
     catch
         _:_ -> T
     end;
+expr_fixup({A,B}) ->
+    {expr_fixup(A), expr_fixup(B)};
+expr_fixup({A,B,C}) ->
+    {expr_fixup(A), expr_fixup(B), expr_fixup(C)};
+expr_fixup({A,B,C,D}) ->
+    {expr_fixup(A), expr_fixup(B), expr_fixup(C), expr_fixup(D)};
+expr_fixup({A,B,C,D,E}) ->
+    {expr_fixup(A), expr_fixup(B), expr_fixup(C), expr_fixup(D), expr_fixup(E)};
 expr_fixup(Tuple) when is_tuple(Tuple) ->
     L = expr_fixup(tuple_to_list(Tuple)),
     list_to_tuple(L);
@@ -1828,7 +1835,7 @@ normalise_list([]) ->
 %%----------------------------------------------------------------------------
 %%
 %% Evaluate expressions:
-%% constants and 
+%% constants and
 %% op A
 %% L op R
 %% Things that evaluate to constants are accepted

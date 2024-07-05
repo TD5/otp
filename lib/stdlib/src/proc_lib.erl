@@ -61,7 +61,7 @@ processes that terminate as a result of this process terminating.
 """.
 
 %% This module is used to set some initial information
-%% in each created process. 
+%% in each created process.
 %% Then a process terminates the Reason is checked and
 %% a crash report is generated if the Reason was not expected.
 
@@ -326,7 +326,7 @@ init_p(Parent, Ancestors, M, F, A) when is_atom(M), is_atom(F), is_list(A) ->
 
 init_p_do_apply(M, F, A) ->
     try
-	apply(M, F, A) 
+	apply(M, F, A)
     catch
 	Class:Reason:Stacktrace ->
 	    exit_p(Class, Reason, Stacktrace)
@@ -337,7 +337,7 @@ init_p_do_apply(M, F, A) ->
 
 wake_up(M, F, A) when is_atom(M), is_atom(F), is_list(A) ->
     try
-	apply(M, F, A) 
+	apply(M, F, A)
     catch
 	Class:Reason:Stacktrace ->
 	    exit_p(Class, Reason, Stacktrace)
@@ -346,7 +346,7 @@ wake_up(M, F, A) when is_atom(M), is_atom(F), is_list(A) ->
 exit_p(Class, Reason, Stacktrace) ->
     case get('$initial_call') of
 	{M,F,A} when is_atom(M), is_atom(F), is_integer(A) ->
-	    MFA = {M,F,make_dummy_args(A, [])},
+	    MFA = {M,F,make_dummy_args(A)},
 	    crash_report(Class, Reason, MFA, Stacktrace),
 	    erlang:raise(exit, exit_reason(Class, Reason, Stacktrace), Stacktrace);
 	_ ->
@@ -788,13 +788,32 @@ tuple (from which a pid can be created), or the process information of a process
 initial_call(DictOrPid) ->
     case raw_initial_call(DictOrPid) of
 	{M,F,A} ->
-	    {M,F,make_dummy_args(A, [])};
+	    {M,F,make_dummy_args(A)};
 	false ->
 	    false
     end.
 
-make_dummy_args(0, Acc) ->
-    Acc;
+make_dummy_args(0) ->
+    [];
+make_dummy_args(1) ->
+    ['Argument__1'];
+make_dummy_args(2) ->
+    ['Argument__1','Argument__2'];
+make_dummy_args(3) ->
+    ['Argument__1','Argument__2','Argument__3'];
+make_dummy_args(4) ->
+    ['Argument__1','Argument__2','Argument__3','Argument__4'];
+make_dummy_args(5) ->
+    ['Argument__1','Argument__2','Argument__3','Argument__4','Argument__5'];
+make_dummy_args(6) ->
+    ['Argument__1','Argument__2','Argument__3','Argument__4','Argument__5','Argument__6'];
+make_dummy_args(7) ->
+    ['Argument__1','Argument__2','Argument__3','Argument__4','Argument__5','Argument__6','Argument__7'];
+make_dummy_args(8) ->
+    ['Argument__1','Argument__2','Argument__3','Argument__4','Argument__5','Argument__6','Argument__7','Argument__8'];
+make_dummy_args(N) ->
+    make_dummy_args(N, []).
+
 make_dummy_args(N, Acc) ->
     Arg = list_to_atom("Argument__" ++ integer_to_list(N)),
     make_dummy_args(N-1, [Arg|Acc]).
@@ -1048,7 +1067,7 @@ get_dictionary(Pid,Tag) ->
 
 linked_info(Pid) ->
   make_neighbour_reports1(neighbours(Pid)).
-  
+
 make_neighbour_reports1([P|Ps]) ->
     %%
     %%  Process P might have been deleted.
@@ -1061,7 +1080,7 @@ make_neighbour_reports1([P|Ps]) ->
     end;
 make_neighbour_reports1([]) ->
     [].
-  
+
 %% Do not include messages or process dictionary, even if
 %% error_logger_format_depth is unlimited.
 make_neighbour_report(Pid) ->
@@ -1072,7 +1091,7 @@ make_neighbour_report(Pid) ->
             current_stacktrace
            ],
     ProcInfo = get_process_info(Pid, Keys),
-    
+
     DictKeys = [{dictionary, '$process_label'},
                 {dictionary, '$initial_call'},
                 {dictionary, '$ancestors'}],
@@ -1104,7 +1123,7 @@ make_neighbour_report(Pid) ->
 get_initial_call(DictInfo, ProcInfo) ->
     case dict_find_info('$initial_call', DictInfo, undefined) of
 	{initial_call, {M, F, A}} ->
-	    {initial_call, {M, F, make_dummy_args(A, [])}};
+	    {initial_call, {M, F, make_dummy_args(A)}};
 	_R ->
 	    lists:keyfind(initial_call, 1, ProcInfo)
     end.
@@ -1126,10 +1145,10 @@ dict_find_info(DictKey, Dict, Default) ->
 
 %%  neighbours(Pid) = list of Pids
 %%
-%%  Get the neighbours of Pid. A neighbour is a process which is 
-%%  linked to Pid and does not trap exit; or a neigbour of a 
+%%  Get the neighbours of Pid. A neighbour is a process which is
+%%  linked to Pid and does not trap exit; or a neigbour of a
 %%  neighbour etc.
-%% 
+%%
 %%  A breadth-first search is performed.
 
 -spec neighbours(pid()) -> [pid()].
@@ -1147,7 +1166,7 @@ max_neighbours() -> 15.
 %%    Ps   processes,
 %%    Vs   visited processes,
 %%    N    max number to visit.
-%%   
+%%
 visit([P|Ps], {N, Vs} = NVs) when N > 0 ->
   case lists:member(P, Vs) of
     false -> visit(adjacents(P), visit(Ps, {N-1, [P|Vs]}));
@@ -1158,7 +1177,7 @@ visit(_, {_N, _Vs} = NVs) ->
 
 %%
 %% adjacents(Pid) = AdjacencyList
-%% 
+%%
 -spec adjacents(pid()) -> [pid()].
 
 adjacents(Pid) ->
@@ -1166,7 +1185,7 @@ adjacents(Pid) ->
     {links, Links} -> no_trap(Links);
     _              -> []
   end.
-  
+
 no_trap([P|Ps]) ->
   case catch proc_info(P, trap_exit) of
     {trap_exit, false} -> [P|no_trap(Ps)];
@@ -1174,7 +1193,7 @@ no_trap([P|Ps]) ->
   end;
 no_trap([]) ->
   [].
- 
+
 get_process_info(Pid, Tag) ->
     translate_process_info(Tag, catch proc_info(Pid, Tag)).
 

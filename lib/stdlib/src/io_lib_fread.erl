@@ -47,9 +47,9 @@
               | 'eof'
               | {'error', {'fread', What :: io_lib:fread_error()}}.
 
-fread([], Chars, Format) ->
+fread([]=Nil, Chars, Format) ->
     %%io:format("FREAD: ~w `~s'~n", [Format,Chars]),
-    fread_collect(Format, [], 0, [], Chars);
+    fread_collect(Format, Nil, 0, Nil, Chars);
 fread({Format,Stack,N,Results}=_Continuation, Chars, _) ->
     %%io:format("FREAD: ~w `~s'~n", [_Continuation,Chars]),
     fread_collect(Format, Stack, N, Results, Chars).
@@ -70,11 +70,12 @@ fread_collect(Format, Stack, N, Results, Chars) -> % eof
 
 fread_line(Format0, Line, N0, Results0, More, Newline) ->
     %%io:format("FREAD1: `~s' `~s'~n", [Format0,Line]),
-    Chars = if is_list(More) -> More; true -> [] end,
     case fread(Format0, Line, N0, Results0) of
-	{ok,Results,[]} ->
+	{ok,Results,[]=Nil} ->
+        Chars = if is_list(More) -> More; true -> Nil end,
 	    {done,{ok,Results},Chars};
 	{ok,Results,Rest} ->
+        Chars = if is_list(More) -> More; true -> [] end,
 	    %% Don't lose the whitespace
 	    {done,{ok,Results},Rest++(Newline++Chars)};
 	%% fread/4 should not return {more,...} on eof; guard just in case...
@@ -138,7 +139,7 @@ fread_skip_white(Format, [C|Line], N, Results) when ?is_whitespace(C) ->
 fread_skip_white(Format, Line, N, Results) ->
     fread(Format, Line, N, Results).
 
-%% fread_field(Format) 
+%% fread_field(Format)
 %%  Reads the field specification paramters. Returns:
 %%
 %%	{RestFormat,FieldWidth,Suppress}
@@ -148,9 +149,9 @@ fread_field(Format) -> fread_field(Format, false, false).
 
 fread_field([C|Format], Sup, Unic) when C >= $0, C =< $9 ->
     fread_field(Format, C - $0, Sup, Unic);
-fread_field([$t|Format], Sup, _Unic) -> 
+fread_field([$t|Format], Sup, _Unic) ->
     {Format,none,Sup,true};
-fread_field(Format, Sup, Unic) -> 
+fread_field(Format, Sup, Unic) ->
     {Format,none,Sup,Unic}.
 
 fread_field([C|Format], F, Sup, Unic) when C >= $0, C =< $9 ->
@@ -279,7 +280,7 @@ fread_unsigned(Cs, Base, Sup, Format, Line, N, Res) ->
 	Integer ->
 	    fread(Format, Line, N, fread_result(Sup, Integer, Res))
     end.
-    
+
 
 %% fread_based(IntegerChars, Base, Suppress, Format, Line, N, Results)
 
@@ -289,7 +290,7 @@ fread_based(Cs0, B, Sup, Format, Line, N, Res) ->
 		end,
     I = erlang:list_to_integer(Cs, Base),
     fread(Format, Line, N, fread_result(Sup, I, Res)).
-    
+
 
 %% fread_sign_char(Suppress, Format, Line, N, Results)
 
@@ -330,14 +331,14 @@ fread_chars(Line, C, U) ->
     fread_chars(C, Line, U, []).
 
 fread_chars(0, Line, _U, Cs) -> {Line,Cs};
-fread_chars(_N, [$\n|Line], _U, _Cs) -> {[$\n|Line],error};
+fread_chars(_N, [$\n|_]=L, _U, _Cs) -> {L,error};
 fread_chars(N, [C|Line], true, Cs) ->
     fread_chars(N-1, Line, true, [C|Cs]);
 fread_chars(N, [C|Line], false, Cs) when C >= 0, C =< 255 ->
     fread_chars(N-1, Line, false, [C|Cs]);
 fread_chars(_N, L, _U, _Cs) ->
     {L,error}.
-%%fread_chars(_N, [], _U,_Cs) -> 
+%%fread_chars(_N, [], _U,_Cs) ->
 %%    {[],error}.
 
 %% fread_int_cs(Line, N)
@@ -356,17 +357,17 @@ fread_float_cs(Line0, N0) ->
     {Line,N,Cs} = fread_digits(Line2, N2, Cs2),
     fread_float_cs_1(Line, N, Cs).
 
-fread_float_cs_1([$.|Line0], N0, Cs0) ->
-    {Line,N,Cs} = fread_digits(Line0, N0+1, [$.|Cs0]),
+fread_float_cs_1([C=$.|Line0], N0, Cs0) ->
+    {Line,N,Cs} = fread_digits(Line0, N0+1, [C|Cs0]),
     fread_float_cs_2(Line, N, Cs);
 fread_float_cs_1(Line, N, Cs) ->
     {Line,N,Cs}.
 
-fread_float_cs_2([$e|Line0], N0, Cs0) ->
-    {Line,N,Cs} = fread_sign(Line0, N0+1, [$e|Cs0]),
+fread_float_cs_2([C=$e|Line0], N0, Cs0) ->
+    {Line,N,Cs} = fread_sign(Line0, N0+1, [C|Cs0]),
     fread_digits(Line, N, Cs);
-fread_float_cs_2([$E|Line0], N0, Cs0) ->
-    {Line,N,Cs} = fread_sign(Line0, N0+1, [$E|Cs0]),
+fread_float_cs_2([C=$E|Line0], N0, Cs0) ->
+    {Line,N,Cs} = fread_sign(Line0, N0+1, [C|Cs0]),
     fread_digits(Line, N, Cs);
 fread_float_cs_2(Line, N, Cs) ->
     {Line,N,Cs}.
@@ -412,8 +413,8 @@ fread_skip_nonwhite([C|Line], N, Cs) ->
     fread_skip_nonwhite(Line, N+1, [C|Cs]);
 fread_skip_nonwhite([], N, Cs) -> {[],N,Cs}.
 
-fread_sign([$+|Line], N, Cs) -> {Line,N+1,[$+|Cs]};
-fread_sign([$-|Line], N, Cs) -> {Line,N+1,[$-|Cs]};
+fread_sign([C=$+|Line], N, Cs) -> {Line,N+1,[C|Cs]};
+fread_sign([C=$-|Line], N, Cs) -> {Line,N+1,[C|Cs]};
 fread_sign(Line, N, Cs) -> {Line,N,Cs}.
 
 fread_base(Line0, N0) ->

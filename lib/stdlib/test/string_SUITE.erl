@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 2004-2023. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 %%%----------------------------------------------------------------
@@ -22,9 +22,10 @@
 %%%-----------------------------------------------------------------
 -module(string_SUITE).
 -include_lib("common_test/include/ct.hrl").
+-include_lib("stdlib/include/assert.hrl").
 
 %% Test server specific exports
--export([all/0, suite/0,groups/0,init_per_suite/1, end_per_suite/1, 
+-export([all/0, suite/0,groups/0,init_per_suite/1, end_per_suite/1,
 	 init_per_group/2,end_per_group/2]).
 -export([init_per_testcase/2, end_per_testcase/2]).
 
@@ -255,7 +256,56 @@ reverse(_) ->
     ?TEST(Str1, [], lists:reverse(Str1)),
     ?TEST(Str2, [], lists:reverse(Str2)),
     ?TEST(Str3, [], lists:reverse(Str3)),
-    true = string:reverse(Str3) =:= lists:reverse(string:to_graphemes(Str3)),
+    CheckListVsStringRev =
+        fun (S) ->
+            ?assertEqual(
+                string:reverse(S),
+                lists:reverse(string:to_graphemes(S)),
+                "string:reverse on a list does the same as reversing the list of graphemes"),
+            ?assertEqual(
+                string:reverse(unicode:characters_to_binary(S,unicode,utf8)),
+                lists:reverse(string:to_graphemes(S)),
+                "string:reverse on a utf8 binary does the same as reversing the list of graphemes")
+        end,
+    CheckListVsStringRev(Str3),
+    CheckListVsStringRev("α"),
+    CheckListVsStringRev("αβ"),
+    CheckListVsStringRev("αβγ"),
+    CheckListVsStringRev("αβγδ"),
+    CheckListVsStringRev("αβγδε"),
+    CheckListVsStringRev("αβγδεζ"),
+    CheckListVsStringRev("αβγδεζη"),
+    CheckListVsStringRev("αβγδεζηθ"),
+    CheckListVsStringRev("αβγδεζηθι"),
+    CheckListVsStringRev("αβγδεζηθικ"),
+    CheckListVsStringRev("αβγδεζηθικλ"),
+    CheckListVsStringRev("aα"),
+    CheckListVsStringRev("aαβ"),
+    CheckListVsStringRev("aαβγ"),
+    CheckListVsStringRev("aαβγδ"),
+    CheckListVsStringRev("aαβγδε"),
+    CheckListVsStringRev("aαβγδεζ"),
+    CheckListVsStringRev("aαβγδεζη"),
+    CheckListVsStringRev("aαβγδεζηθ"),
+    CheckListVsStringRev("aαβγδεζηθι"),
+    CheckListVsStringRev("aαβγδεζηθικ"),
+    CheckListVsStringRev("aαβγδεζηθικλ"),
+    CheckListVsStringRev("aαa"),
+    CheckListVsStringRev("aαaβ"),
+    CheckListVsStringRev("aαaβγ"),
+    CheckListVsStringRev("aαaβγδ"),
+    CheckListVsStringRev("aαaβγδε"),
+    CheckListVsStringRev("aαaβγδεζ"),
+    CheckListVsStringRev("aαaβγδεζη"),
+    CheckListVsStringRev("aαaβγδεζηθ"),
+    CheckListVsStringRev("aαaβγδεζηθι"),
+    CheckListVsStringRev("aαaβγδεζηθικ"),
+    CheckListVsStringRev("aαaβγδεζηθικλ"),
+    CheckListVsStringRev("a👪"),
+    CheckListVsStringRev("a👪b"),
+    CheckListVsStringRev("a👪b👪"),
+    CheckListVsStringRev("👪b"),
+    CheckListVsStringRev("👪👪👪👪👪👪"),
 
     InvalidUTF8 = <<192,192>>,
     {'EXIT', {badarg, _}} = ?TRY(string:reverse(InvalidUTF8)),
@@ -455,9 +505,13 @@ uppercase(_) ->
     ?TEST("123", [], "123"),
     ?TEST("abc", [], "ABC"),
     ?TEST("ABC", [], "ABC"),
-    ?TEST("abcdefghiljklmnopqrstvxyzåäö",[], "ABCDEFGHILJKLMNOPQRSTVXYZÅÄÖ"),
     ?TEST("åäö  ", [], "ÅÄÖ  "),
     ?TEST("ÅÄÖ  ", [], "ÅÄÖ  "),
+    ?TEST("zåäö",[], "ZÅÄÖ"),
+    ?TEST("zzåäö",[], "ZZÅÄÖ"),
+    ?TEST("zåzäö",[], "ZÅZÄÖ"),
+    ?TEST("åzäö",[], "ÅZÄÖ"),
+    ?TEST("abcdefghiljklmnopqrstvxyzåäö",[], "ABCDEFGHILJKLMNOPQRSTVXYZÅÄÖ"),
     ?TEST("Michał", [], "MICHAŁ"),
     ?TEST(["Mic",<<"hał"/utf8>>], [], "MICHAŁ"),
     ?TEST("ǉǇ", [], "ǇǇ"),
@@ -477,6 +531,11 @@ lowercase(_) ->
     ?TEST("ABC", [], "abc"),
     ?TEST("åäö  ", [], "åäö  "),
     ?TEST("ÅÄÖ  ", [], "åäö  "),
+    ?TEST("ZÅÄÖ",[], "zåäö"),
+    ?TEST("ZZÅÄÖ",[], "zzåäö"),
+    ?TEST("ZÅZÄÖ",[], "zåzäö"),
+    ?TEST("ÅZÄÖ",[], "åzäö"),
+    ?TEST("ABCDEFGHILJKLMNOPQRSTVXYZÅÄÖ",[], "abcdefghiljklmnopqrstvxyzåäö"),
     ?TEST("MICHAŁ", [], "michał"),
     ?TEST(["Mic",<<"HAŁ"/utf8>>], [], "michał"),
     ?TEST("ß SHARP S", [], "ß sharp s"),
@@ -961,9 +1020,7 @@ repeat_1(_, _) ->
 %% internal functions
 
 test(Line, Func, Str, Args, Res, Norm) ->
-    %%io:format("~p: ~p ~w ~w~n",[Line, Func, Str, Args]),
     test_1(Line, Func, Str, [Str|norm(none,Args)], Res),
-    %%io:format("~p: ~p bin ",[Line, Func]),
     test_1({Line,list}, Func, Str,
            [unicode:characters_to_list(Str)|norm(none,Args)], Res),
     Norm andalso
@@ -980,7 +1037,6 @@ test(Line, Func, Str, Args, Res, Norm) ->
     Norm andalso
         test_1({Line,dbin}, Func, Str,
                [unicode:characters_to_nfd_binary(Str)|norm(nfd,Args)], Res),
-    %%io:format("~n",[]),
     ok.
 
 test_1(Line, Func, Str, Args, Exp) ->
@@ -989,15 +1045,8 @@ test_1(Line, Func, Str, Args, Exp) ->
         check_types(Line, Func, Args, Res),
         case res(Res, Exp) of
             true -> ok;
-            {Res1,Exp1} when is_tuple(Exp1); is_float(Exp1) ->
-                io:format("~p~n",[Args]),
-                io:format("~p:~p: ~ts~w =>~n  :~w:~w~n",
-                          [Func,Line, Str,Str,Res1,Exp1]),
-                exit({error, Func});
             {Res1,Exp1} ->
-                io:format("~p:~p: ~ts~w =>~n  :~ts~w:~ts~w~n",
-                          [Func,Line, Str,Str, Res1,Res1, Exp1,Exp1]),
-                exit({error, Func})
+                exit({error, Func, {input, Str, result, Res1, expected, Exp1}})
         end
     catch
         error:Exp ->
@@ -1110,9 +1159,11 @@ type(Bin) when is_binary(Bin) ->
 type([]) ->
     {list, undefined};
 type(List) when is_list(List) ->
-    Deep = fun(L) when is_list(L) ->
-                   lists:any(fun(C) -> is_list(C) orelse is_binary(C) end, L);
-              (_) -> false
+    Deep =
+        % Not using lists:any/1, since the input might be an improper list
+        fun IsDeep([Hd|Tl]) ->
+            is_list(Hd) orelse is_binary(Hd) orelse IsDeep(Tl);
+            IsDeep(_) -> false
            end,
     case all(fun(C) -> not is_binary(C) end, List) of
         true ->

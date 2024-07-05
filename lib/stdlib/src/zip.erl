@@ -1166,7 +1166,7 @@ put_z_files([F | Rest], Z, Out0, Pos0,
 		RevFiles = reverse_join_files(F, Files, []),
 		put_z_files(RevFiles, Z, Out5, Pos2, Opts, ThisAcc)
 	end,
-    Acc2 = lists:reverse(SubAcc) ++ Acc,
+    Acc2 = lists:reverse(SubAcc, Acc),
     put_z_files(Rest, Z, Out6, Pos3, Opts, Acc2).
 
 reverse_join_files(Dir, [File | Files], Acc) ->
@@ -1808,7 +1808,7 @@ get_z_file(In0, Z, Input, Output, OpO, FB,
 					   CompSize, Input, Output, OpO, Z),
 			    In5 = skip_z_data_descriptor(GPFlag, Input, In4),
 			    %% TODO This should be fixed some day:
-			    %% In5 = Input({set_file_info, FileName, 
+			    %% In5 = Input({set_file_info, FileName,
 			    %% FileInfo#file_info{size=UncompSize}}, In4),
 			    FB(FileName),
 			    CRC =:= CRC32 orelse throw({bad_crc, FileName}),
@@ -1934,11 +1934,13 @@ pwrite_binary(B, Pos, Bin) when byte_size(B) =:= Pos ->
 pwrite_binary(B, Pos, Bin) ->
     erlang:iolist_to_binary(pwrite_iolist(B, Pos, Bin)).
 
-append_bins([Bin|Bins], B) when is_binary(Bin) ->
+append_bins([<<_/binary>>=Bin|Bins], B) ->
     append_bins(Bins, <<B/binary, Bin/binary>>);
-append_bins([List|Bins], B) when is_list(List) ->
+append_bins([[]|Bins], B) ->
+    append_bins(Bins, B);
+append_bins([List=[_|_]|Bins], B) ->
     append_bins(Bins, append_bins(List, B));
-append_bins(Bin, B) when is_binary(Bin) ->
+append_bins(<<_/binary>>=Bin, B) ->
     <<B/binary, Bin/binary>>;
 append_bins([_|_]=List, B) ->
     <<B/binary, (iolist_to_binary(List))/binary>>;
@@ -2111,13 +2113,13 @@ binary_io({file_info, B}, _) ->
 	       links = 1, major_device = 0,
 	       minor_device = 0, inode = 0,
 	       uid = 0, gid = 0};
-binary_io({open, {_Filename, B, _FI}, _Opts}, _) when is_binary(B) ->
+binary_io({open, {_Filename, <<_/binary>>=B, _FI}, _Opts}, _) ->
     {0, B};
-binary_io({open, {_Filename, _FI, B}, _Opts}, _) when is_binary(B) ->
+binary_io({open, {_Filename, _FI, <<_/binary>>=B}, _Opts}, _) ->
     {0, B};
-binary_io({open, {_Filename, B}, _Opts}, _) when is_binary(B) ->
+binary_io({open, {_Filename, <<_/binary>>=B}, _Opts}, _) ->
     {0, B};
-binary_io({open, B, _Opts}, _) when is_binary(B) ->
+binary_io({open, <<_/binary>>=B, _Opts}, _) ->
     {0, B};
 binary_io({open, Filename, _Opts}, _) when is_list(Filename) ->
     {0, <<>>};

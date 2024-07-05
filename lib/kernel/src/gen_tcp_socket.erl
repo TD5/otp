@@ -370,7 +370,7 @@ default_active_true(Opts) ->
 listen(Port, Opts) ->
     %% ?DBG([{port, Port}, {opts, Opts}]),
     Opts_1              = internalize_setopts(Opts),
-    %% ?DBG([{opts_1, Opts_1}]), 
+    %% ?DBG([{opts_1, Opts_1}]),
    {Mod, Opts_2}       = inet:tcp_module(Opts_1),
     %% ?DBG([{mod, Mod}, {opts_2, Opts_2}]),
     {StartOpts, Opts_3} = split_start_opts(Opts_2),
@@ -961,7 +961,7 @@ domain(Mod) ->
 
 %% -------------------------------------------------------------------------
 
-sockaddrs([], _TP, _Domain) -> [];
+sockaddrs([]=Nil, _TP, _Domain) -> Nil;
 sockaddrs([{local, Path} | IPs], TP, Domain) when (Domain =:= local) ->
     [#{family => Domain, path => Path}
      | sockaddrs(IPs, TP, Domain)];
@@ -1006,7 +1006,7 @@ externalize_getopts(Opts) ->
          _                          -> %% ?DBG([{opt, Opt}]),
                                        exit(badarg)
      end || Opt <- Opts].
- 
+
 %%
 %% -------
 %% Split options into server start options and other options.
@@ -1111,7 +1111,7 @@ socket_setopt_value({socket,linger}, {OnOff, Linger}) ->
     #{onoff => OnOff, linger => Linger};
 socket_setopt_value({socket,bindtodevice}, DeviceBin)
   when is_binary(DeviceBin) ->
-    %% Currently: 
+    %% Currently:
     %% prim_inet: Require that device is a binary()
     %% socket:    Require that device is a string()
     binary_to_list(DeviceBin);
@@ -1275,7 +1275,7 @@ socket_opts() ->
           %% This is a special case.
           %% Only supported on Linux and then only actually for IPv6,
           %% but unofficially also for ip...barf...
-          %% In both cases this is *no longer valid* as the RFC which 
+          %% In both cases this is *no longer valid* as the RFC which
           %% introduced this, RFC 2292, is *obsoleted* by RFC 3542, where
           %% this "feature" *does not exist*...
           pktoptions  =>
@@ -1286,7 +1286,7 @@ socket_opts() ->
             %% Neither
             Opts;
         NopushOpt ->
-            maps:put(nopush, {tcp, NopushOpt}, Opts)
+            Opts#{nopush => {tcp, NopushOpt}}
     end.
 
 -compile({inline, [nopush_or_cork/0]}).
@@ -3023,7 +3023,7 @@ call_getopts(P, D, State, [Tag | Tags], Acc) ->
 counter_keys(What) ->
     lists:usort(counter_keys_1(What)).
 %%
-counter_keys_1([]) -> [];
+counter_keys_1([]=Nil) -> Nil;
 counter_keys_1([Tag | Tags]) ->
     counter_key(Tag) ++ counter_keys_1(Tags).
 
@@ -3040,7 +3040,7 @@ counter_key(Tag) ->
         _ -> []
     end.
 
-getstat_what([], _Counters) -> [];
+getstat_what([]=Nil, _Counters) -> Nil;
 getstat_what([Tag | Tags], Counters) ->
     case counter_key(Tag) of
         [SocketTag] ->
@@ -3106,7 +3106,7 @@ counter_value(W, C, #{num_cnt_bits := NumCntBits}) when is_integer(W) ->
 %%
 
 -compile({inline, [reverse/1]}).
-reverse([]) -> [];
+reverse([]=Nil) -> Nil;
 reverse([_] = L) -> L;
 reverse([A, B]) -> [B, A];
 reverse(L) -> lists:reverse(L).

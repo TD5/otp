@@ -48,11 +48,11 @@ format_error(invalid_unicode) ->
 format_error(ErrorId) ->
     erl_posix_msg:message(ErrorId).
 
-start(Owner, FileName, ModeList) 
+start(Owner, FileName, ModeList)
   when is_pid(Owner), (is_list(FileName) orelse is_binary(FileName)), is_list(ModeList) ->
     do_start(spawn, Owner, FileName, ModeList).
 
-start_link(Owner, FileName, ModeList) 
+start_link(Owner, FileName, ModeList)
   when is_pid(Owner), (is_list(FileName) orelse is_binary(FileName)), is_list(ModeList) ->
     do_start(spawn_link, Owner, FileName, ModeList).
 
@@ -63,7 +63,7 @@ do_start(Spawn, Owner, FileName, ModeList) ->
     Self = self(),
     Ref = make_ref(),
     Utag = erlang:dt_spread_tag(true),
-    Pid = 
+    Pid =
 	erlang:Spawn(
 	  fun() ->
 		  erlang:dt_restore_tag(Utag),
@@ -119,7 +119,7 @@ parse_options([], list, Uni, Acc) ->
 parse_options([], binary, Uni, Acc) ->
     {binary,Uni,lists:reverse(Acc)};
 parse_options([{encoding, Encoding}|T], RMode, _, Acc) ->
-    case valid_enc(Encoding) of 
+    case valid_enc(Encoding) of
 	{ok, ExpandedEnc} ->
 	    parse_options(T, RMode, ExpandedEnc, Acc);
 	{error,_Reason} = Error ->
@@ -130,8 +130,8 @@ parse_options([binary|T], _, Uni, Acc) ->
 parse_options([H|T], R, U, Acc) ->
     parse_options(T, R, U, [H|Acc]).
 
-expand_encoding([]) ->
-    [];
+expand_encoding([]=Nil) ->
+    Nil;
 expand_encoding([latin1 | T]) ->
     [{encoding,latin1} | expand_encoding(T)];
 expand_encoding([unicode | T]) ->
@@ -247,7 +247,7 @@ file_request({pread,At,Sz}, State)
 	Other ->
 	    Other
     end;
-file_request({pread,At,Sz}, 
+file_request({pread,At,Sz},
 	     #state{handle=Handle,buf=Buf}=State) ->
     case position(Handle, At, Buf) of
 	{error,_} = Reply ->
@@ -267,7 +267,7 @@ file_request({pwrite,At,Data},
   when At =:= cur;
        At =:= {cur,0} ->
     put_chars(Data, latin1, State);
-file_request({pwrite,At,Data}, 
+file_request({pwrite,At,Data},
 	     #state{handle=Handle,buf=Buf}=State) ->
     case position(Handle, At, Buf) of
 	{error,_} = Reply ->
@@ -283,7 +283,7 @@ file_request(datasync,
 	Reply ->
 	    {reply,Reply,State}
     end;
-file_request(sync, 
+file_request(sync,
 	     #state{handle=Handle}=State) ->
     case ?CALL_FD(Handle, sync, []) of
 	{error,Reason}=Reply ->
@@ -291,7 +291,7 @@ file_request(sync,
 	Reply ->
 	    {reply,Reply,State}
     end;
-file_request(close, 
+file_request(close,
 	     #state{handle=Handle}=State) ->
     case ?CALL_FD(Handle, close, []) of
 	{error,Reason}=Reply ->
@@ -299,7 +299,7 @@ file_request(close,
 	Reply ->
 	    {stop,normal,Reply,State#state{buf= <<>>}}
     end;
-file_request({position,At}, 
+file_request({position,At},
 	     #state{handle=Handle,buf=Buf}=State) ->
     case position(Handle, At, Buf) of
 	{error,_} = Reply ->
@@ -307,7 +307,7 @@ file_request({position,At},
 	Reply ->
 	    std_reply(Reply, State)
     end;
-file_request(truncate, 
+file_request(truncate,
 	     #state{handle=Handle}=State) ->
     case ?CALL_FD(Handle, truncate, []) of
 	{error,Reason}=Reply ->
@@ -331,13 +331,13 @@ std_reply(Reply, State) ->
     {reply,Reply,State#state{buf= <<>>}}.
 
 %%%-----------------------------------------------------------------
-%%% I/O request 
+%%% I/O request
 
 %% New protocol with encoding tags (R13)
-io_request({put_chars, Enc, Chars}, 
+io_request({put_chars, Enc, Chars},
 	   #state{buf= <<>>}=State) ->
     put_chars(Chars, Enc, State);
-io_request({put_chars, Enc, Chars}, 
+io_request({put_chars, Enc, Chars},
 	   #state{handle=Handle,buf=Buf}=State) ->
     case position(Handle, cur, Buf) of
 	{error,Reason}=Reply ->
@@ -345,7 +345,7 @@ io_request({put_chars, Enc, Chars},
 	_ ->
 	    put_chars(Chars, Enc, State#state{buf= <<>>})
     end;
-io_request({put_chars,Enc,Mod,Func,Args}, 
+io_request({put_chars,Enc,Mod,Func,Args},
 	   #state{}=State) ->
     case catch apply(Mod, Func, Args) of
 	Chars when is_list(Chars); is_binary(Chars) ->
@@ -355,10 +355,10 @@ io_request({put_chars,Enc,Mod,Func,Args},
     end;
 
 
-io_request({get_until,Enc,_Prompt,Mod,Func,XtraArgs}, 
+io_request({get_until,Enc,_Prompt,Mod,Func,XtraArgs},
 	   #state{}=State) ->
     get_chars(io_lib, get_until, {Mod, Func, XtraArgs}, Enc, State);
-io_request({get_chars,Enc,_Prompt,N}, 
+io_request({get_chars,Enc,_Prompt,N},
 	   #state{}=State) ->
     get_chars(N, Enc, State);
 
@@ -375,11 +375,11 @@ io_request({get_line,OutEnc,_Prompt}, #state{buf=Buf, read_mode=Mode, unic=InEnc
 	    {stop,ExError,{error,ExError},State0#state{buf= <<>>}}
     end;
 
-io_request({setopts, Opts}, 
+io_request({setopts, Opts},
 	   #state{}=State) when is_list(Opts) ->
     setopts(Opts, State);
 
-io_request(getopts, 
+io_request(getopts,
 	   #state{}=State) ->
     getopts(State);
 
@@ -395,10 +395,10 @@ io_request({get_chars,_Prompt,N}, #state{}=State) ->
 io_request({get_line,_Prompt}, #state{}=State) ->
     io_request({get_line,latin1,_Prompt}, State);
 
-io_request({requests,Requests}, 
+io_request({requests,Requests},
 	   #state{}=State) when is_list(Requests) ->
     io_request_loop(Requests, {reply,ok,State});
-io_request(Unknown, 
+io_request(Unknown,
 	   #state{}=State) ->
     Reason = {request,Unknown},
     {error,{error,Reason},State}.
@@ -408,13 +408,13 @@ io_request(Unknown,
 
 io_request_loop([], Result) ->
     Result;
-io_request_loop([_Request|_Tail], 
+io_request_loop([_Request|_Tail],
 		{stop,_Reason,_Reply,_State}=Result) ->
     Result;
 io_request_loop([_Request|_Tail],
 		{error,_Reply,_State}=Result) ->
     Result;
-io_request_loop([Request|Tail], 
+io_request_loop([Request|Tail],
 		{reply,_Reply,State}) ->
     io_request_loop(Tail, io_request(Request, State)).
 
@@ -483,20 +483,20 @@ convert_enc(Bin, InEnc, OutEnc) ->
 	    exit({no_translation, InEnc, OutEnc})
     end.
 
-%%    
+%%
 %% Process the I/O request get_chars
 %%
 get_chars(0, Enc, #state{read_mode=ReadMode,unic=InEncoding}=State) ->
     {reply,cast(<<>>, ReadMode,InEncoding, Enc),State};
-get_chars(N, Enc, #state{buf=Buf,read_mode=ReadMode,unic=latin1}=State) 
+get_chars(N, Enc, #state{buf=Buf,read_mode=ReadMode,unic=latin1}=State)
   when is_integer(N), N > 0, N =< byte_size(Buf) ->
     {B1,B2} = split_binary(Buf, N),
     {reply,cast(B1, ReadMode,latin1,Enc),State#state{buf=B2}};
-get_chars(N, Enc, #state{buf=Buf,read_mode=ReadMode,unic=latin1}=State) 
+get_chars(N, Enc, #state{buf=Buf,read_mode=ReadMode,unic=latin1}=State)
   when is_integer(N), N > 0, N =< byte_size(Buf) ->
     {B1,B2} = split_binary(Buf, N),
     {reply,cast(B1, ReadMode,latin1,Enc),State#state{buf=B2}};
-get_chars(N, OutEnc,#state{handle=Handle,buf=Buf,read_mode=ReadMode,unic=latin1}=State) 
+get_chars(N, OutEnc,#state{handle=Handle,buf=Buf,read_mode=ReadMode,unic=latin1}=State)
   when is_integer(N), N > 0 ->
     BufSize = byte_size(Buf),
     NeedSize = N-BufSize,
@@ -516,10 +516,10 @@ get_chars(N, OutEnc,#state{handle=Handle,buf=Buf,read_mode=ReadMode,unic=latin1}
 	{error,Reason}=Error ->
 	    {stop,Reason,Error,State#state{buf= <<>>}}
     end;
-get_chars(N, OutEnc,#state{handle=Handle,buf=Buf,read_mode=ReadMode,unic=InEncoding}=State) 
+get_chars(N, OutEnc,#state{handle=Handle,buf=Buf,read_mode=ReadMode,unic=InEncoding}=State)
   when is_integer(N), N > 0 ->
     try
-	%% This is rather tricky, we need to count the actual number of characters 
+	%% This is rather tricky, we need to count the actual number of characters
 	%% in the buffer first as unicode characters are not constant in length
 	{BufCount, SplitPos} = count_and_find(Buf,N,InEncoding),
 	case BufCount >= N of
@@ -547,7 +547,7 @@ get_chars(N, OutEnc,#state{handle=Handle,buf=Buf,read_mode=ReadMode,unic=InEncod
 				 State#state{buf=B02}};
 			    false ->
 				%% Reached end of file
-				std_reply(cast(NewBuf, ReadMode,InEncoding,OutEnc), 
+				std_reply(cast(NewBuf, ReadMode,InEncoding,OutEnc),
 					  State#state{buf = <<>>})
 			end;
 		    eof when BufCount =:= 0 ->
@@ -624,16 +624,16 @@ get_chars_apply(Mod, Func, XtraArg, S0, latin1,
     end;
 get_chars_apply(Mod, Func, XtraArg, S0, OutEnc,
 		#state{read_mode=ReadMode,unic=InEnc}=State, Data0) ->
-    try 
+    try
 	{Data1,NewBuff} = case ReadMode of
-			      list when is_binary(Data0) -> 
+			      list when is_binary(Data0) ->
 				  case unicode:characters_to_list(Data0,InEnc) of
 				      {Tag,Decoded,Rest} when Decoded =/= [], Tag =:= error; Decoded =/= [], Tag =:= incomplete ->
 					  {Decoded,erlang:iolist_to_binary(Rest)};
-				      {error, [], _}  -> 
+				      {error, [], _}  ->
 					  exit(invalid_unicode);
-				      {incomplete, [], R}  -> 
-					  {[],R};
+				      {incomplete, []=Nil, R}  ->
+					  {Nil,R};
 				      List when is_list(List) ->
 					  {List,<<>>}
 				  end;
@@ -701,7 +701,7 @@ err_func(io_lib, get_until, {_,F,_}) ->
 setopts(Opts0,State) ->
     Opts = proplists:unfold(
 	     proplists:substitute_negations(
-	       [{list,binary}], 
+	       [{list,binary}],
 	       expand_encoding(Opts0))),
     case check_valid_opts(Opts) of
 	true ->
@@ -729,7 +729,7 @@ do_setopts(Opts, State) ->
 		    {reply,ok,State#state{unic=NewUnic}}
 	    end;
 	_ ->
-	    {error,{error,badarg},State} 
+	    {error,{error,badarg},State}
     end.
 
 getopts(#state{read_mode=RM, unic=Unic} = State) ->
@@ -747,7 +747,7 @@ cat(B1, B2, binary, InEncoding, OutEncoding) ->
 	_ ->
 	    exit({no_translation,InEncoding,OutEncoding})
     end;
-%% Dialyzer finds this is never used...                                                       
+%% Dialyzer finds this is never used...
 %% cat(B1, B2, list, InEncoding, OutEncoding) when InEncoding =/= latin1 ->
 %%     % Catch i.e. unicode -> latin1 errors by using the outencoding although otherwise
 %%     % irrelevant for lists...
@@ -785,11 +785,13 @@ cast(B, list, InEncoding, OutEncoding) ->
     end.
 
 %% Convert buffer to binary
-cast_binary(Binary) when is_binary(Binary) ->
+cast_binary(<<_/binary>>=Binary) ->
     Binary;
 cast_binary([<<>>|List]) ->
     cast_binary(List);
-cast_binary(List) when is_list(List) ->
+cast_binary([]) ->
+	<<>>;
+cast_binary([_|_]=List) ->
     list_to_binary(List);
 cast_binary(_EOF) ->
     <<>>.
@@ -802,7 +804,7 @@ read_size(list) ->
 
 %% Utf utility
 count_and_find(Bin,N,Encoding) ->
-    cafu(Bin,N,0,0,none,case Encoding of 
+    cafu(Bin,N,0,0,none,case Encoding of
 			   unicode -> utf8;
 			   Oth -> Oth
 			end).
@@ -846,7 +848,7 @@ cafu(<<_/utf32-little,Rest/binary>>, N, Count, _ByteCount, SavePos, {utf32,littl
 cafu(<<_/utf32-little,Rest/binary>> = Whole, N, Count, ByteCount, SavePos, {utf32,little}) ->
     Delta = byte_size(Whole) - byte_size(Rest),
     cafu(Rest,N-1,Count+1,ByteCount+Delta,SavePos,{utf32,little});
-cafu(_Other,0,Count,ByteCount,_,_) -> % Non Unicode character, 
+cafu(_Other,0,Count,ByteCount,_,_) -> % Non Unicode character,
                                      % but found our point, OK this time
     {Count,ByteCount};
 cafu(Other,_N,Count,0,SavePos,Enc) -> % Not enough, but valid chomped unicode
@@ -858,7 +860,7 @@ cafu(Other,_N,Count,0,SavePos,Enc) -> % Not enough, but valid chomped unicode
 	    {Count,SavePos}
     end;
 cafu(Other,_N,Count,ByteCount,none,Enc) -> % Return what we'we got this far
-					   % although not complete, 
+					   % although not complete,
 					   % it's not (yet) in error
     case cbv(Enc,Other) of
 	false ->
@@ -866,7 +868,7 @@ cafu(Other,_N,Count,ByteCount,none,Enc) -> % Return what we'we got this far
 	_ ->
 	    {Count,ByteCount}
     end;
-cafu(Other,_N,Count,_ByteCount,SavePos,Enc) -> % As above but we have 
+cafu(Other,_N,Count,_ByteCount,SavePos,Enc) -> % As above but we have
 					       % found a position
     case cbv(Enc,Other) of
 	false ->
@@ -878,9 +880,9 @@ cafu(Other,_N,Count,_ByteCount,SavePos,Enc) -> % As above but we have
 %%
 %% Bluntly stolen from stdlib/unicode.erl (cbv means can be valid?)
 %%
-cbv(utf8,<<1:1,1:1,0:1,_:5>>) -> 
+cbv(utf8,<<1:1,1:1,0:1,_:5>>) ->
     1;
-cbv(utf8,<<1:1,1:1,1:1,0:1,_:4,R/binary>>) -> 
+cbv(utf8,<<1:1,1:1,1:1,0:1,_:4,R/binary>>) ->
     case R of
 	<<>> ->
 	    2;
@@ -927,18 +929,18 @@ cbv({utf32,big}, <<0:8>>) ->
     3;
 cbv({utf32,big}, <<0:8,X:8>>) when X =< 16 ->
     2;
-cbv({utf32,big}, <<0:8,X:8,Y:8>>) 
+cbv({utf32,big}, <<0:8,X:8,Y:8>>)
   when X =< 16, ((X > 0) or ((Y =< 215) or (Y >= 224))) ->
     1;
 cbv({utf32,big},_) ->
     false;
 cbv({utf32,little},<<_:8>>) ->
     3;
-cbv({utf32,little},<<_:8,_:8>>) -> 
+cbv({utf32,little},<<_:8,_:8>>) ->
     2;
 cbv({utf32,little},<<X:8,255:8,0:8>>) when X =:= 254; X =:= 255 ->
     false;
-cbv({utf32,little},<<_:8,Y:8,X:8>>) 
+cbv({utf32,little},<<_:8,Y:8,X:8>>)
   when X =< 16, ((X > 0) or ((Y =< 215) or (Y >= 224))) ->
     1;
 cbv({utf32,little},_) ->
@@ -948,7 +950,7 @@ cbv({utf32,little},_) ->
 %%%-----------------------------------------------------------------
 %%% ?PRIM_FILE helpers
 
-%% Compensates ?PRIM_FILE:position/2 for the number of bytes 
+%% Compensates ?PRIM_FILE:position/2 for the number of bytes
 %% we have buffered
 position(Handle, At, Buf) ->
     SeekTo =

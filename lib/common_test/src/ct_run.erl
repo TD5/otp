@@ -960,16 +960,15 @@ run_test2(StartOpts) ->
 		       is_list(H) -> H;
 		       true -> []
 		    end,
-		lists:flatten(
-		  lists:map(fun(EH) when is_atom(EH) ->
-				    {EH,[]};
+		lists:flatmap(fun(EH) when is_atom(EH) ->
+				    [{EH,[]}];
 			       ({HL,Args}) when is_list(HL) ->
 				    [{EH,Args} || EH <- HL];
 			       ({EH,Args}) when is_atom(EH) ->
-				    {EH,Args};
+				    [{EH,Args}];
 			       (_) ->
 				    []
-			    end, Hs))
+			    end, Hs)
 	end,
 
     %% CT Hooks

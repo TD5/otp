@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 1997-2024. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,14 +14,14 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 -module(disk_log_server).
 -moduledoc false.
 -behaviour(gen_server).
 
--export([start_link/0, start/0, open/1, close/1, 
+-export([start_link/0, start/0, open/1, close/1,
 	 get_log_pid/1, all/0]).
 
 %% gen_server callbacks
@@ -43,10 +43,10 @@
 %%%----------------------------------------------------------------------
 %%% API
 %%%----------------------------------------------------------------------
-start_link() ->  
+start_link() ->
     gen_server:start_link({local, disk_log_server}, disk_log_server, [], []).
 
-start() -> 
+start() ->
     ensure_started().
 
 open({ok, A}) ->
@@ -82,21 +82,21 @@ handle_call({close, Pid}, _From, State) ->
     {reply, Reply, State}.
 
 handle_info({pending_reply, Pid, Result0}, State) ->
-    {value, #pending{log = Name, pid = Pid, from = From, 
+    {value, #pending{log = Name, pid = Pid, from = From,
                      req = Request, attach = Attach,
-                     clients = Clients}} = 
+                     clients = Clients}} =
         lists:keysearch(Pid, #pending.pid, State#state.pending),
     NP = lists:keydelete(Pid, #pending.pid, State#state.pending),
     State1 = State#state{pending = NP},
-    if 
+    if
         Attach and (Result0 =:= {error, no_such_log}) ->
             %% The disk_log process has terminated. Try again.
             open([{Request,From} | Clients], State1);
-        true -> 
+        true ->
             case Result0 of
-                _ when Attach -> 
+                _ when Attach ->
                     ok;
-                {error, _} -> 
+                {error, _} ->
                     ok;
                 _ ->
                     put(Pid, Name),
@@ -113,13 +113,13 @@ handle_info({'EXIT', Pid, _Reason}, State) ->
     case get(Pid) of
         undefined ->
             ok;
-        Name -> 
+        Name ->
             erase_log(Name, Pid)
     end,
     {noreply, State};
 handle_info(_, State) ->
     {noreply, State}.
-	    
+
 %% Just to avoid compiler warning.
 handle_cast(_, State) ->
     {noreply, State}.
@@ -127,7 +127,7 @@ handle_cast(_, State) ->
 %% Just to avoid compiler warning.
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
-    
+
 terminate(_Reason, _) ->
     ok.
 
@@ -161,7 +161,7 @@ ensure_child_started(Sup,Child) ->
 
 open([{Req, From} | L], State) ->
     State2 = case do_open(Req, From, State) of
-                 {pending, State1} -> 
+                 {pending, State1} ->
                      State1;
                  {Reply, State1} ->
                      gen_server:reply(From, Reply),
@@ -175,7 +175,7 @@ open([], State) ->
 %%    {pending, NewState}
 do_open({open, #arg{name = Name}}=Req, From, State) ->
     case check_pending(Name, From, State, Req) of
-        {pending, NewState} -> 
+        {pending, NewState} ->
             {pending, NewState};
         false ->
             case do_get_log_pid(Name) of
@@ -188,21 +188,21 @@ do_open({open, #arg{name = Name}}=Req, From, State) ->
 
 start_log(Name, Req, From, State) ->
     Server = self(),
-    case supervisor:start_child(disk_log_sup, [Server]) of 
+    case supervisor:start_child(disk_log_sup, [Server]) of
 	{ok, Pid} ->
             do_internal_open(Name, Pid, From, Req, false, State);
 	Error ->
 	    {Error, State}
     end.
-    
+
 do_internal_open(Name, Pid, From, {open, A}=Req, Attach, State) ->
-    Server = self(), 
-    F = fun() -> 
+    Server = self(),
+    F = fun() ->
                 Res = disk_log:internal_open(Pid, A),
                 Server ! {pending_reply, Pid, Res}
         end,
     _ = spawn(F),
-    PD = #pending{log = Name, pid = Pid, req = Req, 
+    PD = #pending{log = Name, pid = Pid, req = Req,
                   from = From, attach = Attach, clients = []},
     P = [PD | State#state.pending],
     {pending, State#state{pending = P}}.
@@ -210,7 +210,7 @@ do_internal_open(Name, Pid, From, {open, A}=Req, Attach, State) ->
 check_pending(Name, From, State, Req) ->
     case lists:keysearch(Name, #pending.log, State#state.pending) of
         {value, #pending{log = Name, clients = Clients}=P} ->
-            NP = lists:keyreplace(Name, #pending.log, State#state.pending, 
+            NP = lists:keyreplace(Name, #pending.log, State#state.pending,
                                P#pending{clients = Clients++[{Req,From}]}),
             {pending, State#state{pending = NP}};
         false ->
@@ -232,7 +232,7 @@ erase_log(Name, Pid) ->
         undefined ->
             ok;
         Pid ->
-            true = ets:delete(?DISK_LOG_NAME_TABLE, Name),            
+            true = ets:delete(?DISK_LOG_NAME_TABLE, Name),
             true = ets:delete(?DISK_LOG_PID_TABLE, Pid)
     end,
     erase(Pid).
@@ -245,8 +245,8 @@ do_all() ->
 %% Inlined.
 do_get_log_pid(LogName) ->
     try ets:lookup(?DISK_LOG_NAME_TABLE, LogName) of
-	[{LogName, Pid}] ->
-	    Pid;
+        [{LogName, Pid}] ->
+            Pid;
         [] ->
             undefined
     catch

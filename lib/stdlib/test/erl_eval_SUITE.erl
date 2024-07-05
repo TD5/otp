@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 1998-2024. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,11 +14,11 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 
 -module(erl_eval_SUITE).
--export([all/0, suite/0,groups/0,init_per_suite/1, end_per_suite/1, 
+-export([all/0, suite/0,groups/0,init_per_suite/1, end_per_suite/1,
 	 init_per_testcase/2, end_per_testcase/2,
 	 init_per_group/2,end_per_group/2]).
 
@@ -65,7 +65,7 @@
 
 -import(lists,[concat/1, sort/1]).
 
--export([count_down/2, count_down_fun/0, do_apply/2, 
+-export([count_down/2, count_down_fun/0, do_apply/2,
          local_func/3, local_func_value/2]).
 -export([simple/0]).
 
@@ -89,7 +89,7 @@ suite() ->
     [{ct_hooks,[ts_install_cth]},
      {timetrap,{minutes,1}}].
 
-all() -> 
+all() ->
     [guard_1, guard_2, match_pattern, string_plusplus,
      pattern_expr, match_bin, guard_3, guard_4, guard_5, lc,
      simple_cases, unary_plus, apply_atom, otp_5269,
@@ -99,7 +99,7 @@ all() ->
      eep37, eep43, otp_15035, otp_16439, otp_14708, otp_16545, otp_16865,
      eep49, binary_and_map_aliases, eep58].
 
-groups() -> 
+groups() ->
     [].
 
 init_per_suite(Config) ->
@@ -384,7 +384,7 @@ simple_cases(Config) when is_list(Config) ->
 			  (X) when X == 2 -> zwei end,
 		   ett = F(1), zwei = F(2) end,
 	  "begin F = fun(X) when X == 1 -> ett;
-                              (X) when X == 2 -> zwei end, 
+                              (X) when X == 2 -> zwei end,
 	  ett = F(1), zwei = F(2) end.",
                 zwei),
     error_check("begin F = fun(1) -> ett end, zwei = F(2) end.",
@@ -515,7 +515,7 @@ unary_plus(Config) when is_list(Config) ->
 %% OTP-5064. Can no longer apply atoms.
 apply_atom(Config) when is_list(Config) ->
     error_check("[X || X <- [[1],[2]],
-                             begin L = length, L(X) =:= 1 end].", 
+                             begin L = length, L(X) =:= 1 end].",
                       {badfun,length}),
     ok.
 
@@ -525,7 +525,7 @@ otp_5269(Config) when is_list(Config) ->
                          F = fun(<<A:L,B:A>>) -> B end,
                          F(<<16:8, 7:16>>)
                 end,
-                "begin 
+                "begin
                    L = 8, F = fun(<<A:L,B:A>>) -> B end, F(<<16:8, 7:16>>)
                  end.",
                 7),
@@ -533,7 +533,7 @@ otp_5269(Config) when is_list(Config) ->
                          F = fun(<<L:L,B:L>>) -> B end,
                          F(<<16:8, 7:16>>)
                 end,
-                "begin 
+                "begin
                    L = 8, F = fun(<<L:L,B:L>>) -> B end, F(<<16:8, 7:16>>)
                  end.",
                 7),
@@ -542,7 +542,7 @@ otp_5269(Config) when is_list(Config) ->
                 7),
     error_check("begin L = 8, <<L:L,B:L>> = <<16:8, 7:16>> end.",
                       {badmatch,<<16:8,7:16>>}),
-    
+
     error_check("begin <<L:16,L:L>> = <<16:16,8:16>>, L end.",
                       {badmatch, <<16:16,8:16>>}),
     check(fun() -> U = 8, (fun(<<U:U>>) -> U end)(<<32:8>>) end,
@@ -577,18 +577,18 @@ otp_5269(Config) when is_list(Config) ->
 %% OTP-6539. try/catch bugs.
 otp_6539(Config) when is_list(Config) ->
     check(fun() ->
-                        F = fun(A,B) -> 
-                                    try A+B 
-                                    catch _:_ -> dontthinkso 
-                                    end 
+                        F = fun(A,B) ->
+                                    try A+B
+                                    catch _:_ -> dontthinkso
+                                    end
                             end,
                         lists:zipwith(F, [1,2], [2,3])
                 end,
-                "begin 
-                     F = fun(A,B) -> 
-                                 try A+B 
-                                 catch _:_ -> dontthinkso 
-                                 end 
+                "begin
+                     F = fun(A,B) ->
+                                 try A+B
+                                 catch _:_ -> dontthinkso
+                                 end
                          end,
                      lists:zipwith(F, [1,2], [2,3])
                  end.",
@@ -613,10 +613,10 @@ otp_6543(Config) when is_list(Config) ->
                 "<< <<X:8>> || <<X:2>> <= <<\"hej\">> >>.",
                 <<1,2,2,0,1,2,1,1,1,2,2,2>>),
     check(fun() ->
-                        << <<X:8>> || 
+                        << <<X:8>> ||
                             <<65,X:4>> <= <<65,7:4,65,3:4,66,8:4>> >>
                 end,
-                "<< <<X:8>> || 
+                "<< <<X:8>> ||
                             <<65,X:4>> <= <<65,7:4,65,3:4,66,8:4>> >>.",
                 <<7,3>>),
     check(fun() -> <<34:18/big>> end,
@@ -690,61 +690,61 @@ otp_6543(Config) when is_list(Config) ->
                 34),
     check(fun() -> <<X:18/little-signed>> = <<34:18/little-signed>>,
                          X end,
-                "begin <<X:18/little-signed>> = <<34:18/little-signed>>, 
+                "begin <<X:18/little-signed>> = <<34:18/little-signed>>,
                        X end.",
                 34),
     check(fun() -> <<X:18/native-signed>> = <<34:18/native-signed>>,
                          X end,
-                "begin <<X:18/native-signed>> = <<34:18/native-signed>>, 
+                "begin <<X:18/native-signed>> = <<34:18/native-signed>>,
                        X end.",
                 34),
     check(fun() -> <<X:18/big-unsigned>> = <<34:18/big-unsigned>>,
                          X end,
-                "begin <<X:18/big-unsigned>> = <<34:18/big-unsigned>>, 
+                "begin <<X:18/big-unsigned>> = <<34:18/big-unsigned>>,
                        X end.",
                 34),
     check(fun() ->
-                        <<X:18/little-unsigned>> = <<34:18/little-unsigned>>, 
+                        <<X:18/little-unsigned>> = <<34:18/little-unsigned>>,
                         X end,
-                "begin <<X:18/little-unsigned>> = <<34:18/little-unsigned>>, 
+                "begin <<X:18/little-unsigned>> = <<34:18/little-unsigned>>,
                        X end.",
                 34),
     check(fun() ->
-                        <<X:18/native-unsigned>> = <<34:18/native-unsigned>>, 
+                        <<X:18/native-unsigned>> = <<34:18/native-unsigned>>,
                         X end,
-                "begin <<X:18/native-unsigned>> = <<34:18/native-unsigned>>, 
+                "begin <<X:18/native-unsigned>> = <<34:18/native-unsigned>>,
                        X end.",
                 34),
     check(fun() -> <<X:32/float-big>> = <<2.0:32/float-big>>, X end,
-                "begin <<X:32/float-big>> = <<2.0:32/float-big>>, 
+                "begin <<X:32/float-big>> = <<2.0:32/float-big>>,
                         X end.",
                 2.0),
     check(fun() -> <<X:32/float-little>> = <<2.0:32/float-little>>,
                          X end,
-                "begin <<X:32/float-little>> = <<2.0:32/float-little>>, 
+                "begin <<X:32/float-little>> = <<2.0:32/float-little>>,
                         X end.",
                 2.0),
     check(fun() -> <<X:32/float-native>> = <<2.0:32/float-native>>,
                          X end,
-                "begin <<X:32/float-native>> = <<2.0:32/float-native>>, 
+                "begin <<X:32/float-native>> = <<2.0:32/float-native>>,
                         X end.",
                 2.0),
 
     check(
-            fun() -> 
+            fun() ->
                     [X || <<"hej",X:8>> <= <<"hej",8,"san",9,"hej",17,"hej">>]
             end,
-            "[X || <<\"hej\",X:8>> <= 
+            "[X || <<\"hej\",X:8>> <=
                         <<\"hej\",8,\"san\",9,\"hej\",17,\"hej\">>].",
             [8,17]),
     check(
             fun() ->
                     L = 8, << <<B:32>> || <<L:L,B:L>> <= <<16:8, 7:16>> >>
             end,
-            "begin L = 8, << <<B:32>> || <<L:L,B:L>> <= <<16:8, 7:16>> >> 
+            "begin L = 8, << <<B:32>> || <<L:L,B:L>> <= <<16:8, 7:16>> >>
              end.",
             <<0,0,0,7>>),
-    %% Test the Value part of a binary segment. 
+    %% Test the Value part of a binary segment.
     %% "Old" bugs have been fixed (partial_eval is called on Value).
     check(fun() -> [ 3 || <<17/float>> <= <<17.0/float>>] end,
                 "[ 3 || <<17/float>> <= <<17.0/float>>].",
@@ -771,28 +771,28 @@ otp_6543(Config) when is_list(Config) ->
     check(fun() ->
                  [ foo || <<(1 bsl 1024)/float>> <- [<<(1 bsl 1023)/float>>]]
                 end,
-                "[ foo || <<(1 bsl 1024)/float>> <- 
+                "[ foo || <<(1 bsl 1024)/float>> <-
                             [<<(1 bsl 1023)/float>>]].",
                 []),
     check(fun() ->
                  [ foo || <<(1 bsl 1024)/float>> <= <<(1 bsl 1023)/float>>]
                 end,
-                "[ foo || <<(1 bsl 1024)/float>> <= 
+                "[ foo || <<(1 bsl 1024)/float>> <=
                             <<(1 bsl 1023)/float>>].",
                 []),
     check(fun() ->
-                        L = 8, 
+                        L = 8,
                         [{L,B} || <<L:L,B:L/float>> <= <<32:8,7:32/float>>]
                 end,
-                "begin L = 8, 
+                "begin L = 8,
                        [{L,B} || <<L:L,B:L/float>> <= <<32:8,7:32/float>>]
                  end.",
                 [{32,7.0}]),
     check(fun() ->
-                        L = 8, 
+                        L = 8,
                         [{L,B} || <<L:L,B:L/float>> <- [<<32:8,7:32/float>>]]
                 end,
-                "begin L = 8, 
+                "begin L = 8,
                        [{L,B} || <<L:L,B:L/float>> <- [<<32:8,7:32/float>>]]
                  end.",
                 [{32,7.0}]),
@@ -908,47 +908,47 @@ otp_7550(Config) when is_list(Config) ->
 otp_8133(Config) when is_list(Config) ->
     check(
             fun() ->
-                  E = fun(N) -> 
-                              if 
-                                  is_integer(N) -> <<N/integer>>; 
-                                  true -> throw(foo) 
-                              end 
+                  E = fun(N) ->
+                              if
+                                  is_integer(N) -> <<N/integer>>;
+                                  true -> throw(foo)
+                              end
                       end,
-                  try << << (E(V))/binary >> || V <- [1,2,3,a] >> 
+                  try << << (E(V))/binary >> || V <- [1,2,3,a] >>
                   catch foo -> ok
                   end
             end,
             "begin
-                 E = fun(N) -> 
-                            if is_integer(N) -> <<N/integer>>; 
-                               true -> throw(foo) 
-                            end 
+                 E = fun(N) ->
+                            if is_integer(N) -> <<N/integer>>;
+                               true -> throw(foo)
+                            end
                      end,
-                 try << << (E(V))/binary >> || V <- [1,2,3,a] >> 
+                 try << << (E(V))/binary >> || V <- [1,2,3,a] >>
                  catch foo -> ok
                  end
              end.",
             ok),
     check(
             fun() ->
-                  E = fun(N) -> 
-                              if 
-                                  is_integer(N) -> <<N/integer>>; 
+                  E = fun(N) ->
+                              if
+                                  is_integer(N) -> <<N/integer>>;
 
-                                  true -> erlang:error(foo) 
-                              end 
+                                  true -> erlang:error(foo)
+                              end
                       end,
-                  try << << (E(V))/binary >> || V <- [1,2,3,a] >> 
+                  try << << (E(V))/binary >> || V <- [1,2,3,a] >>
                   catch error:foo -> ok
                   end
             end,
             "begin
-                 E = fun(N) -> 
-                            if is_integer(N) -> <<N/integer>>; 
-                               true -> erlang:error(foo) 
-                            end 
+                 E = fun(N) ->
+                            if is_integer(N) -> <<N/integer>>;
+                               true -> erlang:error(foo)
+                            end
                      end,
-                 try << << (E(V))/binary >> || V <- [1,2,3,a] >> 
+                 try << << (E(V))/binary >> || V <- [1,2,3,a] >>
                  catch error:foo -> ok
                  end
              end.",
@@ -1072,7 +1072,7 @@ otp_14826(_Config) ->
     end,
     backtrace_check("{1,1} = {A = 1, A = 2}.",
                     {badmatch, 1},
-                    [erl_eval, {lists,foldl,3}]),
+                    [{erl_eval,'-merge_bindings/4-fun-1-',5}]),
     backtrace_check("case a of a when foo:bar() -> x end.",
                     guard_expr,
                     [{erl_eval,guard0,4}], none, none),
@@ -1396,7 +1396,7 @@ many_args(N) ->
     [many_args1(I) || I <- lists:seq(1, N)].
 
 many_args1(N) ->
-    F = fun(L, P) -> 
+    F = fun(L, P) ->
                 tl(lists:flatten([","++P++integer_to_list(E) || E <- L]))
         end,
     L = lists:seq(1, N),
@@ -1414,16 +1414,16 @@ do_funs(LFH, EFH) ->
     M = atom_to_list(?MODULE),
     check(fun() -> F1 = fun(F,N) -> ?MODULE:count_down(F, N) end,
                          F1(F1, 1000) end,
-                concat(["begin F1 = fun(F,N) -> ", M, 
+                concat(["begin F1 = fun(F,N) -> ", M,
                         ":count_down(F, N) end, F1(F1,1000) end."]),
 		0, ['F1'], LFH, EFH),
     check(fun() -> F1 = fun(F,N) -> apply(?MODULE,count_down,[F,N])
                               end, F1(F1, 1000) end,
-                concat(["begin F1 = fun(F,N) -> apply(", M, 
+                concat(["begin F1 = fun(F,N) -> apply(", M,
                         ",count_down,[F, N]) end, F1(F1,1000) end."]),
 		0, ['F1'], LFH, EFH),
     check(fun() -> F = fun(F,N) when N > 0 -> apply(F,[F,N-1]);
-                                (_F,0) -> ok end, 
+                                (_F,0) -> ok end,
                          F(F, 1000)
                 end,
                 "begin F = fun(F,N) when N > 0 -> apply(F,[F,N-1]);"
@@ -1432,7 +1432,7 @@ do_funs(LFH, EFH) ->
                 ok, ['F'], LFH, EFH),
     check(fun() -> F = fun(F,N) when N > 0 ->
                                      apply(erlang,apply,[F,[F,N-1]]);
-                                (_F,0) -> ok end, 
+                                (_F,0) -> ok end,
                          F(F, 1000)
                 end,
                 "begin F = fun(F,N) when N > 0 ->"
@@ -1451,7 +1451,7 @@ do_funs(LFH, EFH) ->
 
     check(fun() -> F = fun(X) -> A = 1+X, {X,A} end,
                          true = {2,3} == F(2) end,
-                "begin F = fun(X) -> A = 1+X, {X,A} end, 
+                "begin F = fun(X) -> A = 1+X, {X,A} end,
                        true = {2,3} == F(2) end.", true, ['F'], LFH, EFH),
     check(fun() -> F = fun(X) -> erlang:'+'(X,2) end,
 		   true = 3 == F(1) end,
@@ -1459,7 +1459,7 @@ do_funs(LFH, EFH) ->
 	  "      true = 3 == F(1) end.", true, ['F'],
 	  LFH, EFH),
     check(fun() -> F = fun(X) -> byte_size(X) end,
-                         ?MODULE:do_apply(F,<<"hej">>) end, 
+                         ?MODULE:do_apply(F,<<"hej">>) end,
                 concat(["begin F = fun(X) -> size(X) end,",
                         M,":do_apply(F,<<\"hej\">>) end."]),
                 3, ['F'], LFH, EFH),
@@ -1468,22 +1468,22 @@ do_funs(LFH, EFH) ->
                          Z = 5,
                          F2 = fun(X, Y) -> F1(Z,{X,Y}) end,
                          F3 = fun(X, Y) -> {a,F1(Z,{X,Y})} end,
-                         {5,{x,y}} = F2(x,y), 
-                         {a,{5,{y,x}}} = F3(y,x), 
-                         {5,{5,y}} = F2(Z,y), 
+                         {5,{x,y}} = F2(x,y),
+                         {a,{5,{y,x}}} = F3(y,x),
+                         {5,{5,y}} = F2(Z,y),
                          true = {5,{x,5}} == F2(x,Z) end,
                 "begin F1 = fun(X, Z) -> {X,Z} end,
                        Z = 5,
                        F2 = fun(X, Y) -> F1(Z,{X,Y}) end,
                        F3 = fun(X, Y) -> {a,F1(Z,{X,Y})} end,
-                       {5,{x,y}} = F2(x,y), 
-                       {a,{5,{y,x}}} = F3(y,x), 
-                       {5,{5,y}} = F2(Z,y), 
+                       {5,{x,y}} = F2(x,y),
+                       {a,{5,{y,x}}} = F3(y,x),
+                       {5,{5,y}} = F2(Z,y),
                        true = {5,{x,5}} == F2(x,Z) end.",
                 true, ['F1','Z','F2','F3'], LFH, EFH),
     check(fun() -> F = fun(X) -> byte_size(X) end,
                          F2 = fun(Y) -> F(Y) end,
-                         ?MODULE:do_apply(F2,<<"hej">>) end, 
+                         ?MODULE:do_apply(F2,<<"hej">>) end,
                 concat(["begin F = fun(X) -> size(X) end,",
                         "F2 = fun(Y) -> F(Y) end,",
                         M,":do_apply(F2,<<\"hej\">>) end."]),
@@ -1498,11 +1498,11 @@ do_funs(LFH, EFH) ->
                          {1,1} = F2(1), Z = 7, Z end,
                 "begin F = fun(Z) -> Z end,
                        F2 = fun(X) -> F(X), Z = {X,X}, Z end,
-                       {1,1} = F2(1), Z = 7, Z end.", 7, ['F','F2','Z'], 
+                       {1,1} = F2(1), Z = 7, Z end.", 7, ['F','F2','Z'],
                 LFH, EFH),
     check(fun() -> F = fun(F, N) -> [?MODULE:count_down(F,N) || X <-[1]]
                              end, F(F,2) end,
-                concat(["begin F = fun(F, N) -> [", M, 
+                concat(["begin F = fun(F, N) -> [", M,
                        ":count_down(F,N) || X <-[1]] end, F(F,2) end."]),
                 [[[0]]], ['F'], LFH, EFH),
     ok.
@@ -1636,7 +1636,7 @@ try_catch(Config) when is_list(Config) ->
 		      {badmatch,2}),
     %% Uncaught exception with after
     check(fun () -> {'EXIT',{{badmatch,2},_}} =
-			      begin catch try 1=2 
+			      begin catch try 1=2
 					  after put(try_catch, 3) end end,
 			  get(try_catch) end,
 		"begin {'EXIT',{{badmatch,2},_}} = "
@@ -2035,7 +2035,7 @@ check(F, String, Result) ->
     check1(F, String, Result),
     FunString = concat(["fun() -> ", no_final_dot(String), " end(). "]),
     check1(F, FunString, Result),
-    CompileString = concat(["hd(lists:map(fun(_) -> ", no_final_dot(String), 
+    CompileString = concat(["hd(lists:map(fun(_) -> ", no_final_dot(String),
                             " end, [foo])). "]),
     check1(F, CompileString, Result).
 
@@ -2046,13 +2046,13 @@ check1(F, String, Result) ->
         {value, Result, Bs} when is_list(Bs) ->
             ok;
         Other1 ->
-            ct:fail({eval, Other1, Result})
+            ct:fail({eval, {evaluating, String}, {got, Other1}, {expected, Result}})
     end,
     case catch erl_eval:expr(Expr, #{}) of
         {value, Result, MapBs} when is_map(MapBs) ->
             ok;
         Other2 ->
-            ct:fail({eval, Other2, Result})
+            ct:fail({eval, {evaluating, String}, {got, Other2}, {expected, Result}})
     end.
 
 check(F, String, Result, BoundVars, LFH, EFH) ->
@@ -2151,7 +2151,14 @@ error_info_catch(String, Result) ->
             ct:fail({eval, Other, Result})
     end.
 
-check_backtrace([B1|Backtrace], [B2|BT]) ->
+check_backtrace(Backtrace, BT) ->
+    try check_backtrace_1(Backtrace, BT) of
+        R -> R
+    catch _:_:_ ->
+        ct:fail({backtrace_check_failed, Backtrace, BT})
+    end.
+
+check_backtrace_1([B1|Backtrace], [B2|BT]) ->
     case {B1, B2} of
         {M, {M,_,_,_}} ->
             ok;
@@ -2160,8 +2167,8 @@ check_backtrace([B1|Backtrace], [B2|BT]) ->
         {B, B} ->
             ok
     end,
-    check_backtrace(Backtrace, BT);
-check_backtrace([], _) ->
+    check_backtrace_1(Backtrace, BT);
+check_backtrace_1([], _) ->
     ok.
 
 eval_string(String) ->

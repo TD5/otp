@@ -516,7 +516,7 @@ parse_and_run(File, Args, Options) ->
 				    ["ebin" | Top] -> ["src" | Top];
 				    _ -> Rest
 				end,
-			    SrcFile = filename:join(lists:reverse([Base2 ++ ".erl" | Rest2])),
+			    SrcFile = filename:join(lists:reverse(Rest2, [Base2 ++ ".erl"])),
 			    debug(Module, {Module, SrcFile, File, FormsOrBin}, Args)
                     end
             end
@@ -873,7 +873,7 @@ epp_parse_file2(Epp, S, Forms, Parsed) ->
                       [S#state.file,pos(Ln),Mod:format_error(Args)]),
             epp_parse_file(Epp, S#state{n_errors = S#state.n_errors + 1}, [Form | Forms]);
         {eof, LastLine} ->
-            S#state{forms_or_bin = lists:reverse([{eof, LastLine} | Forms])}
+            S#state{forms_or_bin = lists:reverse(Forms, [{eof, LastLine}])}
     end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

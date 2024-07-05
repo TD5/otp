@@ -328,11 +328,11 @@ match(P, E, Bs) ->
 		_ ->
 		    case type(E) of
 			literal ->
-			    case is_map(concrete(E)) of
-				false ->
-				    none;
-				true ->
-				    {false, Bs}
+			    case concrete(E) of
+				#{} ->
+				    {false, Bs};
+				_ ->
+				    none
 			    end;
 			cons ->
 			    none;

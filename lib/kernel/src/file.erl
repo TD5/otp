@@ -211,7 +211,7 @@ operating system kernel.
 -export([ipread_s32bu_p32bu/3]).
 %% Generic file contents.
 -export([open/2, close/1, advise/4, allocate/3,
-	 read/2, write/2, 
+	 read/2, write/2,
 	 pread/2, pread/3, pwrite/2, pwrite/3,
 	 read_line/1,
 	 position/2, truncate/1, datasync/1, sync/1,
@@ -364,10 +364,10 @@ descriptive string of the error in English.
 format_error({_Line, ?MODULE, undefined_script}) ->
     "no value returned from script";
 format_error({Line, ?MODULE, {Class, Reason, Stacktrace}}) ->
-    io_lib:format("~w: evaluation failed with reason ~w:~w and stacktrace ~w", 
+    io_lib:format("~w: evaluation failed with reason ~w:~w and stacktrace ~w",
                   [Line, Class, Reason, Stacktrace]);
 format_error({Line, ?MODULE, {Reason, Stacktrace}}) ->
-    io_lib:format("~w: evaluation failed with reason ~w and stacktrace ~w", 
+    io_lib:format("~w: evaluation failed with reason ~w and stacktrace ~w",
                   [Line, Reason, Stacktrace]);
 format_error({Line, Mod, Reason}) ->
     io_lib:format("~w: ~ts", [Line, Mod:format_error(Reason)]);
@@ -464,7 +464,7 @@ Typical error reasons are:
       EncodedBinary :: binary(),
       Reason :: posix() | badarg | no_translation.
 
-set_cwd(Dirname) -> 
+set_cwd(Dirname) ->
     check_and_call(set_cwd, [file_name(Dirname)]).
 
 -doc(#{equiv => delete(Filename, [])}).
@@ -1487,7 +1487,7 @@ open(Item, Mode) ->
 
 %%%-----------------------------------------------------------------
 %%% The following interface functions operate on open files.
-%%% The File argument must be either a Pid or a handle 
+%%% The File argument must be either a Pid or a handle
 %%% returned from ?PRIM_FILE:open.
 
 -doc """
@@ -1606,7 +1606,7 @@ read(File, Sz) when (is_pid(File) orelse is_atom(File)), is_integer(Sz), Sz >= 0
 	Other ->
 	    Other
     end;
-read(#file_descriptor{module = Module} = Handle, Sz) 
+read(#file_descriptor{module = Module} = Handle, Sz)
   when is_integer(Sz), Sz >= 0 ->
     Module:read(Handle, Sz);
 read(_, _) ->
@@ -1735,7 +1735,7 @@ byte position is a valid character boundary on such a file.
 
 pread(File, At, Sz) when is_pid(File), is_integer(Sz), Sz >= 0 ->
     file_request(File, {pread, At, Sz});
-pread(#file_descriptor{module = Module} = Handle, Offs, Sz) 
+pread(#file_descriptor{module = Module} = Handle, Offs, Sz)
   when is_integer(Sz), Sz >= 0 ->
     Module:pread(Handle, Offs, Sz);
 pread(_, _, _) ->
@@ -1989,7 +1989,7 @@ Typical error reasons: as for `open/2` if a file had to be opened, and as for
       BytesCopied :: non_neg_integer(),
       Reason :: posix() | badarg | terminated.
 
-copy(Source, Dest, Length) 
+copy(Source, Dest, Length)
   when is_integer(Length), Length >= 0;
        is_atom(Length) ->
     copy_int(Source, Dest, Length);
@@ -1999,8 +1999,8 @@ copy(_, _, _) ->
 %% Here we know that Length is either an atom or an integer >= 0
 %% (by the way, atoms > integers)
 %%
-%% Copy between open files. 
-copy_int(Source, Dest, Length) 
+%% Copy between open files.
+copy_int(Source, Dest, Length)
   when is_pid(Source), is_pid(Dest);
        is_pid(Source), is_record(Dest, file_descriptor);
        is_record(Source, file_descriptor), is_pid(Dest) ->
@@ -2011,18 +2011,18 @@ copy_int(#file_descriptor{module = Module} = Source,
 	 Length) ->
     Module:copy(Source, Dest, Length);
 %% Copy between open raw files of different modules
-copy_int(#file_descriptor{} = Source, 
+copy_int(#file_descriptor{} = Source,
 	 #file_descriptor{} = Dest, Length) ->
     copy_opened_int(Source, Dest, Length, 0);
 %% Copy between filenames, let the server do the copy
-copy_int({SourceName, SourceOpts}, {DestName, DestOpts}, Length) 
+copy_int({SourceName, SourceOpts}, {DestName, DestOpts}, Length)
   when is_list(SourceOpts), is_list(DestOpts) ->
-    check_and_call(copy, 
+    check_and_call(copy,
 		   [file_name(SourceName), SourceOpts,
 		    file_name(DestName), DestOpts,
 		    Length]);
 %% Filename -> open file; must open Source and do client copy
-copy_int({SourceName, SourceOpts}, Dest, Length) 
+copy_int({SourceName, SourceOpts}, Dest, Length)
   when is_list(SourceOpts), is_pid(Dest);
        is_list(SourceOpts), is_record(Dest, file_descriptor) ->
     case file_name(SourceName) of
@@ -2068,19 +2068,19 @@ copy_int(Source, {DestName, DestOpts}, Length)
 %% to be a bare filename.
 %%
 %% If Source is not a bare filename; Dest must be
-copy_int(Source, Dest, Length) 
+copy_int(Source, Dest, Length)
   when is_pid(Source);
        is_record(Source, file_descriptor) ->
     copy_int(Source, {Dest, []}, Length);
-copy_int({_SourceName, SourceOpts} = Source, Dest, Length) 
+copy_int({_SourceName, SourceOpts} = Source, Dest, Length)
   when is_list(SourceOpts) ->
     copy_int(Source, {Dest, []}, Length);
 %% If Dest is not a bare filename; Source must be
-copy_int(Source, Dest, Length) 
+copy_int(Source, Dest, Length)
   when is_pid(Dest);
        is_record(Dest, file_descriptor) ->
     copy_int({Source, []}, Dest, Length);
-copy_int(Source, {_DestName, DestOpts} = Dest, Length) 
+copy_int(Source, {_DestName, DestOpts} = Dest, Length)
   when is_list(DestOpts) ->
     copy_int({Source, []}, Dest, Length);
 %% Both must be bare filenames. If they are not,
@@ -2154,7 +2154,7 @@ copy_opened_int(Source, Dest, Length, Copied) ->
 %% Special indirect pread function. Introduced for Dets.
 %% Reads a header from pos 'Pos', the header is first a size encoded as
 %% 32 bit big endian unsigned and then a position also encoded as
-%% 32 bit big endian. Finally it preads the data from that pos and size 
+%% 32 bit big endian. Finally it preads the data from that pos and size
 %% in the file.
 
 -doc false.
@@ -2168,7 +2168,7 @@ ipread_s32bu_p32bu(_, _, _) ->
 -doc false.
 ipread_s32bu_p32bu_int(File, Pos, Infinity) when is_atom(Infinity) ->
     ipread_s32bu_p32bu_int(File, Pos, (1 bsl 31)-1);
-ipread_s32bu_p32bu_int(File, Pos, MaxSize) 
+ipread_s32bu_p32bu_int(File, Pos, MaxSize)
   when is_integer(MaxSize), MaxSize >= 0 ->
     if
 	MaxSize < (1 bsl 31) ->
@@ -2184,13 +2184,13 @@ ipread_s32bu_p32bu_int(File, Pos, MaxSize)
 ipread_s32bu_p32bu_int(_File, _Pos, _MaxSize) ->
     {error, badarg}.
 
-ipread_s32bu_p32bu_2(_File, 
+ipread_s32bu_p32bu_2(_File,
 		     <<0:32/big-unsigned, Pos:32/big-unsigned>>,
 		     _MaxSize) ->
     {ok, {0, Pos, eof}};
-ipread_s32bu_p32bu_2(File, 
+ipread_s32bu_p32bu_2(File,
 		     <<Size:32/big-unsigned, Pos:32/big-unsigned>>,
-		     MaxSize) 
+		     MaxSize)
   when Size =< MaxSize ->
     case pread(File, Pos, Size) of
 	{ok, Data} ->
@@ -2200,7 +2200,7 @@ ipread_s32bu_p32bu_2(File,
 	Error ->
 	    Error
     end;
-ipread_s32bu_p32bu_2(_File, 
+ipread_s32bu_p32bu_2(_File,
 		     <<_:8/binary>>,
 		     _MaxSize) ->
     eof;
@@ -2533,7 +2533,7 @@ path_script(Path, File, Bs) ->
 	E2 ->
 	    E2
     end.
-    
+
 
 %% path_open(Paths, Filename, Mode) ->
 %%	{ok,FileDescriptor,FullName}
@@ -2592,7 +2592,7 @@ path_open(PathList, Name, Mode) ->
       Mode :: integer(),
       Reason :: posix() | badarg.
 
-change_mode(Name, Mode) 
+change_mode(Name, Mode)
   when is_integer(Mode) ->
     write_file_info(Name, #file_info{mode=Mode}).
 
@@ -2602,7 +2602,7 @@ change_mode(Name, Mode)
       Uid :: integer(),
       Reason :: posix() | badarg.
 
-change_owner(Name, OwnerId) 
+change_owner(Name, OwnerId)
   when is_integer(OwnerId) ->
     write_file_info(Name, #file_info{uid=OwnerId}).
 
@@ -2613,7 +2613,7 @@ change_owner(Name, OwnerId)
       Gid :: integer(),
       Reason :: posix() | badarg.
 
-change_owner(Name, OwnerId, GroupId) 
+change_owner(Name, OwnerId, GroupId)
   when is_integer(OwnerId), is_integer(GroupId) ->
     write_file_info(Name, #file_info{uid=OwnerId, gid=GroupId}).
 
@@ -2623,7 +2623,7 @@ change_owner(Name, OwnerId, GroupId)
       Gid :: integer(),
       Reason :: posix() | badarg.
 
-change_group(Name, GroupId) 
+change_group(Name, GroupId)
   when is_integer(GroupId) ->
     write_file_info(Name, #file_info{gid=GroupId}).
 
@@ -2684,7 +2684,7 @@ The option list can contain the following options:
 """.
 -doc(#{since => <<"OTP R15B">>}).
 -spec sendfile(RawFile, Socket, Offset, Bytes, Opts) ->
-   {'ok', non_neg_integer()} | {'error', inet:posix() | 
+   {'ok', non_neg_integer()} | {'error', inet:posix() |
 				closed | badarg | not_owner} when
       RawFile :: fd(),
       Socket :: inet:socket() | socket:socket() |
@@ -2694,8 +2694,8 @@ The option list can contain the following options:
       Opts :: [sendfile_option()].
 sendfile(File, _Sock, _Offet, _Bytes, _Opts) when is_pid(File) ->
     {error, badarg};
-sendfile(File, Sock, Offset, Bytes, []) ->
-    sendfile(File, Sock, Offset, Bytes, ?MAX_CHUNK_SIZE, [], [], []);
+sendfile(File, Sock, Offset, Bytes, []=Nil) ->
+    sendfile(File, Sock, Offset, Bytes, ?MAX_CHUNK_SIZE, Nil, Nil, Nil);
 sendfile(File, Sock, Offset, Bytes, Opts) ->
     try proplists:get_value(chunk_size, Opts, ?MAX_CHUNK_SIZE) of
         ChunkSize0 when is_integer(ChunkSize0) ->
@@ -2717,7 +2717,7 @@ otherwise `{error, Reason}`.
 """.
 -doc(#{since => <<"OTP R15B">>}).
 -spec sendfile(Filename, Socket) ->
-   {'ok', non_neg_integer()} | {'error', inet:posix() | 
+   {'ok', non_neg_integer()} | {'error', inet:posix() |
 				closed | badarg | not_owner} when
       Filename :: name_all(),
       Socket :: inet:socket() | socket:socket() |
@@ -2953,26 +2953,26 @@ fname_join(Dir, Name) ->
 %%% Utility functions.
 
 %% file_name(FileName)
-%% 	Generates a flat file name from a deep list of atoms and 
+%% 	Generates a flat file name from a deep list of atoms and
 %% 	characters (integers).
 
 file_name(N) when is_binary(N) ->
     N;
 file_name(N) ->
-    try 
+    try
         file_name_1(N,file:native_name_encoding())
     catch Reason ->
         {error, Reason}
     end.
 
+file_name_1([]=Nil,_) ->
+    Nil;
 file_name_1([C|T],latin1) when is_integer(C), C < 256->
     [C|file_name_1(T,latin1)];
 file_name_1([C|T],utf8) when is_integer(C) ->
     [C|file_name_1(T,utf8)];
 file_name_1([H|T],E) ->
     file_name_1(H,E) ++ file_name_1(T,E);
-file_name_1([],_) ->
-    [];
 file_name_1(N,_) when is_atom(N) ->
     atom_to_list(N);
 file_name_1(_,_) ->
@@ -2983,7 +2983,7 @@ make_binary(Bin) when is_binary(Bin) ->
 make_binary(List) ->
     %% Convert the list to a binary in order to avoid copying a list
     %% to the file server.
-    try 
+    try
         erlang:iolist_to_binary(List)
     catch error:Reason ->
         {error, Reason}
@@ -3007,7 +3007,7 @@ mode_list(_) ->
 
 call(Command, Args) when is_list(Args) ->
     X = erlang:dt_spread_tag(true),
-    Y = gen_server:call(?FILE_SERVER, list_to_tuple([Command | Args]), 
+    Y = gen_server:call(?FILE_SERVER, list_to_tuple([Command | Args]),
 			infinity),
     erlang:dt_restore_tag(X),
     Y.

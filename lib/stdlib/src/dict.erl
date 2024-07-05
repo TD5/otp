@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 2000-2024. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 
@@ -157,7 +157,7 @@ from_list(L) ->
 -spec size(Dict) -> non_neg_integer() when
       Dict :: dict().
 
-size(#dict{size=N}) when is_integer(N), N >= 0 -> N. 
+size(#dict{size=N}) when is_integer(N), N >= 0 -> N.
 
 -doc "Returns `true` if dictionary `Dict` has no elements, otherwise `false`.".
 -doc(#{since => <<"OTP 17.0">>}).
@@ -222,7 +222,7 @@ fetch_keys(D) ->
 
 %%  Erase all elements with key Key.
 
-erase(Key, D0) -> 
+erase(Key, D0) ->
     Slot = get_slot(D0, Key),
     {D1,Dc} = on_bucket(fun (B0) -> erase_key(Key, B0) end,
 			D0, Slot),
@@ -378,7 +378,7 @@ app_list_bkt(Key, L, []) -> {[?kv(Key,L)],1}.
 
 %% on_key_bkt(Key, F, [?kv(Key,Val)|Bkt]) ->
 %%     case F(Val) of
-%% 	{ok,New} -> {[?kv(Key,New)|Bkt],0}; 
+%% 	{ok,New} -> {[?kv(Key,New)|Bkt],0};
 %% 	erase -> {Bkt,1}
 %%     end;
 %% on_key_bkt(Key, F, [Other|Bkt0]) ->
@@ -629,8 +629,8 @@ filter_seg_list(F, [Seg|Segs], Fss, Fc0) ->
     Bkts0 = tuple_to_list(Seg),
     {Bkts1,Fc1} = filter_bkt_list(F, Bkts0, [], Fc0),
     filter_seg_list(F, Segs, [list_to_tuple(Bkts1)|Fss], Fc1);
-filter_seg_list(F, [], Fss, Fc) when is_function(F, 2) ->
-    {lists:reverse(Fss, []),Fc}.
+filter_seg_list(F, []=Nil, Fss, Fc) when is_function(F, 2) ->
+    {lists:reverse(Fss, Nil),Fc}.
 
 filter_bkt_list(F, [Bkt0|Bkts], Fbs, Fc0) ->
     {Bkt1,Fc1} = filter_bucket(F, Bkt0, [], Fc0),

@@ -84,7 +84,7 @@ init_calltype_imports([], Ctype) -> Ctype.
 
 forms([{attribute,_,record,{Name,Defs}}=Attr | Fs], St0) ->
     NDefs = normalise_fields(Defs),
-    St = St0#exprec{records=maps:put(Name, NDefs, St0#exprec.records),
+    St = St0#exprec{records=((St0#exprec.records)#{Name => NDefs}),
                     raw_records=[Attr | St0#exprec.raw_records]},
     {Fs1, St1} = forms(Fs, St),
     {[Attr | Fs1], St1};
@@ -203,8 +203,8 @@ normalise_test(function, 1)  -> is_function;
 normalise_test(integer, 1)   -> is_integer;
 normalise_test(list, 1)      -> is_list;
 normalise_test(number, 1)    -> is_number;
-normalise_test(pid, 1)       -> is_pid; 
-normalise_test(port, 1)      -> is_port; 
+normalise_test(pid, 1)       -> is_pid;
+normalise_test(port, 1)      -> is_port;
 normalise_test(record, 2)    -> is_record;
 normalise_test(reference, 1) -> is_reference;
 normalise_test(tuple, 1)     -> is_tuple;
@@ -505,7 +505,7 @@ strict_record_access(E0, St0) ->
     St1 = St0#exprec{strict_ra = [], checked_ra = NC},
     expr(E1, St1).
 
-%% Make it look nice (?) when compiled with the 'E' flag 
+%% Make it look nice (?) when compiled with the 'E' flag
 %% ('and'/2 is left recursive).
 conj([], _E) ->
     empty;
@@ -785,7 +785,7 @@ record_upd_fs([{record_field,Anno,{atom,_AnnoA,F},_Val} | Fs], Us, St0) ->
 record_upd_fs([], _, St) -> {[],[],St}.
 
 %% record_setel(Record, RecordName, [RecDefField], [Update])
-%%  Build a nested chain of setelement calls to build the 
+%%  Build a nested chain of setelement calls to build the
 %%  updated record tuple.
 
 record_setel(R, Name, Fs, Us0) ->

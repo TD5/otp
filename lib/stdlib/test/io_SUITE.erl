@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 1999-2023. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,14 +14,14 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 -module(io_SUITE).
 
 -export([all/0, suite/0]).
 
--export([error_1/1, float_g/1, float_w/1, otp_5403/1, otp_5813/1, otp_6230/1, 
+-export([error_1/1, float_g/1, float_w/1, otp_5403/1, otp_5813/1, otp_6230/1,
          otp_6282/1, otp_6354/1, otp_6495/1, otp_6517/1, otp_6502/1,
          manpage/1, otp_6708/1, otp_7084/0, otp_7084/1, otp_7421/1,
 	 io_lib_collect_line_3_wb/1, cr_whitespace_in_string/1,
@@ -34,7 +34,9 @@
          otp_14285/1, limit_term/1, otp_14983/1, otp_15103/1, otp_15076/1,
          otp_15159/1, otp_15639/1, otp_15705/1, otp_15847/1, otp_15875/1,
          github_4801/1, chars_limit/1, error_info/1, otp_17525/1,
-         unscan_format_without_maps_order/1, build_text_without_maps_order/1]).
+         unscan_format_without_maps_order/1, build_text_without_maps_order/1,
+         avoid_unnecessary_wrapping_for_singleton_formats/1,
+         format_optimisations/1]).
 
 -export([pretty/2, trf/3]).
 
@@ -52,11 +54,13 @@
 -define(privdir(Conf), proplists:get_value(priv_dir, Conf)).
 -endif.
 
+-include_lib("stdlib/include/assert.hrl").
+
 suite() ->
     [{ct_hooks,[ts_install_cth]},
      {timetrap,{minutes,1}}].
 
-all() -> 
+all() ->
     [error_1, float_g, float_w, otp_5403, otp_5813, otp_6230,
      otp_6282, otp_6354, otp_6495, otp_6517, otp_6502,
      manpage, otp_6708, otp_7084, otp_7421,
@@ -69,7 +73,8 @@ all() ->
      otp_14285, limit_term, otp_14983, otp_15103, otp_15076, otp_15159,
      otp_15639, otp_15705, otp_15847, otp_15875, github_4801, chars_limit,
      error_info, otp_17525, unscan_format_without_maps_order,
-     build_text_without_maps_order].
+     build_text_without_maps_order, avoid_unnecessary_wrapping_for_singleton_formats,
+     format_optimisations].
 
 %% Error cases for output.
 error_1(Config) when is_list(Config) ->
@@ -248,95 +253,95 @@ otp_5813(Config) when is_list(Config) ->
 otp_6230(Config) when is_list(Config) ->
     %% The problem is actually huge binaries, but the small tests here
     %% just run through most of the modified code.
-    "<<>>" = fmt("~P", [<<"">>,-1]),
-    "<<\"hej\">>" = fmt("~P", [<<"hej">>,-1]),
-    "{hej,...}" = fmt("~P", [{hej,<<"hej">>},2]),
-    "{hej,<<...>>}" = fmt("~P", [{hej,<<"hej">>},3]),
-    "{hej,<<\"hejs\"...>>}" = fmt("~P", [{hej,<<"hejsan">>},4]),
-    "{hej,<<\"hej\">>}" = fmt("~P", [{hej,<<"hej">>},6]),
-    "<<...>>" = fmt("~P", [<<"hej">>,1]),
-    "<<\"hejs\"...>>" = fmt("~P", [<<"hejsan">>,2]),
-    "<<\"hej\">>" = fmt("~P", [<<"hej">>,4]),
-    "{hej,<<127,...>>}" =
-        fmt("~P", [{hej,<<127:8,<<"hej">>/binary>>},4]),
-    "{hej,<<127,104,101,...>>}" =
-        fmt("~P", [{hej,<<127:8,<<"hej">>/binary>>},6]),
+    ?assertEqual("<<>>", fmt("~P", [<<"">>,-1])),
+    ?assertEqual("<<\"hej\">>", fmt("~P", [<<"hej">>,-1])),
+    ?assertEqual("{hej,...}", fmt("~P", [{hej,<<"hej">>},2])),
+    ?assertEqual("{hej,<<...>>}", fmt("~P", [{hej,<<"hej">>},3])),
+    ?assertEqual("{hej,<<\"hejs\"...>>}", fmt("~P", [{hej,<<"hejsan">>},4])),
+    ?assertEqual("{hej,<<\"hej\">>}", fmt("~P", [{hej,<<"hej">>},6])),
+    ?assertEqual("<<...>>", fmt("~P", [<<"hej">>,1])),
+    ?assertEqual("<<\"hejs\"...>>", fmt("~P", [<<"hejsan">>,2])),
+    ?assertEqual("<<\"hej\">>", fmt("~P", [<<"hej">>,4])),
+    ?assertEqual("{hej,<<127,...>>}",
+        fmt("~P", [{hej,<<127:8,<<"hej">>/binary>>},4])),
+    ?assertEqual("{hej,<<127,104,101,...>>}",
+        fmt("~P", [{hej,<<127:8,<<"hej">>/binary>>},6])),
 
     B = list_to_binary(lists:duplicate(30000, $a)),
-    "<<\"aaaa"++_ = fmt("~P", [B, 20000]),
+    ?assertMatch("<<\"aaaa"++_, fmt("~P", [B, 20000])),
     ok.
 
 %% OTP-6282. ~p truncates strings (like binaries) depending on depth.
 otp_6282(Config) when is_list(Config) ->
-    "[]" = p("", 1, 20, 1),
-    "[]" = p("", 1, 20, -1),
-    "[...]" = p("a", 1, 20, 1),
-    "\"a\"" = p("a", 1, 20, 2),
-    "\"aa\"" = p("aa", 1, 20, 2),
-    "\"aaa\"" = p("aaa", 1, 20, 2),
-    "\"aaaa\"" = p("aaaa", 1, 20, 2),
-    "\"a\"" = p("a", 1, 20, -1),
-    "[97,97,1000]" = p([$a,$a,1000], 1, 20, 4),
+    ?assertEqual("[]", p("", 1, 20, 1)),
+    ?assertEqual("[]", p("", 1, 20, -1)),
+    ?assertEqual("[...]", p("a", 1, 20, 1)),
+    ?assertEqual("\"a\"", p("a", 1, 20, 2)),
+    ?assertEqual("\"aa\"", p("aa", 1, 20, 2)),
+    ?assertEqual("\"aaa\"", p("aaa", 1, 20, 2)),
+    ?assertEqual("\"aaaa\"", p("aaaa", 1, 20, 2)),
+    ?assertEqual("\"a\"", p("a", 1, 20, -1)),
+    ?assertEqual("[97,97,1000]", p([$a,$a,1000], 1, 20, 4)),
     S1 = lists:duplicate(200,$a),
-    "[...]" = p(S1, 1, 20, 1),
+    ?assertEqual("[...]", p(S1, 1, 20, 1)),
     true = "\"" ++ S1 ++ "\"" =:= p(S1, 1, 205, -1),
-    "[97,97,1000|...]" = p([$a,$a,1000,1000], 1, 20, 4),
+    ?assertEqual("[97,97,1000|...]", p([$a,$a,1000,1000], 1, 20, 4)),
 
-    "[[]]" = p([""], 1, 20, 2),
-    "[[]]" = p([""], 1, 20, -1),
-    "[[...]]" = p(["a"], 1, 20, 2),
-    "[\"a\"]" = p(["a"], 1, 20, 3),
-    "[\"aa\"]" = p(["aa"], 1, 20, 3),
-    "[\"aaa\"]" = p(["aaa"], 1, 20, 3),
-    "[\"a\"]" = p(["a"], 1, 20, -1),
-    "[[97,97,1000]]" = p([[$a,$a,1000]], 1, 20, 5),
-    "[[...]]" = p([S1], 1, 20, 2),
+    ?assertEqual("[[]]", p([""], 1, 20, 2)),
+    ?assertEqual("[[]]", p([""], 1, 20, -1)),
+    ?assertEqual("[[...]]", p(["a"], 1, 20, 2)),
+    ?assertEqual("[\"a\"]", p(["a"], 1, 20, 3)),
+    ?assertEqual("[\"aa\"]", p(["aa"], 1, 20, 3)),
+    ?assertEqual("[\"aaa\"]", p(["aaa"], 1, 20, 3)),
+    ?assertEqual("[\"a\"]", p(["a"], 1, 20, -1)),
+    ?assertEqual("[[97,97,1000]]", p([[$a,$a,1000]], 1, 20, 5)),
+    ?assertEqual("[[...]]", p([S1], 1, 20, 2)),
     true = "[\"" ++ S1 ++ "\"]" =:= p([S1], 1, 210, -1),
-    "[[97,97,1000|...]]" = p([[$a,$a,1000,1000]], 1, 20, 5),
+    ?assertEqual("[[97,97,1000|...]]", p([[$a,$a,1000,1000]], 1, 20, 5)),
 
-    "[\"aaaaa\"]" = p(["aaaaa"], 1, 10, 6),
+    ?assertEqual("[\"aaaaa\"]", p(["aaaaa"], 1, 10, 6)),
 
     ok.
 
 %% OTP-6354. io_lib_pretty rewritten.
 otp_6354(Config) when is_list(Config) ->
     %% A few tuples:
-    "{}" = p({}, 1, 20, -1),
-    "..." = p({}, 1, 20, 0),
-    "{}" = p({}, 1, 20, 1),
-    "{}" = p({}, 1, 20, 2),
-    "{a}" = p({a}, 1, 20, -1),
-    "..." = p({a}, 1, 20, 0),
-    "{...}" = p({a}, 1, 20, 1),
-    "{a}" = p({a}, 1, 20, 2),
-    "{a,b}" = p({a,b}, 1, 20, -1),
-    "..." = p({a,b}, 1, 20, 0),
-    "{...}" = p({a,b}, 1, 20, 1),
-    "{a,...}" = p({a,b}, 1, 20, 2),
-    "{a,b}" = p({a,b}, 1, 20, 3),
-    "{}" = p({}, 1, 1, -1),
-    "..." = p({}, 1, 1, 0),
-    "{}" = p({}, 1, 1, 1),
-    "{}" = p({}, 1, 1, 2),
-    "{a}" = p({a}, 1, 1, -1),
-    "..." = p({a}, 1, 1, 0),
-    "{...}" = p({a}, 1, 1, 1),
-    "{a}" = p({a}, 1, 1, 2),
-    "{a,\n b}" = p({a,b}, 1, 1, -1),
-    "{1,\n b}" = p({1,b}, 1, 1, -1),
-    "..." = p({a,b}, 1, 1, 0),
-    "{...}" = p({a,b}, 1, 1, 1),
-    "{a,...}" = p({a,b}, 1, 1, 2),
-    "{a,\n b}" = p({a,b}, 1, 1, 3),
-    "{{}}" = p({{}}, 1, 1, 2),
-    "{[]}" = p({[]}, 1, 1, 2),
+    ?assertEqual("{}", p({}, 1, 20, -1)),
+    ?assertEqual("...", p({}, 1, 20, 0)),
+    ?assertEqual("{}", p({}, 1, 20, 1)),
+    ?assertEqual("{}", p({}, 1, 20, 2)),
+    ?assertEqual("{a}", p({a}, 1, 20, -1)),
+    ?assertEqual("...", p({a}, 1, 20, 0)),
+    ?assertEqual("{...}", p({a}, 1, 20, 1)),
+    ?assertEqual("{a}", p({a}, 1, 20, 2)),
+    ?assertEqual("{a,b}", p({a,b}, 1, 20, -1)),
+    ?assertEqual("...", p({a,b}, 1, 20, 0)),
+    ?assertEqual("{...}", p({a,b}, 1, 20, 1)),
+    ?assertEqual("{a,...}", p({a,b}, 1, 20, 2)),
+    ?assertEqual("{a,b}", p({a,b}, 1, 20, 3)),
+    ?assertEqual("{}", p({}, 1, 1, -1)),
+    ?assertEqual("...", p({}, 1, 1, 0)),
+    ?assertEqual("{}", p({}, 1, 1, 1)),
+    ?assertEqual("{}", p({}, 1, 1, 2)),
+    ?assertEqual("{a}", p({a}, 1, 1, -1)),
+    ?assertEqual("...", p({a}, 1, 1, 0)),
+    ?assertEqual("{...}", p({a}, 1, 1, 1)),
+    ?assertEqual("{a}", p({a}, 1, 1, 2)),
+    ?assertEqual("{a,\n b}", p({a,b}, 1, 1, -1)),
+    ?assertEqual("{1,\n b}", p({1,b}, 1, 1, -1)),
+    ?assertEqual("...", p({a,b}, 1, 1, 0)),
+    ?assertEqual("{...}", p({a,b}, 1, 1, 1)),
+    ?assertEqual("{a,...}", p({a,b}, 1, 1, 2)),
+    ?assertEqual("{a,\n b}", p({a,b}, 1, 1, 3)),
+    ?assertEqual("{{}}", p({{}}, 1, 1, 2)),
+    ?assertEqual("{[]}", p({[]}, 1, 1, 2)),
     bt(<<"{1,2,a,b,{sfdsf,sdfdsfs},[sfsdf,sdfsdf]}">>,
        p({1,2,a,b,{sfdsf,sdfdsfs},[sfsdf,sdfsdf]}, -1)),
     bt(<<"{abcd,ddddd,\n      ddddd}">>,
        p({abcd,ddddd,ddddd}, 1,16, -1)),
     bt(<<"{1,2,a,b,\n {sfdsf,sdfdsfs},\n [sfsdf,sdfsdf]}">>,
        p({1,2,a,b,{sfdsf,sdfdsfs},[sfsdf,sdfsdf]}, 1, 35, 100)),
-    "{1,{1,{2,3}}}" = p({1,{1,{2,3}}}, 1, 80, 100),
+    ?assertEqual("{1,{1,{2,3}}}", p({1,{1,{2,3}}}, 1, 80, 100)),
 
     bt(<<"{wwwww,{wwwww,{wwwww,{wwwww,{wwwww,lkjsldfj,klsdjfjklds,\n"
 	 "                                   sdkfjdsl,sdakfjdsklj,sdkljfsdj}}}}}">>,
@@ -357,53 +362,53 @@ otp_6354(Config) when is_list(Config) ->
 					     {klsdjfjklds,{klajsljls,
 							   {aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}}}}}}}}},
 	 -1)),
-    "{{...},...}" = p({{a,b},{a,b,c},{d,e,f}},1,8,2),
+    ?assertEqual("{{...},...}", p({{a,b},{a,b,c},{d,e,f}},1,8,2)),
     %% Closing brackets and parentheses count:
-    "{{a,b,c},\n {{1,2,\n   3}}}" = p({{a,b,c},{{1,2,3}}},1,11,-1),
+    ?assertEqual("{{a,b,c},\n {{1,2,\n   3}}}", p({{a,b,c},{{1,2,3}}},1,11,-1)),
     %% With line breaks:
-    "{{a,b,c},\n [1,2,\n  3]}" = p({{a,b,c},[1,2,3]},1,10,-1),
+    ?assertEqual("{{a,b,c},\n [1,2,\n  3]}", p({{a,b,c},[1,2,3]},1,10,-1)),
     %% With line breaks:
-    "[{{a,b,c},\n  {1,2,\n   3}}]" = p([{{a,b,c},{1,2,3}}],1,12,-1),
+    ?assertEqual("[{{a,b,c},\n  {1,2,\n   3}}]", p([{{a,b,c},{1,2,3}}],1,12,-1)),
 
     %% A few lists:
-    "[]" = p([], 1, 20, -1),
-    "..." = p([], 1, 20, 0),
-    "[]" = p([], 1, 20, 1),
-    "[]" = p([], 1, 20, 2),
-    "[a]" = p([a], 1, 20, -1),
-    "..." = p([a], 1, 20, 0),
-    "[...]" = p([a], 1, 20, 1),
-    "[a]" = p([a], 1, 20, 2),
-    "[a,b]" = p([a,b], 1, 20, -1),
-    "..." = p([a,b], 1, 20, 0),
-    "[...]" = p([a,b], 1, 20, 1),
-    "[a|...]" = p([a,b], 1, 20, 2),
-    "[a,b]" = p([a,b], 1, 20, 3),
-    "[a|b]" = p([a|b], 1, 20, -1),
-    "..." = p([a|b], 1, 20, 0),
-    "[...]" = p([a|b], 1, 20, 1),
-    "[a|...]" = p([a|b], 1, 20, 2),
-    "[a|b]" = p([a|b], 1, 20, 3),
-    "[]" = p([], 1, 1, -1),
-    "..." = p([], 1, 1, 0),
-    "[]" = p([], 1, 1, 1),
-    "[]" = p([], 1, 1, 2),
-    "[a]" = p([a], 1, 1, -1),
-    "..." = p([a], 1, 1, 0),
-    "[...]" = p([a], 1, 1, 1),
-    "[a]" = p([a], 1, 1, 2),
-    "[a,\n b]" = p([a,b], 1, 1, -1),
-    "..." = p([a,b], 1, 1, 0),
-    "[...]" = p([a,b], 1, 1, 1),
-    "[a|...]" = p([a,b], 1, 1, 2),
-    "[a,\n b]" = p([a,b], 1, 1, 3),
-    "[a|\n b]" = p([a|b], 1, 1, -1),
-    "..." = p([a|b], 1, 1, 0),
-    "[...]" = p([a|b], 1, 1, 1),
-    "[a|...]" = p([a|b], 1, 1, 2),
-    "[a|\n b]" = p([a|b], 1, 1, 3),
-    "[{}]" = p([{}], 1, 1, 2),
-    "[[]]" = p([[]], 1, 1, 2),
+    ?assertEqual("[]", p([], 1, 20, -1)),
+    ?assertEqual("...", p([], 1, 20, 0)),
+    ?assertEqual("[]", p([], 1, 20, 1)),
+    ?assertEqual("[]", p([], 1, 20, 2)),
+    ?assertEqual("[a]", p([a], 1, 20, -1)),
+    ?assertEqual("...", p([a], 1, 20, 0)),
+    ?assertEqual("[...]", p([a], 1, 20, 1)),
+    ?assertEqual("[a]", p([a], 1, 20, 2)),
+    ?assertEqual("[a,b]", p([a,b], 1, 20, -1)),
+    ?assertEqual("...", p([a,b], 1, 20, 0)),
+    ?assertEqual("[...]", p([a,b], 1, 20, 1)),
+    ?assertEqual("[a|...]", p([a,b], 1, 20, 2)),
+    ?assertEqual("[a,b]", p([a,b], 1, 20, 3)),
+    ?assertEqual("[a|b]", p([a|b], 1, 20, -1)),
+    ?assertEqual("...", p([a|b], 1, 20, 0)),
+    ?assertEqual("[...]", p([a|b], 1, 20, 1)),
+    ?assertEqual("[a|...]", p([a|b], 1, 20, 2)),
+    ?assertEqual("[a|b]", p([a|b], 1, 20, 3)),
+    ?assertEqual("[]", p([], 1, 1, -1)),
+    ?assertEqual("...", p([], 1, 1, 0)),
+    ?assertEqual("[]", p([], 1, 1, 1)),
+    ?assertEqual("[]", p([], 1, 1, 2)),
+    ?assertEqual("[a]", p([a], 1, 1, -1)),
+    ?assertEqual("...", p([a], 1, 1, 0)),
+    ?assertEqual("[...]", p([a], 1, 1, 1)),
+    ?assertEqual("[a]", p([a], 1, 1, 2)),
+    ?assertEqual("[a,\n b]", p([a,b], 1, 1, -1)),
+    ?assertEqual("...", p([a,b], 1, 1, 0)),
+    ?assertEqual("[...]", p([a,b], 1, 1, 1)),
+    ?assertEqual("[a|...]", p([a,b], 1, 1, 2)),
+    ?assertEqual("[a,\n b]", p([a,b], 1, 1, 3)),
+    ?assertEqual("[a|\n b]", p([a|b], 1, 1, -1)),
+    ?assertEqual("...", p([a|b], 1, 1, 0)),
+    ?assertEqual("[...]", p([a|b], 1, 1, 1)),
+    ?assertEqual("[a|...]", p([a|b], 1, 1, 2)),
+    ?assertEqual("[a|\n b]", p([a|b], 1, 1, 3)),
+    ?assertEqual("[{}]", p([{}], 1, 1, 2)),
+    ?assertEqual("[[]]", p([[]], 1, 1, 2)),
     bt(<<"[1,2,a,b,{sfdsf,sdfdsfs},[sfsdf,sdfsdf]]">>,
        p([1,2,a,b,{sfdsf,sdfdsfs},[sfsdf,sdfsdf]], -1)),
     bt(<<"[1,2,a,b,\n {sfdsf,sdfdsfs},\n [sfsdf,sdfsdf]]">>,
@@ -415,42 +420,42 @@ otp_6354(Config) when is_list(Config) ->
     %% A few records:
     %% -record(a, {}).
     %% -record(a, {}).
-    "..." = p({a}, 0),
-    "{...}" = p({a}, 1),
-    "#a{}" = p({a}, 2),
-    "#a{}" = p({a}, -1),
+    ?assertEqual("...", p({a}, 0)),
+    ?assertEqual("{...}", p({a}, 1)),
+    ?assertEqual("#a{}", p({a}, 2)),
+    ?assertEqual("#a{}", p({a}, -1)),
     %% -record(b, {f}).
-    "{...}" = p({b}, 1),
-    "..." = p({b,c}, 0),
-    "{...}" = p({b,c}, 1),
-    "#b{...}" = p({b,c}, 2),
-    "#b{f = c}" = p({b,c}, 3),
-    "#b{f = c}" = p({b,c}, -1),
-    "..." = p({b,{c,d}}, 0),
-    "{...}" = p({b,{c,d}}, 1),
-    "#b{...}" = p({b,{c,d}}, 2),
-    "#b{f = {...}}" = p({b,{c,d}}, 3),
-    "#b{f = {c,...}}" = p({b,{c,d}}, 4),
-    "#b{f = {c,d}}" = p({b,{c,d}}, 5),
-    "#b{f = {...}}" = p({b,{b,c}}, 3),
-    "#b{f = #b{...}}" = p({b,{b,c}}, 4),
-    "#b{f = #b{f = c}}" = p({b,{b,c}}, 5),
+    ?assertEqual("{...}", p({b}, 1)),
+    ?assertEqual("...", p({b,c}, 0)),
+    ?assertEqual("{...}", p({b,c}, 1)),
+    ?assertEqual("#b{...}", p({b,c}, 2)),
+    ?assertEqual("#b{f = c}", p({b,c}, 3)),
+    ?assertEqual("#b{f = c}", p({b,c}, -1)),
+    ?assertEqual("...", p({b,{c,d}}, 0)),
+    ?assertEqual("{...}", p({b,{c,d}}, 1)),
+    ?assertEqual("#b{...}", p({b,{c,d}}, 2)),
+    ?assertEqual("#b{f = {...}}", p({b,{c,d}}, 3)),
+    ?assertEqual("#b{f = {c,...}}", p({b,{c,d}}, 4)),
+    ?assertEqual("#b{f = {c,d}}", p({b,{c,d}}, 5)),
+    ?assertEqual("#b{f = {...}}", p({b,{b,c}}, 3)),
+    ?assertEqual("#b{f = #b{...}}", p({b,{b,c}}, 4)),
+    ?assertEqual("#b{f = #b{f = c}}", p({b,{b,c}}, 5)),
     %% -record(c, {f1, f2}).
-    "#c{f1 = d,f2 = e}" = p({c,d,e}, -1),
-    "..." = p({c,d,e}, 0),
-    "{...}" = p({c,d,e}, 1),
-    "#c{...}" = p({c,d,e}, 2),
-    "#c{f1 = d,...}" = p({c,d,e}, 3),
-    "#c{f1 = d,f2 = e}" = p({c,d,e}, 4),
+    ?assertEqual("#c{f1 = d,f2 = e}", p({c,d,e}, -1)),
+    ?assertEqual("...", p({c,d,e}, 0)),
+    ?assertEqual("{...}", p({c,d,e}, 1)),
+    ?assertEqual("#c{...}", p({c,d,e}, 2)),
+    ?assertEqual("#c{f1 = d,...}", p({c,d,e}, 3)),
+    ?assertEqual("#c{f1 = d,f2 = e}", p({c,d,e}, 4)),
     %% -record(d, {a..., b..., c.., d...}).
     bt(<<"#d{aaaaaaaaaaaaaaaaaaaa = 1,bbbbbbbbbbbbbbbbbbbb = 2,\n"
 	 "   cccccccccccccccccccc = 3,dddddddddddddddddddd = 4,\n"
 	 "   eeeeeeeeeeeeeeeeeeee = 5}">>,
        p({d,1,2,3,4,5}, -1)),
     "..." = p({d,1,2,3,4,5}, 0),
-    "{...}" = p({d,1,2,3,4,5}, 1),
-    "#d{...}" = p({d,1,2,3,4,5}, 2),
-    "#d{aaaaaaaaaaaaaaaaaaaa = 1,...}" = p({d,1,2,3,4,5}, 3),
+    ?assertEqual("{...}", p({d,1,2,3,4,5}, 1)),
+    ?assertEqual("#d{...}", p({d,1,2,3,4,5}, 2)),
+    ?assertEqual("#d{aaaaaaaaaaaaaaaaaaaa = 1,...}", p({d,1,2,3,4,5}, 3)),
     bt(<<"#d{aaaaaaaaaaaaaaaaaaaa = 1,bbbbbbbbbbbbbbbbbbbb = 2,...}">>,
        p({d,1,2,3,4,5}, 4)),
     bt(<<"#d{aaaaaaaaaaaaaaaaaaaa = 1,bbbbbbbbbbbbbbbbbbbb = 2,\n"
@@ -697,15 +702,15 @@ otp_6354(Config) when is_list(Config) ->
 
     bt(<<"kljkljlksdjjlf kljalkjlsdajafasjdfj [kjljklasdf,kjlljsfd,sdfsdkjfsd,kjjsdf,jl,
                                      lkjjlajsfd|jsdf]">>,
-             fmt("~w ~w ~p", 
+             fmt("~w ~w ~p",
                  [kljkljlksdjjlf,
                   kljalkjlsdajafasjdfj,
-                  [kjljklasdf,kjlljsfd,sdfsdkjfsd,kjjsdf,jl,lkjjlajsfd | 
+                  [kjljklasdf,kjlljsfd,sdfsdkjfsd,kjjsdf,jl,lkjjlajsfd |
                    jsdf]])),
 
     %% Binaries are split as well:
     bt(<<"<<80,100,0,55,55,55,55,55,55,55,55,55,\n  "
-               "55,55,55,55,55,55,55,...>>">>, 
+               "55,55,55,55,55,55,55,...>>">>,
              p(<<80,100,0,55,55,55,55,55,55,55,55,55,55,55,55,55,55,55,
                  55,55,55,55,55,55,55,55,55,55,55,55>>,1,40,20)),
     bt(<<"<<80,100,0,55,55,55,55,55,55,55,55,55,\n  "
@@ -757,7 +762,8 @@ otp_7421(Config) when is_list(Config) ->
     ok.
 
 bt(Bin, R) ->
-    R = binary_to_list(Bin).
+    ?assertEqual(binary_to_list(Bin), R),
+    R.
 
 p(Term, D) ->
     rp(Term, 1, 80, D).
@@ -776,7 +782,7 @@ rp(Term, Col, Ll, D, RF) ->
 rp(Term, Col, Ll, D, M, none) ->
     rp(Term, Col, Ll, D, M, fun(_, _) -> no end);
 rp(Term, Col, Ll, D, M, RF) ->
-    %% io:format("~n~n*** Col = ~p Ll = ~p D = ~p~n~p~n-->~n", 
+    %% io:format("~n~n*** Col = ~p Ll = ~p D = ~p~n~p~n-->~n",
     %%           [Col, Ll, D, Term]),
     R = io_lib_pretty:print(Term, Col, Ll, D, M, RF),
     %% io:format("~s~n<--~n", [R]),
@@ -788,8 +794,8 @@ fmt(Fmt, Args) ->
     Chars1 = lists:flatten(io_lib:build_text(FormatList)),
     Chars2 = lists:flatten(io_lib:format(Fmt2, Args2)),
     Chars3 = lists:flatten(io_lib:format(Fmt, Args)),
-    Chars1 = Chars2,
-    Chars2 = Chars3,
+    ?assertEqual(Chars1, Chars2),
+    ?assertEqual(Chars2, Chars3),
     Chars3.
 
 rfd(a, 0) ->
@@ -890,11 +896,11 @@ otp_6708(Config) when is_list(Config) ->
                 jklsdjfklsd, masdfjkkl}, -1)),
     bt(<<"#b{f = {lkjljalksdf,jklaskfjd,kljasdlf,kljasdf,kljsdlkf,\n"
                "                    kjdd}}">>,
-             p({b, {lkjljalksdf,jklaskfjd,kljasdlf,kljasdf,kljsdlkf,kjdd}}, 
+             p({b, {lkjljalksdf,jklaskfjd,kljasdlf,kljasdf,kljsdlkf,kjdd}},
                -1)),
     bt(<<"#b{f = {lkjljalksdf,jklaskfjd,kljasdlf,kljasdf,kljsdlkf,\n"
                "                    kdd}}">>,
-             p({b, {lkjljalksdf,jklaskfjd,kljasdlf,kljasdf,kljsdlkf,kdd}}, 
+             p({b, {lkjljalksdf,jklaskfjd,kljasdlf,kljasdf,kljsdlkf,kdd}},
                -1)),
     bt(<<"#e{f = undefined,g = undefined,\n"
                "   h = #e{f = 11,g = 22,h = 333}}">>,
@@ -906,7 +912,7 @@ otp_6708(Config) when is_list(Config) ->
                " 23,\n"
                " {{abadalkjlasdjflksdajfksdklfsdjlkfdlskjflsdj"
                         "flsdjfldsdsdddd}}]">>,
-          p(lists:seq(1,23) ++ 
+          p(lists:seq(1,23) ++
             [{{abadalkjlasdjflksdajfksdklfsdjlkfdlskjflsdjflsdjfldsdsdddd}}],
             -1)),
     bt(<<"{lkjasdf,\n"
@@ -1035,7 +1041,7 @@ g_denormalized() ->
     [ft({{S,0,?ONE(N)},D,D}) || S <- [0,1], N <- lists:seq(0, 52)],
     ok.
 
-g_normalized() -> 
+g_normalized() ->
     %% Normalized floats (exponent carry):
 %%    D = 5,
     %% Faster:
@@ -1102,7 +1108,7 @@ g_anomalous() ->
 
 g_ryu() ->
     %% specific white box tests that should trigger specific edge cases
-    %% to the ryu algorithm see: 
+    %% to the ryu algorithm see:
     %% https://github.com/ulfjack/ryu/blob/master/ryu/tests/d2s_test.cc
 
     %% this list is regression tests from the ryu C ref implementation
@@ -1115,7 +1121,7 @@ g_ryu() ->
     %% These numbers have a mantissa that is a multiple of the largest power of 5 that fits,
     %% and an exponent that causes the computation for q to result in 22, which is a corner
     %% case for Ryu.
-    L_pow5 = [16#4830F0CF064DD592, 16#4840F0CF064DD592, 
+    L_pow5 = [16#4830F0CF064DD592, 16#4840F0CF064DD592,
               16#4850F0CF064DD592],
     lists:foreach(fun(V) -> g_t(i_2_d(V)) end, L_pow5),
 
@@ -1228,7 +1234,7 @@ parts_2_f(S, E, M) ->
     <<F:64/float>> = <<S:1, E:11, M:52>>,
     F.
 
-g_misc() -> 
+g_misc() ->
     L_0_308 = lists:seq(0, 308),
     L_0_307 = lists:seq(0, 307),
 
@@ -1323,16 +1329,16 @@ g_t_1(V, Sv) ->
     %% to V than Sv, but such that when reading SvMinus (SvPlus) wrong
     %% float would be returned.
     case rat_lte(Abs_Sv_Vr, Svminus_Vr) of
-        true -> 
+        true ->
             ok;
-        false ->  
+        false ->
              case list_to_float(SvMinus) of
                  V -> throw(vsminus_too_close_to_v);
                  _Vminus -> ok
              end
     end,
     case rat_lte(Abs_Sv_Vr, Svplus_Vr) of
-        true -> 
+        true ->
             ok;
         false ->
              case list_to_float(SvPlus) of
@@ -1346,7 +1352,7 @@ g_t_1(V, Sv) ->
     %%       that |V - Sv| =< (V+ - V)
     %% (An alternative is  V- + V =< 2*Sv =< V + V+.)
     case inc(V) of
-        inf -> 
+        inf ->
             ok;
         Vplus ->
             Vplusr = f2r(Vplus),
@@ -1401,7 +1407,7 @@ g_t_1(V, Sv) ->
 
     ok.
 
-%%% In "123450000.0", '5' is the lsd; 
+%%% In "123450000.0", '5' is the lsd;
 %%% in "1234.0000", (the last) '0' is the lsd;
 %%% in "1234.0", '4' is the lsd (the Erlang syntax requires the final zero).
 
@@ -1437,7 +1443,7 @@ step_lsd(Ds, N) when N < 0 ->
 %% Increments or decrements the least significant digit.
 incr_lsd("-"++Ds, I) ->
     "-"++incr_lsd(Ds, I);
-incr_lsd(Ds, I) when I =:= 1; I =:= -1 -> 
+incr_lsd(Ds, I) when I =:= 1; I =:= -1 ->
     [MS|E] = string:tokens(Ds, "eE"),
     X = ["e" || true <- [E =/= []]],
     lists:flatten([incr_lsd0(lists:reverse(MS), I, []), X, E]).
@@ -1470,7 +1476,7 @@ s2r(S) when is_list(S) ->
         [MS, ES] ->
             Mr = s10(MS),
             E = list_to_integer(ES),
-            if 
+            if
                 E < 0 ->
                     rat_multiply(Mr, {1,pow10(-E)});
                 true ->
@@ -1514,7 +1520,7 @@ dec({S,BE,M}) when 0 =< S, S =< 1,
     <<F1:64/float>> = <<S1:1, BE1:11, M1:52>>,
     true = F1 < F,
     F1.
-    
+
 
 dec1(0, 0, 0) ->
     dec1(1, 0, 0);
@@ -1614,12 +1620,12 @@ rat_normalize({T,N}) when N =/= 0 ->
     N2 = N div G,
     if
         T2 < 0 ->
-            if 
+            if
                 N2 < 0 -> {-T2,-N2};
                 true -> {T2,N2}
             end;
         true ->
-            if 
+            if
                 N2 < 0 -> {-T2,-N2};
                 true -> {T2,N2}
             end
@@ -1696,7 +1702,7 @@ g_choice_small(S) when is_list(S) ->
             end;
         Pre =:= 0, Post =:= 0, El > 0 ->   % D.DDDeDD
             E = list_to_integer(ES),
-            if 
+            if
                 E >= 0 ->
                     Cost = E - (Fl - 1);
                 E < 0 ->
@@ -1857,7 +1863,7 @@ read_newlines_file(Fname) ->
     after
 	file:close(Fd)
     end.
-    
+
 
 read_newlines(Fd, Acc, N0) ->
     case io:fread(Fd, "", "~d~l") of
@@ -2017,7 +2023,7 @@ printable_range(Suite) when is_list(Suite) ->
     $> = print_max(DNode,
 		   [<<16#10FFFF/utf8,"\t\v\b\f\e\r\n">>,
 		    PrettyOptions]),
-    
+
     1025 = format_max(UNode, ["~tp", [{hello, [1024,1025]}]]),
     125 = format_max(LNode,  ["~tp", [{hello, [1024,1025]}]]),
     125 = format_max(DNode,  ["~tp", [{hello, [1024,1025]}]]),
@@ -2675,7 +2681,7 @@ limit_term(_Config) ->
     {_, 2} = limt([a,b,c], 2),
     {_, 2} = limt([a,b,c], 3),
     {_, 2} = limt([a,b|c], 2),
-    {_, 2} = limt([a,b|c], 3),
+    {_, 2} = limt([a,[b|c]], 2),
     {_, 2} = limt({a,b,c,[d,e]}, 2),
     {_, 2} = limt({a,b,c,[d,e]}, 3),
     {_, 2} = limt({a,b,c,[d,e]}, 4),
@@ -2736,7 +2742,8 @@ limt(Term, Depth) when is_integer(Depth) ->
     R = case {OK1, OK2, OK3} of
             {true, true, true} -> 2;
             {true, true, false} -> 1;
-            _ -> 0
+            % TODO REVERT
+            Ds -> io:format(standard_error, "Term: ~w~n Depth: ~B~nLimited: ~w~nLimit str: ~ts~nLimited+1: ~w~nLimit+1 str: ~ts~nLimited-1: ~w~nLimit-1 str: ~ts~nDifferences: ~w~n", [Term,Depth,T1,S1,T2,S2,T3,S3, Ds]), 0 % TODO REMOVE?
         end,
     {{S, S1, S2}, R}.
 
@@ -2775,18 +2782,18 @@ trunc_string() ->
                    rpc:call(UNode,
                             ?MODULE, trf, [Format, Args, CharsLimit])
            end,
-    "str кир" = UFun("str ~3ts", [U], 7),
-    "str ..." = UFun("str ~3ts", [U], 6),
-    "str ..." = UFun("str ~30ts", [U], 6),
-    "str кир..." = UFun("str ~30ts", [U], 10),
-    "str кирилл..." = UFun("str ~30ts", [U], 13),
-    "str кирилли́..." = UFun("str ~30ts", [U], 14),
-    "str кирилли́ч..." = UFun("str ~30ts", [U], 15),
-    "\"кирилли́ческ\"..." = UFun("~tp", [U], 13),
+    ?assertMatch("str кир", UFun("str ~3ts", [U], 7)),
+    ?assertMatch("str ...", UFun("str ~3ts", [U], 6)),
+    ?assertMatch("str ...", UFun("str ~30ts", [U], 6)),
+    ?assertMatch("str кир...", UFun("str ~30ts", [U], 10)),
+    ?assertMatch("str кирилл...", UFun("str ~30ts", [U], 13)),
+    ?assertMatch("str кирилли́...", UFun("str ~30ts", [U], 14)),
+    ?assertMatch("str кирилли́ч...", UFun("str ~30ts", [U], 15)),
+    ?assertMatch("\"кирилли́ческ\"...", UFun("~tp", [U], 13)),
     BU = <<"кирилли́ческий атом"/utf8>>,
-    "<<\"кирилли́\"/utf8...>>" = UFun("~tp", [BU], 20),
-    "<<\"кирилли́\"/utf8...>>" = UFun("~tp", [BU], 21),
-    "<<\"кирилли́ческ\"/utf8...>>" = UFun("~tp", [BU], 22),
+    ?assertMatch("<<\"кирилли́\"/utf8...>>", UFun("~tp", [BU], 20)),
+    ?assertMatch("<<\"кирилли́\"/utf8...>>", UFun("~tp", [BU], 21)),
+    ?assertMatch("<<\"кирилли́ческ\"/utf8...>>", UFun("~tp", [BU], 22)),
     peer:stop(UPeer).
 
 trunc_depth(D, Fun) ->
@@ -2960,11 +2967,11 @@ otp_15705(_Config) ->
     "äp..." = trf("~ts", [A], 5),
     "äppleplusäpple" = trf("~ts", [A], 14),
     U = [["ки"],"рилл","и́ческий атом"],
-    "ки..." = trf("~ts", [U], 5),
-    "кирилли́ческий..." = trf("~ts", [U], 16),
-    "кирилли́ческий атом" = trf("~ts", [U], 20),
+    ?assertMatch("ки...", trf("~ts", [U], 5)),
+    ?assertMatch("кирилли́ческий...", trf("~ts", [U], 16)),
+    ?assertMatch("кирилли́ческий атом", trf("~ts", [U], 20)),
 
-    "|кирилли́чес|" = trf("|~10ts|", [U], -1),
+    ?assertMatch("|кирилли́чес|", trf("|~10ts|", [U], -1)),
     ok.
 
 otp_15847(_Config) ->
@@ -3209,4 +3216,58 @@ build_text_without_maps_order(_Config) ->
         strings => true,
         width => none
     },
-    [["1"]] = io_lib:build_text([FormatSpec]).
+    "1" = lists:flatten(io_lib:build_text([FormatSpec])).
+
+avoid_unnecessary_wrapping_for_singleton_formats(_Config) ->
+    ?assertEqual("1", io_lib:format("~w",[1])), % N.B. "1", not ["1"]
+    ?assertEqual("foo", io_lib:format("~s",["foo"])),
+    ?assertEqual("#{}", io_lib:format("~p",[#{}])),
+    ?assertEqual("[]", io_lib:format("~p",[[]])),
+    ?assertEqual("{}", io_lib:format("~p",[{}])).
+
+format_optimisations(_Config) ->
+    ?assertEqual(
+        "A: 123, B: 456, C: string, D: foobarbazquux",
+        lists:flatten(io_lib:format("A: ~B, B: ~B, C: ~s, D: ~s", [123,456,'string', ["foo",["bar"|"baz"],["quux"]]]))
+    ),
+    Check =
+        fun (Term) ->
+            ?assertEqual(
+                (catch lists:flatten(io_lib:format("~w!",[Term]))),
+                (catch lists:flatten(io_lib:format("~w",[Term])) ++ "!")
+            ),
+            ?assertEqual(
+                (catch lists:flatten(io_lib:format("~tw!",[Term]))),
+                (catch lists:flatten(io_lib:format("~tw",[Term])) ++ "!")
+            ),
+            ?assertEqual(
+                (catch lists:flatten(io_lib:format("~p!",[Term]))),
+                (catch lists:flatten(io_lib:format("~p",[Term])) ++ "!")
+            ),
+            ?assertEqual(
+                (catch lists:flatten(io_lib:format("~0p!",[Term]))),
+                (catch lists:flatten(io_lib:format("~0p",[Term])) ++ "!")
+            ),
+            ?assertEqual(
+                (catch lists:flatten(io_lib:format("~tp!",[Term]))),
+                (catch lists:flatten(io_lib:format("~tp",[Term])) ++ "!")
+            ),
+            ?assertEqual(
+                (catch lists:flatten(io_lib:format("~0tp!",[Term]))),
+                (catch lists:flatten(io_lib:format("~0tp",[Term])) ++ "!")
+            )
+        end,
+    Check("atom"),
+    Check("атом"),
+    Check(''),
+    Check(x),
+    Check(lists:duplicate(1000, $x)),
+    Check(lists:duplicate(1000, x)),
+    Check([1,2,3]),
+    Check({a,b,c}),
+    Check({a,{b1,b2,b3},c}),
+    Check(#{x=>1,y=>2}),
+    Check(#{#{x=>1,y=>2}=>z}),
+    Check(#{lists:duplicate(100, $x)=>1,"yyyy"=>2}),
+    Check(maps:from_list([{I, I * I} || I <- lists:seq(1, 64)])),
+    Check(maps:from_list(lists:enumerate(lists:duplicate(1000, value)))).

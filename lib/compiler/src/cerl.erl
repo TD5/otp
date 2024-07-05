@@ -372,17 +372,47 @@ _See also: _`abstract/1`.
 """.
 -spec is_literal_term(Term :: term()) -> boolean().
 
-is_literal_term(T) when is_integer(T) -> true;
-is_literal_term(T) when is_float(T) -> true;
-is_literal_term(T) when is_atom(T) -> true;
 is_literal_term([]) -> true;
 is_literal_term([H | T]) ->
     is_literal_term(H) andalso is_literal_term(T);
+is_literal_term({}) ->
+    true;
+is_literal_term({A}) ->
+    is_literal_term(A);
+is_literal_term({A,B}) ->
+    is_literal_term(A) andalso is_literal_term(B);
+is_literal_term({A,B,C}) ->
+    is_literal_term(A) andalso is_literal_term(B) andalso
+        is_literal_term(C);
+is_literal_term({A,B,C,D}) ->
+    is_literal_term(A) andalso is_literal_term(B) andalso
+        is_literal_term(C) andalso is_literal_term(D);
+is_literal_term({A,B,C,D,E}) ->
+    is_literal_term(A) andalso is_literal_term(B) andalso
+        is_literal_term(C) andalso is_literal_term(D) andalso
+        is_literal_term(E);
+is_literal_term({A,B,C,D,E,F}) ->
+    is_literal_term(A) andalso is_literal_term(B) andalso
+        is_literal_term(C) andalso is_literal_term(D) andalso
+        is_literal_term(E) andalso is_literal_term(F);
+is_literal_term({A,B,C,D,E,F,G}) ->
+    is_literal_term(A) andalso is_literal_term(B) andalso
+        is_literal_term(C) andalso is_literal_term(D) andalso
+        is_literal_term(E) andalso is_literal_term(F) andalso
+        is_literal_term(G);
+is_literal_term({A,B,C,D,E,F,G,H}) ->
+    is_literal_term(A) andalso is_literal_term(B) andalso
+        is_literal_term(C) andalso is_literal_term(D) andalso
+        is_literal_term(E) andalso is_literal_term(F) andalso
+        is_literal_term(G) andalso is_literal_term(H);
+is_literal_term(#{}=M) ->
+    is_literal_term_list(maps:to_list(M));
+is_literal_term(T) when is_integer(T) -> true;
+is_literal_term(T) when is_float(T) -> true;
+is_literal_term(T) when is_atom(T) -> true;
 is_literal_term(T) when is_tuple(T) ->
     is_literal_term_list(tuple_to_list(T));
-is_literal_term(B) when is_bitstring(B) -> true;
-is_literal_term(M) when is_map(M) ->
-    is_literal_term_list(maps:to_list(M));
+is_literal_term(T) when is_bitstring(T) -> true;
 is_literal_term(F) when is_function(F) ->
     erlang:fun_info(F, type) =:= {type,external};
 is_literal_term(_) ->
@@ -1238,10 +1268,8 @@ list_elements(#c_cons{hd = Head, tl = Tail}) ->
 list_elements(#c_literal{val = V}) ->
     abstract_list(V).
 
-abstract_list([X | Xs]) ->
-    [abstract(X) | abstract_list(Xs)];
-abstract_list([]) ->
-    [].
+abstract_list(Xs) ->
+    [abstract(X) || X <- Xs].
 
 
 -doc """

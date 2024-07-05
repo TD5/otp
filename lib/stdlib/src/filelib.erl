@@ -202,12 +202,12 @@ is_file(File, Mod) when is_atom(Mod) ->
       Name :: filename_all().
 is_regular(File) ->
     do_is_regular(File, file).
-    
+
 -doc false.
 -spec is_regular(file:name_all(), atom()) -> boolean().
 is_regular(File, Mod) when is_atom(Mod) ->
     do_is_regular(File, Mod).
-    
+
 -doc """
 Folds function `Fun` over all (regular) files `F` in directory `Dir` whose
 basename (for example, just `"baz.erl"` in `"foo/bar/baz.erl"`) matches the
@@ -314,16 +314,16 @@ do_fold_files1(Dir, RegExp, OrigRE, Recursive, Fun, Acc, Mod) ->
 %% OrigRE is not to be compiled as it's for non conforming filenames,
 %% i.e. for filenames that does not comply to the current encoding, which should
 %% be very rare. We use it only in those cases and do not want to precompile.
-do_fold_files2([], _Dir, _RegExp, _OrigRE, _Recursive, _Fun, Acc, _Mod) -> 
+do_fold_files2([], _Dir, _RegExp, _OrigRE, _Recursive, _Fun, Acc, _Mod) ->
     Acc;
 do_fold_files2([File|T], Dir, RegExp, OrigRE, Recursive, Fun, Acc0, Mod) ->
     FullName = filename:join(Dir, File),
     case do_is_regular(FullName, Mod) of
 	true  ->
-	    case (catch re:run(File, if is_binary(File) -> OrigRE; 
-					true -> RegExp end, 
+	    case (catch re:run(File, if is_binary(File) -> OrigRE;
+					true -> RegExp end,
 			       [{capture,none}])) of
-		match  -> 
+		match  ->
 		    Acc = Fun(FullName, Acc0),
 		    do_fold_files2(T, Dir, RegExp, OrigRE, Recursive, Fun, Acc, Mod);
 		{'EXIT',_} ->
@@ -397,23 +397,23 @@ Returns `ok` if all parent directories already exist or can be created. Returns
 ensure_path("/") ->
     ok;
 
-ensure_path(Path) -> 
+ensure_path(Path) ->
     case do_is_dir(Path, file) of
-        true -> 
+        true ->
             ok;
-        false -> 
-            case filename:dirname(Path) of 
-                Parent when Parent =:= Path -> 
+        false ->
+            case filename:dirname(Path) of
+                Parent when Parent =:= Path ->
                     {error,einval};
-                Parent -> 
+                Parent ->
                      _ = ensure_path(Parent),
                     case file:make_dir(Path) of
                         {error,eexist}=EExist ->
                             case do_is_dir(Path, file) of
-                                true -> 
+                                true ->
                                     ok;
-                                false -> 
-                                    EExist 
+                                false ->
+                                    EExist
                             end;
                         Other ->
                             Other
@@ -552,7 +552,7 @@ do_alt([], _File) ->
 
 do_list_dir(Dir, Mod) ->     eval_list_dir(Dir, Mod).
 
-	    
+
 %%% Compiling a wildcard.
 
 
@@ -682,7 +682,7 @@ compile_charset1([X|Rest], Ordset) ->
     compile_charset1(Rest, ordsets:add_element(X, Ordset));
 compile_charset1([], _Ordset) ->
     error.
-    
+
 compile_range(Lower, Current, Ordset) when Lower =< Current ->
     compile_range(Lower, Current-1, ordsets:add_element(Current, Ordset));
 compile_range(_, _, Ordset) ->
@@ -928,7 +928,7 @@ try_suffix_rules([], _Root, _Dir, _Ext) ->
 %% ensuring we check the directory of the object file before any other directory
 add_local_search(Rules) ->
     Local = {"",""},
-    [Local] ++ lists:filter(fun (X) -> X =/= Local end, Rules).
+    [Local|[X || X <- Rules, X =/= Local]].
 
 try_dir_rules([{From, To}|Rest], Filename, Dir)
   when is_list(From), is_list(To) ->

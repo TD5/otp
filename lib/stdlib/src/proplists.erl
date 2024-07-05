@@ -211,6 +211,108 @@ See also `get_all_values/2`, `get_bool/2`, `get_value/2`, `lookup/2`.
       List :: [term()],
       Default :: term().
 
+get_value(Key, [P1,P2,P3,P4 | Ps], Default) ->
+    if is_atom(P1), P1 =:= Key ->
+	    true;
+       tuple_size(P1) >= 1, element(1, P1) =:= Key ->
+	    case P1 of
+		{_, Value} ->
+		    Value;
+		_ ->
+		    %% Don't continue the search!
+		    Default
+	    end;
+       is_atom(P2), P2 =:= Key ->
+	    true;
+       tuple_size(P2) >= 1, element(1, P2) =:= Key ->
+	    case P2 of
+		{_, Value} ->
+		    Value;
+		_ ->
+		    %% Don't continue the search!
+		    Default
+	    end;
+       is_atom(P3), P3 =:= Key ->
+	    true;
+       tuple_size(P3) >= 1, element(1, P3) =:= Key ->
+	    case P3 of
+		{_, Value} ->
+		    Value;
+		_ ->
+		    %% Don't continue the search!
+		    Default
+	    end;
+       is_atom(P4), P4 =:= Key ->
+	    true;
+       tuple_size(P4) >= 1, element(1, P4) =:= Key ->
+	    case P4 of
+		{_, Value} ->
+		    Value;
+		_ ->
+		    %% Don't continue the search!
+		    Default
+	    end;
+       true ->
+	    get_value(Key, Ps, Default)
+    end;
+get_value(Key, [P1,P2,P3 | Ps], Default) ->
+    if is_atom(P1), P1 =:= Key ->
+	    true;
+       tuple_size(P1) >= 1, element(1, P1) =:= Key ->
+	    case P1 of
+		{_, Value} ->
+		    Value;
+		_ ->
+		    %% Don't continue the search!
+		    Default
+	    end;
+       is_atom(P2), P2 =:= Key ->
+	    true;
+       tuple_size(P2) >= 1, element(1, P2) =:= Key ->
+	    case P2 of
+		{_, Value} ->
+		    Value;
+		_ ->
+		    %% Don't continue the search!
+		    Default
+	    end;
+       is_atom(P3), P3 =:= Key ->
+	    true;
+       tuple_size(P3) >= 1, element(1, P3) =:= Key ->
+	    case P3 of
+		{_, Value} ->
+		    Value;
+		_ ->
+		    %% Don't continue the search!
+		    Default
+	    end;
+       true ->
+	    get_value(Key, Ps, Default)
+    end;
+get_value(Key, [P1,P2 | Ps], Default) ->
+    if is_atom(P1), P1 =:= Key ->
+	    true;
+       tuple_size(P1) >= 1, element(1, P1) =:= Key ->
+	    case P1 of
+		{_, Value} ->
+		    Value;
+		_ ->
+		    %% Don't continue the search!
+		    Default
+	    end;
+       is_atom(P2), P2 =:= Key ->
+	    true;
+       tuple_size(P2) >= 1, element(1, P2) =:= Key ->
+	    case P2 of
+		{_, Value} ->
+		    Value;
+		_ ->
+		    %% Don't continue the search!
+		    Default
+	    end;
+       true ->
+	    get_value(Key, Ps, Default)
+    end;
 get_value(Key, [P | Ps], Default) ->
     if is_atom(P), P =:= Key ->
 	    true;
@@ -444,7 +546,7 @@ substitute_negations_1([{Key, Key1} | As], P) ->
 		    %% other tuple is interpreted as `false', as done in
 		    %% `get_bool'.
 		    property(Key1, true)
-	    end;		    
+	    end;
        true ->
 	    substitute_negations_1(As, P)
     end;

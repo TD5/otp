@@ -110,13 +110,13 @@ details regarding error handling using exit signals.
 %%%
 %%% The idea behind THIS server is that the user module
 %%% provides (different) functions to handle different
-%%% kind of inputs. 
+%%% kind of inputs.
 %%% If the Parent process terminates the Module:terminate/2
 %%% function is called.
 %%%
 %%% The user module should export:
 %%%
-%%%   init(Args)  
+%%%   init(Args)
 %%%     ==> {ok, State}
 %%%         {ok, State, Timeout}
 %%%         ignore
@@ -128,21 +128,21 @@ details regarding error handling using exit signals.
 %%%        {reply, Reply, State, Timeout}
 %%%        {noreply, State}
 %%%        {noreply, State, Timeout}
-%%%        {stop, Reason, Reply, State}  
+%%%        {stop, Reason, Reply, State}
 %%%              Reason = normal | shutdown | Term terminate(State) is called
 %%%
 %%%   handle_cast(Msg, State)
 %%%
 %%%    ==> {noreply, State}
 %%%        {noreply, State, Timeout}
-%%%        {stop, Reason, State} 
+%%%        {stop, Reason, State}
 %%%              Reason = normal | shutdown | Term terminate(State) is called
 %%%
 %%%   handle_info(Info, State) Info is e.g. {'EXIT', P, R}, {nodedown, N}, ...
 %%%
 %%%    ==> {noreply, State}
 %%%        {noreply, State, Timeout}
-%%%        {stop, Reason, State} 
+%%%        {stop, Reason, State}
 %%%              Reason = normal | shutdown | Term, terminate(State) is called
 %%%
 %%%   terminate(Reason, State) Let the user module clean up
@@ -260,24 +260,24 @@ this function is called by the new process to initialize.
 
 The return value `Result` is interpreted as follows:
 
-- **`{ok,State}`  
-  `{ok,State,_}`**  
+- **`{ok,State}`
+  `{ok,State,_}`**
   Initialization was succesful and `State` is the internal state of the
   `gen_server` process.
 
-- **`{ok,_,Timeout}`  
-  `{ok,_,hibernate}`  
-  `{ok,_,{continue,Continue}}`**  
+- **`{ok,_,Timeout}`
+  `{ok,_,hibernate}`
+  `{ok,_,{continue,Continue}}`**
   See the corresponding return values from
   [`Module:handle_call/3`](`c:handle_call/3`) for a description of this tuple
   member.
 
-- **`{stop,Reason}`  
-  **  
+- **`{stop,Reason}`
+  **
   Initialization failed. The `gen_server` process exits with reason `Reason`.
 
-- **`{error,Reason}`  
-  `ignore`**  
+- **`{error,Reason}`
+  `ignore`**
   Initialization failed. The `gen_server` process exits with reason `normal`.
 
   `{error,Reason}` was introduced in OTP 26.0.
@@ -300,24 +300,24 @@ possibly updated one.
 
 The return value `Result` is interpreted as follows:
 
-- **`{reply,Reply,NewState}`  
-  `{reply,Reply,NewState,_}`**  
+- **`{reply,Reply,NewState}`
+  `{reply,Reply,NewState,_}`**
   The `Reply` value is sent back to the client request and there becomes its
   return value.
 
   The `gen_server` process continues executing with the possibly updated
   internal state `NewState`.
 
-- **`{noreply,NewState}`  
-  `{noreply,NewState,_}`**  
+- **`{noreply,NewState}`
+  `{noreply,NewState,_}`**
   The `gen_server` process continues executing with the possibly updated
   internal state `NewState`.
 
   A reply to the client request has to be created by calling
   [`reply(From, Reply)`](`reply/2`), either in this or in a later callback.
 
-- **`{reply,_,_,Timeout}`  
-  `{noreply,_,Timeout}`**  
+- **`{reply,_,_,Timeout}`
+  `{noreply,_,Timeout}`**
   If an integer `Timeout` is provided, a time-out occurs unless a request or a
   message is received within that many milliseconds. A time-out is represented
   by the atom `timeout` to be handled by the
@@ -325,19 +325,19 @@ The return value `Result` is interpreted as follows:
   `Timeout =:= infinity` can be used to wait indefinitely, which is the same as
   returning a value without a `Timeout` member.
 
-- **`{reply,_,_,hibernate}`  
-  `{noreply,_,hibernate}`**  
+- **`{reply,_,_,hibernate}`
+  `{noreply,_,hibernate}`**
   The process goes into hibernation waiting for the next message to arrive (by
   calling `proc_lib:hibernate/3`).
 
-- **`{reply,_,_,{continue,Continue}}`  
-  `{noreply,_,{continue,Continue}}`**  
+- **`{reply,_,_,{continue,Continue}}`
+  `{noreply,_,{continue,Continue}}`**
   The process will execute the
   [`Module:handle_continue/2`](`c:handle_continue/2`) callback function, with
   `Continue` as the first argument.
 
-- **`{stop,Reason,NewState}`  
-  `{stop,Reason,Reply,NewState}`**  
+- **`{stop,Reason,NewState}`
+  `{stop,Reason,Reply,NewState}`**
   The `gen_server` process will call
   [`Module:terminate(Reason,NewState)`](`c:terminate/2`) and then terminate.
 
@@ -1032,7 +1032,7 @@ stop(ServerRef, Reason, Timeout) ->
 %% be monitored.
 %% If the client is trapping exits and is linked server termination
 %% is handled here (? Shall we do that here (or rely on timeouts) ?).
-%% ----------------------------------------------------------------- 
+%% -----------------------------------------------------------------
 
 -doc(#{equiv => call(ServerRef, Request, 5000)}).
 -spec call(
@@ -1096,13 +1096,13 @@ can be (at least) one of:
 
 - **`calling_self`** - A call to `self/0` would hang indefinitely.
 
-- **`shutdown`  
-  **  
+- **`shutdown`
+  **
   The server was stopped during the call by its supervisor. See also `stop/3`.
 
-- **`normal`  
-  `{shutdown,Term}`  
-  **  
+- **`normal`
+  `{shutdown,Term}`
+  **
   The server stopped during the call by returning `{stop,Reason,_}` from one of
   its callbacks without replying to this call. See also `stop/3`.
 
@@ -1584,17 +1584,17 @@ cast({global,Name}, Request) ->
 cast({via, Mod, Name}, Request) ->
     catch Mod:send(Name, cast_msg(Request)),
     ok;
-cast({Name,Node}=Dest, Request) when is_atom(Name), is_atom(Node) -> 
+cast({Name,Node}=Dest, Request) when is_atom(Name), is_atom(Node) ->
     do_cast(Dest, Request);
 cast(Dest, Request) when is_atom(Dest) ->
     do_cast(Dest, Request);
 cast(Dest, Request) when is_pid(Dest) ->
     do_cast(Dest, Request).
 
-do_cast(Dest, Request) -> 
+do_cast(Dest, Request) ->
     do_send(Dest, cast_msg(Request)),
     ok.
-    
+
 cast_msg(Request) -> {'$gen_cast',Request}.
 
 %% -----------------------------------------------------------------
@@ -1620,9 +1620,9 @@ function. `Reply` is any term passed back to the client as the return value of
 reply(Client, Reply) ->
     gen:reply(Client, Reply).
 
-%% ----------------------------------------------------------------- 
+%% -----------------------------------------------------------------
 %% Asynchronous broadcast, returns nothing, it's just send 'n' pray
-%%-----------------------------------------------------------------  
+%%-----------------------------------------------------------------
 
 -doc """
 Equivalent to [`abcast(Nodes, Name, Request)`](`abcast/3`) where `Nodes`
@@ -1665,10 +1665,10 @@ do_abcast([], _,_) -> abcast.
 %%% Make a call to servers at several nodes.
 %%% Returns: {[Replies],[BadNodes]}
 %%% A Timeout can be given
-%%% 
+%%%
 %%% A middleman process is used in case late answers arrives after
 %%% the timeout. If they would be allowed to glog the callers message
-%%% queue, it would probably become confused. Late answers will 
+%%% queue, it would probably become confused. Late answers will
 %%% now arrive to the terminated middleman and so be discarded.
 %%% -----------------------------------------------------------------
 
@@ -1846,14 +1846,14 @@ mc_cancel_timer(Timer, Alias) ->
     end.
 
 %%-----------------------------------------------------------------
-%% enter_loop(Mod, Options, State, <ServerName>, <TimeOut>) ->_ 
-%%   
-%% Description: Makes an existing process into a gen_server. 
-%%              The calling process will enter the gen_server receive 
+%% enter_loop(Mod, Options, State, <ServerName>, <TimeOut>) ->_
+%%
+%% Description: Makes an existing process into a gen_server.
+%%              The calling process will enter the gen_server receive
 %%              loop and become a gen_server process.
-%%              The process *must* have been started using one of the 
-%%              start functions in proc_lib, see proc_lib(3). 
-%%              The user is responsible for any initialization of the 
+%%              The process *must* have been started using one of the
+%%              start functions in proc_lib, see proc_lib(3).
+%%              The user is responsible for any initialization of the
 %%              process, including registering a name for it.
 %%-----------------------------------------------------------------
 
@@ -2703,10 +2703,10 @@ format_server_log_single([],_) ->
     {"",[]};
 format_server_log_single(Log,FormatOpts) ->
     Args =
-        case maps:get(depth,FormatOpts) of
-            unlimited ->
+        case FormatOpts of
+            #{depth := unlimited} ->
                 [Log];
-            Depth ->
+            #{depth := Depth} ->
                 [Log, Depth]
         end,
      {" Log: "++p(FormatOpts),Args}.
@@ -2723,10 +2723,10 @@ format_client_log_single({_From,{Name,Stacktrace0}},FormatOpts) ->
     %% hopefully enough to point out the position.
     Stacktrace = lists:sublist(Stacktrace0,4),
     Args =
-        case maps:get(depth,FormatOpts) of
-            unlimited ->
+        case FormatOpts of
+            #{depth := unlimited} ->
                 [Name, Stacktrace];
-            Depth ->
+            #{depth := Depth} ->
                 [Name, Depth, Stacktrace, Depth]
         end,
     {" Client "++P++" stacktrace: "++P++".", Args}.
@@ -2742,10 +2742,10 @@ format_client_log({_From,{Name,Stacktrace}},FormatOpts) ->
     Format = lists:append(["** Client ",P," stacktrace~n",
                            "** ",P,"~n"]),
     Args =
-        case maps:get(depth,FormatOpts) of
-            unlimited ->
+        case FormatOpts of
+            #{depth := unlimited} ->
                 [Name, Stacktrace];
-            Depth ->
+            #{depth := Depth} ->
                 [Name, Depth, Stacktrace, Depth]
         end,
     {Format,Args}.
