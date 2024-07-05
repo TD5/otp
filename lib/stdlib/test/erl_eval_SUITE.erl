@@ -1072,7 +1072,7 @@ otp_14826(_Config) ->
     end,
     backtrace_check("{1,1} = {A = 1, A = 2}.",
                     {badmatch, 1},
-                    [erl_eval, {lists,foldl,3}]),
+                    [erl_eval, {lists,foldl,3}, {lists,foldl_1,3}]),
     backtrace_check("case a of a when foo:bar() -> x end.",
                     guard_expr,
                     [{erl_eval,guard0,4}], none, none),

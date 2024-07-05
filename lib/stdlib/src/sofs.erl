@@ -2431,7 +2431,7 @@ ordset_of_sets([S | Ss], L, T) when ?IS_SET(S) ->
 ordset_of_sets([S | Ss], L, T) when ?IS_ORDSET(S) ->
     ordset_of_sets(Ss, [?ORDDATA(S) | L], [?ORDTYPE(S) | T]);
 ordset_of_sets([], L, T) ->
-    ?ORDSET(list_to_tuple(reverse(L)), list_to_tuple(reverse(T)));
+    ?ORDSET(list_to_tuple_rev(L), list_to_tuple_rev(T));
 ordset_of_sets(_, _L, _T) ->
     error.
 
@@ -2587,7 +2587,7 @@ make_tuple([E | Es], [T | Ts], NT, L, [T0 | T0s]) ->
     {ET, ES} = make_element(E, T, T0),
     make_tuple(Es, Ts, [ET | NT], [ES | L], T0s);
 make_tuple([], [], NT, L, _T0s) when NT =/= [] ->
-    {list_to_tuple(reverse(NT)), list_to_tuple(reverse(L))}.
+    {list_to_tuple_rev(NT), list_to_tuple_rev(L)}.
 
 %% Derive type.
 make_element(C) when not is_list(C), not is_tuple(C) ->
@@ -2601,7 +2601,7 @@ make_tuple([E | Es], T, L) ->
     {ET, ES} = make_element(E),
     make_tuple(Es, [ET | T], [ES | L]);
 make_tuple([], T, L) when T =/= [] ->
-    {list_to_tuple(reverse(T)),  list_to_tuple(reverse(L))}.
+    {list_to_tuple_rev(T),  list_to_tuple_rev(L)}.
 
 make_oset([T | Ts], Szs, L, Type) ->
     true = test_oset(Szs, T, T),
@@ -2636,7 +2636,7 @@ tuple_of_sets([S | Ss], [?SET_OF(Type) | Types], L) ->
 tuple_of_sets([S | Ss], [Type | Types], L) ->
     tuple_of_sets(Ss, Types, [?ORDSET(S, Type) | L]);
 tuple_of_sets([], [], L) ->
-    list_to_tuple(reverse(L)).
+    list_to_tuple_rev(L).
 
 spec([E | Es], Fun, Type, L) ->
     case Fun(term2set(E, Type)) of
@@ -2780,7 +2780,7 @@ sympart2(T1, _, L1, L12, L2, T, H1) ->
 prod([[E | Es] | Xs], T, L) ->
     prod(Es, Xs, T, prod(Xs, [E | T], L));
 prod([], T, L) ->
-    [list_to_tuple(reverse(T)) | L].
+    [list_to_tuple_rev(T) | L].
 
 prod([E | Es], Xs, T, L) ->
     prod(Es, Xs, T, prod(Xs, [E | T], L));
@@ -2980,7 +2980,7 @@ range_type([T | Ts], L) ->
             ?ANYTYPE
     end;
 range_type([], L) ->
-    list_to_tuple(reverse(L)).
+    list_to_tuple_rev(L).
 
 converse([{A,B} | X], L) ->
     converse(X, [{B,A} | L]);
@@ -3602,7 +3602,7 @@ sets_to_list(Ss) ->
     map(fun(S) when ?IS_SET(S) -> ?LIST(S) end, Ss).
 
 types([], L) ->
-    list_to_tuple(reverse(L));
+    list_to_tuple_rev(L);
 types([S | _Ss], _L) when ?TYPE(S) =:= ?ANYTYPE ->
     ?ANYTYPE;
 types([S | Ss], L) ->
@@ -3661,3 +3661,34 @@ sort(true, L) ->
     sort(L);
 sort(false, L) ->
     reverse(L).
+
+% Optimised version of list_to_tuple(lists:reverse(Foo))
+% By placing the function definition in this file, we also
+% save on remote function calls.
+-compile({inline, [{list_to_tuple_rev,1}]}).
+list_to_tuple_rev([]) ->
+    {};
+list_to_tuple_rev([A,B]) ->
+    {B,A};
+list_to_tuple_rev([A,B,C]) ->
+    {C,B,A};
+list_to_tuple_rev([A,B,C,D]) ->
+    {D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E]) ->
+    {E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F]) ->
+    {F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G]) ->
+    {G,F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G,H]) ->
+    {H,G,F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G,H,I]) ->
+    {I,H,G,F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G,H,I,J]) ->
+    {J,I,H,G,F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G,H,I,J,K]) ->
+    {K,J,I,H,G,F,E,D,C,B,A};
+list_to_tuple_rev([A,B,C,D,E,F,G,H,I,J,K,L]) ->
+    {L,K,J,I,H,G,F,E,D,C,B,A};
+list_to_tuple_rev(L) ->
+    list_to_tuple(lists:reverse(L, [])).

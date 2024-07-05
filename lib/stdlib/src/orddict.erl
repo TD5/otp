@@ -558,6 +558,14 @@ merge(F, [{K1,V1}|D1], [{_K2,V2}|D2]) ->	%K1 == K2
 merge(F, [], D2) when is_function(F, 3) -> D2;
 merge(F, D1, []) when is_function(F, 3) -> D1.
 
-reverse_pairs([{_,_}=H|T], Acc) ->
-    reverse_pairs(T, [H|Acc]);
+reverse_pairs([{_,_}=H1,{_,_}=H2,{_,_}=H3,{_,_}=H4], Acc) ->
+    [H4,H3,H2,H1|Acc];
+reverse_pairs([{_,_}=H1,{_,_}=H2,{_,_}=H3,{_,_}=H4|T], Acc) ->
+    reverse_pairs(T, [H4,H3,H2,H1|Acc]);
+reverse_pairs([{_,_}=H1,{_,_}=H2,{_,_}=H3], Acc) ->
+    [H3,H2,H1|Acc];
+reverse_pairs([{_,_}=H1,{_,_}=H2], Acc) ->
+    [H2,H1|Acc];
+reverse_pairs([{_,_}=H], Acc) ->
+    [H|Acc];
 reverse_pairs([], Acc) -> Acc.

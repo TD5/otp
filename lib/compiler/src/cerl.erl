@@ -379,7 +379,7 @@ is_literal_term([]) -> true;
 is_literal_term([H | T]) ->
     is_literal_term(H) andalso is_literal_term(T);
 is_literal_term(T) when is_tuple(T) ->
-    is_literal_term_list(tuple_to_list(T));
+    is_literal_term_tuple(T);
 is_literal_term(B) when is_bitstring(B) -> true;
 is_literal_term(M) when is_map(M) ->
     is_literal_term_list(maps:to_list(M));
@@ -399,6 +399,39 @@ is_literal_term_list([T | Ts]) ->
     end;
 is_literal_term_list([]) ->
     true.
+
+is_literal_term_tuple({}) ->
+    true;
+is_literal_term_tuple({A}) ->
+    is_literal_term(A);
+is_literal_term_tuple({A,B}) ->
+    is_literal_term(A) andalso is_literal_term(B);
+is_literal_term_tuple({A,B,C}) ->
+    is_literal_term(A) andalso is_literal_term(B) andalso
+        is_literal_term(C);
+is_literal_term_tuple({A,B,C,D}) ->
+    is_literal_term(A) andalso is_literal_term(B) andalso
+        is_literal_term(C) andalso is_literal_term(D);
+is_literal_term_tuple({A,B,C,D,E}) ->
+    is_literal_term(A) andalso is_literal_term(B) andalso
+        is_literal_term(C) andalso is_literal_term(D) andalso
+        is_literal_term(E);
+is_literal_term_tuple({A,B,C,D,E,F}) ->
+    is_literal_term(A) andalso is_literal_term(B) andalso
+        is_literal_term(C) andalso is_literal_term(D) andalso
+        is_literal_term(E) andalso is_literal_term(F);
+is_literal_term_tuple({A,B,C,D,E,F,G}) ->
+    is_literal_term(A) andalso is_literal_term(B) andalso
+        is_literal_term(C) andalso is_literal_term(D) andalso
+        is_literal_term(E) andalso is_literal_term(F) andalso
+        is_literal_term(G);
+is_literal_term_tuple({A,B,C,D,E,F,G,H}) ->
+    is_literal_term(A) andalso is_literal_term(B) andalso
+        is_literal_term(C) andalso is_literal_term(D) andalso
+        is_literal_term(E) andalso is_literal_term(F) andalso
+        is_literal_term(G) andalso is_literal_term(H);
+is_literal_term_tuple(T) ->
+    is_literal_term_list(tuple_to_list(T)).
 
 
 -doc """
@@ -1238,10 +1271,8 @@ list_elements(#c_cons{hd = Head, tl = Tail}) ->
 list_elements(#c_literal{val = V}) ->
     abstract_list(V).
 
-abstract_list([X | Xs]) ->
-    [abstract(X) | abstract_list(Xs)];
-abstract_list([]) ->
-    [].
+abstract_list(Xs) ->
+    [abstract(X) || X <- Xs].
 
 
 -doc """

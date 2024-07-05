@@ -1664,7 +1664,7 @@ tokens_fixup([T|Ts]=Ts0) ->
 
 token_fixup(Ts) ->
     {AnnoL, NewTs, FixupTag} = unscannable(Ts),
-    String = lists:append([erl_anno:text(A) || A <- AnnoL]),
+    String = lists:flatmap(fun erl_anno:text/1, AnnoL),
     _ = validate_tag(FixupTag, String),
     NewAnno = erl_anno:set_text(fixup_text(FixupTag), hd(AnnoL)),
     {{string, NewAnno, String}, NewTs}.

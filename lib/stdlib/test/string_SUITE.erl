@@ -1110,9 +1110,11 @@ type(Bin) when is_binary(Bin) ->
 type([]) ->
     {list, undefined};
 type(List) when is_list(List) ->
-    Deep = fun(L) when is_list(L) ->
-                   lists:any(fun(C) -> is_list(C) orelse is_binary(C) end, L);
-              (_) -> false
+    Deep =
+        % Not using lists:any/1, since the input might be an improper list
+        fun IsDeep([Hd|Tl]) ->
+            is_list(Hd) orelse is_binary(Hd) orelse IsDeep(Tl);
+            IsDeep(_) -> false
            end,
     case all(fun(C) -> not is_binary(C) end, List) of
         true ->
