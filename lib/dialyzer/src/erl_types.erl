@@ -4160,7 +4160,13 @@ from_form({type, _Anno, map, List}, S, D0, L, C) ->
     end(List, L, C),
   try
     Pairs2 = singleton_elements(Pairs1),
-    {Pairs, DefK, DefV} = map_from_form(Pairs2, [], [], [], ?none, ?none),
+    Pairs3 =
+      % Where keys overlap, Dialyzer gives priority to those entries that come first. Here, we sort
+      % singleton keys to that they always come before "catch-all" keys, so they don't end up being shadowed,
+      % since this more closely aligns with user expectations. This essentially just performs the rewriting
+      % a user would otherwise have to do manually, to make their otherwise correct code satisfy Dialyzer.
+      lists:sort(fun ({AK,_AMNess,_AV},{_BK,_BMNess,_BV}) -> is_singleton_type(AK) end, Pairs2),
+    {Pairs, DefK, DefV} = map_from_form(Pairs3, [], [], [], ?none, ?none),
     {t_map(Pairs, DefK, DefV), L5, C5}
   catch none -> {t_none(), L5, C5}
   end;
