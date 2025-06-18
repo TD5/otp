@@ -138,9 +138,9 @@ Equivalent to [`encode(Data, Options)`](`encode/2`), but returns a `t:byte_strin
       Options :: encode_options(),
       Base64String :: base64_string().
 
-encode_to_string(Bin, Options) when is_binary(Bin), is_map(Options) ->
+encode_to_string(Bin, #{}=Options) when is_binary(Bin) ->
     encode_to_string(binary_to_list(Bin), Options);
-encode_to_string(List, Options) when is_list(List), is_map(Options) ->
+encode_to_string(List, #{}=Options) when is_list(List) ->
     encode_list_to_string(get_encoding_offset(Options), get_padding(Options), List).
 
 -doc(#{ equiv => encode(Data, #{}) }).
@@ -162,38 +162,59 @@ See `t:encode_options/0` for details on which options can be passed.
       Options :: encode_options(),
       Base64 :: base64_binary().
 
-encode(Bin, Options) when is_binary(Bin), is_map(Options) ->
+encode(Bin, #{}=Options) when is_binary(Bin) ->
     encode_binary(get_encoding_offset(Options), get_padding(Options), Bin, <<>>);
 encode(List, Options) when is_list(List) ->
     encode_list(get_encoding_offset(Options), get_padding(Options), List, <<>>).
 
-encode_list_to_string(_ModeOffset, _Padding, []) ->
-    [];
-encode_list_to_string(ModeOffset, Padding, [B1]) ->
+encode_list_to_string(ModeOffset, true, L) ->
+    encode_list_to_string_padded(ModeOffset, L);
+encode_list_to_string(ModeOffset, _, L) ->
+    encode_list_to_string_unpadded(ModeOffset, L).
+
+encode_list_to_string_padded(_ModeOffset, []=Nil) ->
+    Nil;
+encode_list_to_string_padded(ModeOffset, [B1]) ->
     [b64e(B1 bsr 2, ModeOffset),
      b64e((B1 band 3) bsl 4, ModeOffset) |
-     case Padding of
-         true -> "==";
-         false -> ""
-     end];
-encode_list_to_string(ModeOffset, Padding, [B1,B2]) ->
+         "=="
+     ];
+encode_list_to_string_padded(ModeOffset, [B1,B2]) ->
     [b64e(B1 bsr 2, ModeOffset),
      b64e(((B1 band 3) bsl 4) bor (B2 bsr 4), ModeOffset),
      b64e((B2 band 15) bsl 2, ModeOffset) |
-     case Padding of
-         true -> "=";
-         false -> ""
-     end];
-encode_list_to_string(ModeOffset, Padding, [B1,B2,B3|Ls]) ->
+         "="
+     ];
+encode_list_to_string_padded(ModeOffset, [B1,B2,B3|Ls]) ->
     BB = (B1 bsl 16) bor (B2 bsl 8) bor B3,
     [b64e(BB bsr 18, ModeOffset),
      b64e((BB bsr 12) band 63, ModeOffset),
      b64e((BB bsr 6) band 63, ModeOffset),
-     b64e(BB band 63, ModeOffset) | encode_list_to_string(ModeOffset, Padding, Ls)].
+     b64e(BB band 63, ModeOffset) | encode_list_to_string_padded(ModeOffset, Ls)].
 
-encode_binary(ModeOffset, Padding, <<B1:6, B2:6, B3:6, B4:6, B5:6, B6:6, B7:6, B8:6, Ls/bits>>, A) ->
-    encode_binary(ModeOffset,
-                  Padding,
+encode_list_to_string_unpadded(_ModeOffset, []=Nil) ->
+    Nil;
+encode_list_to_string_unpadded(ModeOffset, [B1]) ->
+    [b64e(B1 bsr 2, ModeOffset),
+     b64e((B1 band 3) bsl 4, ModeOffset)];
+encode_list_to_string_unpadded(ModeOffset, [B1,B2]) ->
+    [b64e(B1 bsr 2, ModeOffset),
+     b64e(((B1 band 3) bsl 4) bor (B2 bsr 4), ModeOffset),
+     b64e((B2 band 15) bsl 2, ModeOffset)];
+encode_list_to_string_unpadded(ModeOffset, [B1,B2,B3|Ls]) ->
+    BB = (B1 bsl 16) bor (B2 bsl 8) bor B3,
+    [b64e(BB bsr 18, ModeOffset),
+     b64e((BB bsr 12) band 63, ModeOffset),
+     b64e((BB bsr 6) band 63, ModeOffset),
+     b64e(BB band 63, ModeOffset) | encode_list_to_string_unpadded(ModeOffset, Ls)].
+
+encode_binary(ModeOffset, true, B, A) ->
+    encode_binary_padded(ModeOffset, B, A);
+encode_binary(ModeOffset, _, B, A) ->
+    encode_binary_unpadded(ModeOffset, B, A).
+
+encode_binary_padded(ModeOffset, <<B1:6, B2:6, B3:6, B4:6, B5:6, B6:6, B7:6, B8:6, Ls/bits>>, A) ->
+    encode_binary_padded(ModeOffset,
                   Ls,
                   <<A/bits,
                     (b64e(B1, ModeOffset)):8,
@@ -204,54 +225,97 @@ encode_binary(ModeOffset, Padding, <<B1:6, B2:6, B3:6, B4:6, B5:6, B6:6, B7:6, B
                     (b64e(B6, ModeOffset)):8,
                     (b64e(B7, ModeOffset)):8,
                     (b64e(B8, ModeOffset)):8>>);
-encode_binary(_ModeOffset, _Padding, <<>>, A) ->
+encode_binary_padded(_ModeOffset, <<>>, A) ->
     A;
-encode_binary(ModeOffset, Padding, <<B1:6, B2:6, B3:6, B4:6, Ls/bits>>, A) ->
-    encode_binary(ModeOffset,
-                  Padding,
+encode_binary_padded(ModeOffset, <<B1:6, B2:6, B3:6, B4:6, Ls/bits>>, A) ->
+    encode_binary_padded(ModeOffset,
                   Ls,
                   <<A/bits,
                     (b64e(B1, ModeOffset)):8,
                     (b64e(B2, ModeOffset)):8,
                     (b64e(B3, ModeOffset)):8,
                     (b64e(B4, ModeOffset)):8>>);
-encode_binary(ModeOffset, Padding, <<B1:6, B2:2>>, A) ->
+encode_binary_padded(ModeOffset, <<B1:6, B2:2>>, A) ->
     E1 = b64e(B1, ModeOffset),
     E2 = b64e(B2 bsl 4, ModeOffset),
-    case Padding of
-        true -> <<A/bits,E1,E2,$=,$=>>;
-        _ -> <<A/bits,E1,E2>>
-    end;
-encode_binary(ModeOffset, Padding, <<B1:6, B2:6, B3:4>>, A) ->
+    <<A/bits,E1,E2,$=,$=>>;
+encode_binary_padded(ModeOffset, <<B1:6, B2:6, B3:4>>, A) ->
     E1 = b64e(B1, ModeOffset),
     E2 = b64e(B2, ModeOffset),
     E3 = b64e(B3 bsl 2, ModeOffset),
-    case Padding of
-        true -> <<A/bits,E1,E2,E3,$=>>;
-        _ -> <<A/bits,E1,E2,E3>>
-    end.
+    <<A/bits,E1,E2,E3,$=>>.
 
-encode_list(_ModeOffset, _Padding, [], A) ->
+encode_binary_unpadded(ModeOffset, <<B1:6, B2:6, B3:6, B4:6, B5:6, B6:6, B7:6, B8:6, Ls/bits>>, A) ->
+    encode_binary_unpadded(ModeOffset,
+                  Ls,
+                  <<A/bits,
+                    (b64e(B1, ModeOffset)):8,
+                    (b64e(B2, ModeOffset)):8,
+                    (b64e(B3, ModeOffset)):8,
+                    (b64e(B4, ModeOffset)):8,
+                    (b64e(B5, ModeOffset)):8,
+                    (b64e(B6, ModeOffset)):8,
+                    (b64e(B7, ModeOffset)):8,
+                    (b64e(B8, ModeOffset)):8>>);
+encode_binary_unpadded(_ModeOffset, <<>>, A) ->
     A;
-encode_list(ModeOffset, Padding, [B1], A) ->
+encode_binary_unpadded(ModeOffset, <<B1:6, B2:6, B3:6, B4:6, Ls/bits>>, A) ->
+    encode_binary_unpadded(ModeOffset,
+                  Ls,
+                  <<A/bits,
+                    (b64e(B1, ModeOffset)):8,
+                    (b64e(B2, ModeOffset)):8,
+                    (b64e(B3, ModeOffset)):8,
+                    (b64e(B4, ModeOffset)):8>>);
+encode_binary_unpadded(ModeOffset, <<B1:6, B2:2>>, A) ->
+    E1 = b64e(B1, ModeOffset),
+    E2 = b64e(B2 bsl 4, ModeOffset),
+    <<A/bits,E1,E2>>;
+encode_binary_unpadded(ModeOffset, <<B1:6, B2:6, B3:4>>, A) ->
+    E1 = b64e(B1, ModeOffset),
+    E2 = b64e(B2, ModeOffset),
+    E3 = b64e(B3 bsl 2, ModeOffset),
+    <<A/bits,E1,E2,E3>>.
+
+encode_list(ModeOffset, true, L, A) ->
+    encode_list_padded(ModeOffset, L, A);
+encode_list(ModeOffset, false, L, A) ->
+    encode_list_unpadded(ModeOffset, L, A).
+
+encode_list_padded(_ModeOffset, [], A) ->
+    A;
+encode_list_padded(ModeOffset, [B1], A) ->
     E1 = b64e(B1 bsr 2, ModeOffset),
     E2 = b64e((B1 band 3) bsl 4, ModeOffset),
-    case Padding of
-        true -> <<A/bits,E1,E2,$=,$=>>;
-        false -> <<A/bits,E1,E2>>
-    end;
-encode_list(ModeOffset, Padding, [B1,B2], A) ->
+    <<A/bits,E1,E2,$=,$=>>;
+encode_list_padded(ModeOffset, [B1,B2], A) ->
     E1 = b64e(B1 bsr 2, ModeOffset),
     E2 = b64e(((B1 band 3) bsl 4) bor (B2 bsr 4), ModeOffset),
     E3 = b64e((B2 band 15) bsl 2, ModeOffset),
-    case Padding of
-        true -> <<A/bits,E1,E2,E3,$=>>;
-        false -> <<A/bits,E1,E2,E3>>
-    end;
-encode_list(ModeOffset, Padding, [B1,B2,B3|Ls], A) ->
+    <<A/bits,E1,E2,E3,$=>>;
+encode_list_padded(ModeOffset, [B1,B2,B3|Ls], A) ->
     BB = (B1 bsl 16) bor (B2 bsl 8) bor B3,
-    encode_list(ModeOffset,
-                Padding,
+    encode_list_padded(ModeOffset,
+                Ls,
+                <<A/bits,(b64e(BB bsr 18, ModeOffset)):8,
+                  (b64e((BB bsr 12) band 63, ModeOffset)):8,
+                  (b64e((BB bsr 6) band 63, ModeOffset)):8,
+                  (b64e(BB band 63, ModeOffset)):8>>).
+
+encode_list_unpadded(_ModeOffset, [], A) ->
+    A;
+encode_list_unpadded(ModeOffset, [B1], A) ->
+    E1 = b64e(B1 bsr 2, ModeOffset),
+    E2 = b64e((B1 band 3) bsl 4, ModeOffset),
+    <<A/bits,E1,E2>>;
+encode_list_unpadded(ModeOffset, [B1,B2], A) ->
+    E1 = b64e(B1 bsr 2, ModeOffset),
+    E2 = b64e(((B1 band 3) bsl 4) bor (B2 bsr 4), ModeOffset),
+    E3 = b64e((B2 band 15) bsl 2, ModeOffset),
+    <<A/bits,E1,E2,E3>>;
+encode_list_unpadded(ModeOffset, [B1,B2,B3|Ls], A) ->
+    BB = (B1 bsl 16) bor (B2 bsl 8) bor B3,
+    encode_list_unpadded(ModeOffset,
                 Ls,
                 <<A/bits,(b64e(BB bsr 18, ModeOffset)):8,
                   (b64e((BB bsr 12) band 63, ModeOffset)):8,
@@ -412,30 +476,30 @@ mime_decode_list(ModeOffset, Padding, [C2 | Cs], A, B1) ->
 
 mime_decode_list(ModeOffset, Padding, [C3 | Cs], A, B1, B2) ->
     case b64d(C3, ModeOffset) of
-        B3 when is_integer(B3) ->
-            mime_decode_list(ModeOffset, Padding, Cs, A, B1, B2, B3);
         eq=B3 ->
             mime_decode_list_after_eq(ModeOffset, Padding, Cs, A, B1, B2, B3);
+        B3 when is_integer(B3) ->
+            mime_decode_list(ModeOffset, Padding, Cs, A, B1, B2, B3);
         _ -> mime_decode_list(ModeOffset, Padding, Cs, A, B1, B2)
     end;
-mime_decode_list(ModeOffset, Padding, [], A, B1, B2) ->
+mime_decode_list(ModeOffset, Padding, []=Nil, A, B1, B2) ->
     case Padding of
         true -> missing_padding_error();
-        false -> mime_decode_list_after_eq(ModeOffset, Padding, [], A, B1, B2, eq)
+        _ -> mime_decode_list_after_eq(ModeOffset, Padding, Nil, A, B1, B2, eq)
     end.
 
 mime_decode_list(ModeOffset, Padding, [C4 | Cs], A, B1, B2, B3) ->
     case b64d(C4, ModeOffset) of
-        B4 when is_integer(B4) ->
-            mime_decode_list(ModeOffset, Padding, Cs, <<A/bits,B1:6,B2:6,B3:6,B4:6>>);
         eq ->
             mime_decode_list_after_eq(ModeOffset, Padding, Cs, A, B1, B2, B3);
+        B4 when is_integer(B4) ->
+            mime_decode_list(ModeOffset, Padding, Cs, <<A/bits,B1:6,B2:6,B3:6,B4:6>>);
         _ -> mime_decode_list(ModeOffset, Padding, Cs, A, B1, B2, B3)
     end;
-mime_decode_list(ModeOffset, Padding, [], A, B1, B2, B3) ->
+mime_decode_list(ModeOffset, Padding, []=Nil, A, B1, B2, B3) ->
     case Padding of
         true -> missing_padding_error();
-        false -> mime_decode_list_after_eq(ModeOffset, Padding, [], A, B1, B2, B3)
+        _ -> mime_decode_list_after_eq(ModeOffset, Padding, []=Nil, A, B1, B2, B3)
     end.
 
 mime_decode_list_after_eq(ModeOffset, Padding, [C | Cs], A, B1, B2, B3) ->
@@ -470,30 +534,30 @@ mime_decode_binary(ModeOffset, Padding, <<C2:8, Cs/bits>>, A, B1) ->
 
 mime_decode_binary(ModeOffset, Padding, <<C3:8, Cs/bits>>, A, B1, B2) ->
     case b64d(C3, ModeOffset) of
-        B3 when is_integer(B3) ->
-            mime_decode_binary(ModeOffset, Padding, Cs, A, B1, B2, B3);
         eq=B3 ->
             mime_decode_binary_after_eq(ModeOffset, Padding, Cs, A, B1, B2, B3);
+        B3 when is_integer(B3) ->
+            mime_decode_binary(ModeOffset, Padding, Cs, A, B1, B2, B3);
         _ -> mime_decode_binary(ModeOffset, Padding, Cs, A, B1, B2)
     end;
 mime_decode_binary(ModeOffset, Padding, <<Cs/bits>>, A, B1, B2) ->
     case Padding of
         true -> missing_padding_error();
-        false -> mime_decode_binary_after_eq(ModeOffset, Padding, Cs, A, B1, B2, eq)
+        _ -> mime_decode_binary_after_eq(ModeOffset, Padding, Cs, A, B1, B2, eq)
     end.
 
 mime_decode_binary(ModeOffset, Padding, <<C4:8, Cs/bits>>, A, B1, B2, B3) ->
     case b64d(C4, ModeOffset) of
-        B4 when is_integer(B4) ->
-            mime_decode_binary(ModeOffset, Padding, Cs, <<A/bits,B1:6,B2:6,B3:6,B4:6>>);
         eq ->
             mime_decode_binary_after_eq(ModeOffset, Padding, Cs, A, B1, B2, B3);
+        B4 when is_integer(B4) ->
+            mime_decode_binary(ModeOffset, Padding, Cs, <<A/bits,B1:6,B2:6,B3:6,B4:6>>);
         _ -> mime_decode_binary(ModeOffset, Padding, Cs, A, B1, B2, B3)
     end;
 mime_decode_binary(ModeOffset, Padding, <<Cs/bits>>, A, B1, B2, B3) ->
     case Padding of
         true -> missing_padding_error();
-        false -> mime_decode_binary_after_eq(ModeOffset, Padding, Cs, A, B1, B2, B3)
+        _ -> mime_decode_binary_after_eq(ModeOffset, Padding, Cs, A, B1, B2, B3)
     end.
 
 mime_decode_binary_after_eq(ModeOffset, Padding, <<C:8, Cs/bits>>, A, B1, B2, B3) ->
@@ -516,8 +580,8 @@ mime_decode_list_to_string(ModeOffset, Padding, [C1 | Cs]) ->
         B1 when is_integer(B1) -> mime_decode_list_to_string(ModeOffset, Padding, Cs, B1);
         _ -> mime_decode_list_to_string(ModeOffset, Padding, Cs) % eq is padding
     end;
-mime_decode_list_to_string(_ModeOffset, _Padding, []) ->
-    [].
+mime_decode_list_to_string(_ModeOffset, _Padding, []=Nil) ->
+    Nil.
 
 mime_decode_list_to_string(ModeOffset, Padding, [C2 | Cs], B1) ->
     case b64d(C2, ModeOffset) of
@@ -528,33 +592,33 @@ mime_decode_list_to_string(ModeOffset, Padding, [C2 | Cs], B1) ->
 
 mime_decode_list_to_string(ModeOffset, Padding, [C3 | Cs], B1, B2) ->
     case b64d(C3, ModeOffset) of
+        eq=B3 -> mime_decode_list_to_string_after_eq(ModeOffset, Padding, Cs, B1, B2, B3);
         B3 when is_integer(B3) ->
             mime_decode_list_to_string(ModeOffset, Padding, Cs, B1, B2, B3);
-        eq=B3 -> mime_decode_list_to_string_after_eq(ModeOffset, Padding, Cs, B1, B2, B3);
         _ -> mime_decode_list_to_string(ModeOffset, Padding, Cs, B1, B2)
     end;
-mime_decode_list_to_string(ModeOffset, Padding, [], B1, B2) ->
+mime_decode_list_to_string(ModeOffset, Padding, []=Nil, B1, B2) ->
     case Padding of
         true -> missing_padding_error();
-        false -> mime_decode_list_to_string_after_eq(ModeOffset, Padding, [], B1, B2, eq)
+        _ -> mime_decode_list_to_string_after_eq(ModeOffset, Padding, Nil, B1, B2, eq)
     end.
 
 mime_decode_list_to_string(ModeOffset, Padding, [C4 | Cs], B1, B2, B3) ->
     case b64d(C4, ModeOffset) of
+        eq ->
+            mime_decode_list_to_string_after_eq(ModeOffset, Padding, Cs, B1, B2, B3);
         B4 when is_integer(B4) ->
             Bits4x6 = (B1 bsl 18) bor (B2 bsl 12) bor (B3 bsl 6) bor B4,
             Octet1 = Bits4x6 bsr 16,
             Octet2 = (Bits4x6 bsr 8) band 16#ff,
             Octet3 = Bits4x6 band 16#ff,
             [Octet1, Octet2, Octet3 | mime_decode_list_to_string(ModeOffset, Padding, Cs)];
-        eq ->
-            mime_decode_list_to_string_after_eq(ModeOffset, Padding, Cs, B1, B2, B3);
         _ -> mime_decode_list_to_string(ModeOffset, Padding, Cs, B1, B2, B3)
     end;
-mime_decode_list_to_string(ModeOffset, Padding, [], B1, B2, B3) ->
+mime_decode_list_to_string(ModeOffset, Padding, []=Nil, B1, B2, B3) ->
     case Padding of
         true -> missing_padding_error();
-        false -> mime_decode_list_to_string_after_eq(ModeOffset, Padding, [], B1, B2, B3)
+        _ -> mime_decode_list_to_string_after_eq(ModeOffset, Padding, Nil, B1, B2, B3)
     end.
 
 mime_decode_list_to_string_after_eq(ModeOffset, Padding, [C | Cs], B1, B2, B3) ->
@@ -596,24 +660,24 @@ decode_list(ModeOffset, Padding, [C3 | Cs], A, B1, B2) ->
         ws -> decode_list(ModeOffset, Padding, Cs, A, B1, B2);
         B3 -> decode_list(ModeOffset, Padding, Cs, A, B1, B2, B3)
     end;
-decode_list(ModeOffset, Padding, [], A, B1, B2) ->
+decode_list(ModeOffset, Padding, []=Nil, A, B1, B2) ->
     case Padding of
         true -> missing_padding_error();
-        false -> decode_list(ModeOffset, Padding, [], A, B1, B2, eq)
+        _ -> decode_list(ModeOffset, Padding, Nil, A, B1, B2, eq)
     end.
 
 decode_list(ModeOffset, Padding, [C4 | Cs], A, B1, B2, B3) ->
-    case b64d(C4, ModeOffset) of
-        ws                -> decode_list(ModeOffset, Padding, Cs, A, B1, B2, B3);
-        eq when B3 =:= eq -> only_ws(ModeOffset, Padding, Cs, <<A/bits,B1:6,(B2 bsr 4):2>>);
-        eq                -> only_ws(ModeOffset, Padding, Cs, <<A/bits,B1:6,B2:6,(B3 bsr 2):4>>);
-        B4                -> decode_list(ModeOffset, Padding, Cs, <<A/bits,B1:6,B2:6,B3:6,B4:6>>)
+    case {b64d(C4, ModeOffset),B3} of
+        {ws,_}  -> decode_list(ModeOffset, Padding, Cs, A, B1, B2, B3);
+        {eq,eq} -> only_ws(ModeOffset, Padding, Cs, <<A/bits,B1:6,(B2 bsr 4):2>>);
+        {eq,_}  -> only_ws(ModeOffset, Padding, Cs, <<A/bits,B1:6,B2:6,(B3 bsr 2):4>>);
+        {B4,_}  -> decode_list(ModeOffset, Padding, Cs, <<A/bits,B1:6,B2:6,B3:6,B4:6>>)
     end;
 decode_list(_ModeOffset, Padding, [], A, B1, B2, B3) ->
-    case Padding of
-        true -> missing_padding_error();
-        false when B3 == eq -> <<A/bits,B1:6,(B2 bsr 4):2>>;
-        false -> <<A/bits,B1:6,B2:6,(B3 bsr 2):4>>
+    case {Padding,B3} of
+        {true,_} -> missing_padding_error();
+        {false,eq} -> <<A/bits,B1:6,(B2 bsr 4):2>>;
+        {false,_} -> <<A/bits,B1:6,B2:6,(B3 bsr 2):4>>
     end.
 
 decode_binary(ModeOffset, Padding, <<C1:8, C2:8, C3:8, C4:8, Cs/bits>>, A) ->
@@ -639,11 +703,11 @@ dec_bin(ModeOffset, Padding, Cs, B1, ws, B3, B4, A) ->
 dec_bin(ModeOffset, Padding, Cs, B1, B2, ws, B4, A) ->
     dec_bin(ModeOffset, Padding, Cs, B1, B2, B4, A);
 dec_bin(ModeOffset, Padding, Cs, B1, B2, B3, B4, A) ->
-    case B4 of
-        ws                -> decode_binary(ModeOffset, Padding, Cs, A, B1, B2, B3);
-        eq when B3 =:= eq -> only_ws_binary(ModeOffset, Padding, Cs, <<A/bits,B1:6,(B2 bsr 4):2>>);
-        eq                -> only_ws_binary(ModeOffset, Padding, Cs, <<A/bits,B1:6,B2:6,(B3 bsr 2):4>>);
-        B4                -> decode_binary(ModeOffset, Padding, Cs, <<A/bits,B1:6,B2:6,B3:6,B4:6>>)
+    case {B4,B3} of
+        {ws,_}  -> decode_binary(ModeOffset, Padding, Cs, A, B1, B2, B3);
+        {eq,eq} -> only_ws_binary(ModeOffset, Padding, Cs, <<A/bits,B1:6,(B2 bsr 4):2>>);
+        {eq,_}  -> only_ws_binary(ModeOffset, Padding, Cs, <<A/bits,B1:6,B2:6,(B3 bsr 2):4>>);
+        {B4,_}  -> decode_binary(ModeOffset, Padding, Cs, <<A/bits,B1:6,B2:6,B3:6,B4:6>>)
     end.
 
 dec_bin(ModeOffset, Padding, Cs, ws, B2, B3, A) ->
@@ -681,21 +745,21 @@ decode_binary(ModeOffset, Padding, <<C3:8, Cs/bits>>, A, B1, B2) ->
 decode_binary(ModeOffset, Padding, <<Cs/bits>>, A, B1, B2) ->
     case Padding of
         true -> missing_padding_error();
-        false -> decode_binary(ModeOffset, Padding, Cs, A, B1, B2, eq)
+        _ -> decode_binary(ModeOffset, Padding, Cs, A, B1, B2, eq)
     end.
 
 decode_binary(ModeOffset, Padding, <<C4:8, Cs/bits>>, A, B1, B2, B3) ->
-    case b64d(C4, ModeOffset) of
-        ws                -> decode_binary(ModeOffset, Padding, Cs, A, B1, B2, B3);
-        eq when B3 =:= eq -> only_ws_binary(ModeOffset, Padding, Cs, <<A/bits,B1:6,(B2 bsr 4):2>>);
-        eq                -> only_ws_binary(ModeOffset, Padding, Cs, <<A/bits,B1:6,B2:6,(B3 bsr 2):4>>);
-        B4                -> decode_binary(ModeOffset, Padding, Cs, <<A/bits,B1:6,B2:6,B3:6,B4:6>>)
+    case {b64d(C4, ModeOffset),B3} of
+        {ws,_}  -> decode_binary(ModeOffset, Padding, Cs, A, B1, B2, B3);
+        {eq,eq} -> only_ws_binary(ModeOffset, Padding, Cs, <<A/bits,B1:6,(B2 bsr 4):2>>);
+        {eq,_}  -> only_ws_binary(ModeOffset, Padding, Cs, <<A/bits,B1:6,B2:6,(B3 bsr 2):4>>);
+        {B4,_}  -> decode_binary(ModeOffset, Padding, Cs, <<A/bits,B1:6,B2:6,B3:6,B4:6>>)
     end;
 decode_binary(_ModeOffset, Padding, <<>>, A, B1, B2, B3) ->
-    case Padding of
-        true -> missing_padding_error();
-        false when B3 =:= eq -> <<A/bits,B1:6,(B2 bsr 4):2>>;
-        false -> <<A/bits,B1:6,B2:6,(B3 bsr 2):4>>
+    case {Padding,B3} of
+        {true,_}   -> missing_padding_error();
+        {false,eq} -> <<A/bits,B1:6,(B2 bsr 4):2>>;
+        {false,_}  -> <<A/bits,B1:6,B2:6,(B3 bsr 2):4>>
     end.
 
 only_ws_binary(_ModeOffset, _Padding, <<>>, A) ->
@@ -710,8 +774,8 @@ decode_list_to_string(ModeOffset, Padding, [C1 | Cs]) ->
         ws -> decode_list_to_string(ModeOffset, Padding, Cs);
         B1 -> decode_list_to_string(ModeOffset, Padding, Cs, B1)
     end;
-decode_list_to_string(_ModeOffset, _Padding, []) ->
-    [].
+decode_list_to_string(_ModeOffset, _Padding, []=Nil) ->
+    Nil.
 
 decode_list_to_string(ModeOffset, Padding, [C2 | Cs], B1) ->
     case b64d(C2, ModeOffset) of
@@ -724,21 +788,21 @@ decode_list_to_string(ModeOffset, Padding, [C3 | Cs], B1, B2) ->
         ws -> decode_list_to_string(ModeOffset, Padding, Cs, B1, B2);
         B3 -> decode_list_to_string(ModeOffset, Padding, Cs, B1, B2, B3)
     end;
-decode_list_to_string(ModeOffset, Padding, [], B1, B2) ->
+decode_list_to_string(ModeOffset, Padding, []=Nil, B1, B2) ->
     case Padding of
         true -> missing_padding_error();
-        false -> decode_list_to_string(ModeOffset, Padding, [], B1, B2, eq)
+        _ -> decode_list_to_string(ModeOffset, Padding, []=Nil, B1, B2, eq)
     end.
 
 decode_list_to_string(ModeOffset, Padding, [C4 | Cs], B1, B2, B3) ->
-    case b64d(C4, ModeOffset) of
-        ws ->
+    case {b64d(C4, ModeOffset),B3} of
+        {ws,_} ->
             decode_list_to_string(ModeOffset, Padding, Cs, B1, B2, B3);
-        eq when B3 =:= eq ->
+        {eq,eq} ->
             only_ws(ModeOffset, Padding, Cs, binary_to_list(<<B1:6,(B2 bsr 4):2>>));
-        eq ->
+        {eq,_} ->
             only_ws(ModeOffset, Padding, Cs, binary_to_list(<<B1:6,B2:6,(B3 bsr 2):4>>));
-        B4 ->
+        {B4,_} ->
             Bits4x6 = (B1 bsl 18) bor (B2 bsl 12) bor (B3 bsl 6) bor B4,
             Octet1 = Bits4x6 bsr 16,
             Octet2 = (Bits4x6 bsr 8) band 16#ff,
@@ -746,10 +810,10 @@ decode_list_to_string(ModeOffset, Padding, [C4 | Cs], B1, B2, B3) ->
             [Octet1, Octet2, Octet3 | decode_list_to_string(ModeOffset, Padding, Cs)]
     end;
 decode_list_to_string(_ModeOffset, Padding, [], B1, B2, B3) ->
-    case Padding of
-        true -> missing_padding_error();
-        false when B3 =:= eq -> binary_to_list(<<B1:6,(B2 bsr 4):2>>);
-        false -> binary_to_list(<<B1:6,B2:6,(B3 bsr 2):4>>)
+    case {Padding,B3} of
+        {true,_} -> missing_padding_error();
+        {false,eq} -> binary_to_list(<<B1:6,(B2 bsr 4):2>>);
+        {false,_} -> binary_to_list(<<B1:6,B2:6,(B3 bsr 2):4>>)
     end.
 
 only_ws(_ModeOffset, _Padding, [], A) ->
