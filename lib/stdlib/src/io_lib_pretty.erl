@@ -1,8 +1,8 @@
 %%
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 1996-2024. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -14,7 +14,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 -module(io_lib_pretty).
@@ -141,10 +141,8 @@ print(Term, Col, Ll, D, M0, T, RecDefFun, Enc, Str, Ord) when is_tuple(Term);
             write(If);
         true ->
             %% compute the indentation TInd for tagged tuples and records
-            TInd = while_fail([-1, 4], 
-                              fun(I) -> cind(If, Col, Ll, M, I, 0, 0) end, 
-                              1),
-            pp(If, Col, Ll, M, TInd, indent(Col), 0, 0)
+            TInd = try_cind(If, Col, Ll, M),
+            pp(If, Col, Ll, M, TInd, indent_to_col(Col), 0, 0)
     end;
 print(Term, _Col, _Ll, _D, _M, _T, _RF, _Enc, _Str, _Ord) ->
     %% atomic data types (bignums, atoms, ...) are never truncated
@@ -171,16 +169,16 @@ pp({_S,Len,_,_} = If, Col, Ll, M, _TInd, _Ind, LD, W)
                       when Len < Ll - Col - LD, Len + W + LD =< M ->
     write(If);
 pp({{list,L}, _Len, _, _}, Col, Ll, M, TInd, Ind, LD, W) ->
-    [$[, pp_list(L, Col + 1, Ll, M, TInd, indent(1, Ind), LD, $|, W + 1), $]];
+    [[$[ | pp_list(L, Col + 1, Ll, M, TInd, indent(1, Ind), LD, $|, W + 1)], $]];
 pp({{tuple,true,L}, _Len, _, _}, Col, Ll, M, TInd, Ind, LD, W) ->
-    [${, pp_tag_tuple(L, Col, Ll, M, TInd, Ind, LD, W + 1), $}];
+    [[${ | pp_tag_tuple(L, Col, Ll, M, TInd, Ind, LD, W + 1)], $}];
 pp({{tuple,false,L}, _Len, _, _}, Col, Ll, M, TInd, Ind, LD, W) ->
-    [${, pp_list(L, Col + 1, Ll, M, TInd, indent(1, Ind), LD, $,, W + 1), $}];
+    [[${ | pp_list(L, Col + 1, Ll, M, TInd, indent(1, Ind), LD, $,, W + 1)], $}];
 pp({{map,Pairs}, _Len, _, _}, Col, Ll, M, TInd, Ind, LD, W) ->
-    [$#, ${, pp_map(Pairs, Col + 2, Ll, M, TInd, indent(2, Ind), LD, W + 1),
+    [[$#, ${ | pp_map(Pairs, Col + 2, Ll, M, TInd, indent(2, Ind), LD, W + 1)],
      $}];
 pp({{record,[{Name,NLen} | L]}, _Len, _, _}, Col, Ll, M, TInd, Ind, LD, W) ->
-    [Name, ${, pp_record(L, NLen, Col, Ll, M, TInd, Ind, LD, W + NLen+1), $}];
+    [[Name, ${ | pp_record(L, NLen, Col, Ll, M, TInd, Ind, LD, W + NLen+1)], $}];
 pp({{bin,S}, _Len, _, _}, Col, Ll, M, _TInd, Ind, LD, W) ->
     pp_binary(S, Col + 2, Ll, M, indent(2, Ind), LD, W);
 pp({S,_Len,_,_}, _Col, _Ll, _M, _TInd, _Ind, _LD, _W) ->
@@ -205,16 +203,14 @@ pp_tag_tuple([{Tag,Tlen,_,_} | L], Col, Ll, M, TInd, Ind, LD, W) ->
             [Tag, S | pp_list(L, Tcol, Ll, M, TInd, Indent, LD, S, W+Tlen+1)]
     end.
 
-pp_map([], _Col, _Ll, _M, _TInd, _Ind, _LD, _W) ->
-    "";                                         % cannot happen
-pp_map({dots, _, _, _}, _Col, _Ll, _M, _TInd, _Ind, _LD, _W) ->
-    "...";                                      % cannot happen
+%pp_map([], _Col, _Ll, _M, _TInd, _Ind, _LD, _W) -> "";                 % cannot happen
+%pp_map({dots, _, _, _}, _Col, _Ll, _M, _TInd, _Ind, _LD, _W) -> "..."; % cannot happen
 pp_map([P | Ps], Col, Ll, M, TInd, Ind, LD, W) ->
     {PS, PW} = pp_pair(P, Col, Ll, M, TInd, Ind, last_depth(Ps, LD), W),
     [PS | pp_pairs_tail(Ps, Col, Col + PW, Ll, M, TInd, Ind, LD, PW)].
 
-pp_pairs_tail([], _Col0, _Col, _Ll, _M, _TInd, _Ind, _LD, _W) ->
-    "";
+pp_pairs_tail([]=Nil, _Col0, _Col, _Ll, _M, _TInd, _Ind, _LD, _W) ->
+    Nil;
 pp_pairs_tail({dots, _, _, _}, _Col0, _Col, _M, _Ll, _TInd, _Ind, _LD, _W) ->
     ",...";
 pp_pairs_tail([{_, Len, _, _}=P | Ps], Col0, Col, Ll, M, TInd, Ind, LD, W) ->
@@ -223,11 +219,11 @@ pp_pairs_tail([{_, Len, _, _}=P | Ps], Col0, Col, Ll, M, TInd, Ind, LD, W) ->
     if
         LD1 =:= 0, ELen + 1 < Ll - Col, W + ELen + 1 =< M, ?ATM_PAIR(P);
         LD1 > 0, ELen < Ll - Col - LD1, W + ELen + LD1 =< M, ?ATM_PAIR(P) ->
-            [$,, write_pair(P) |
+            [[$, | write_pair(P)] |
              pp_pairs_tail(Ps, Col0, Col+ELen, Ll, M, TInd, Ind, LD, W+ELen)];
         true ->
             {PS, PW} = pp_pair(P, Col0, Ll, M, TInd, Ind, LD1, 0),
-            [$,, $\n, Ind, PS |
+            [[$,, $\n | Ind], PS |
              pp_pairs_tail(Ps, Col0, Col0 + PW, Ll, M, TInd, Ind, LD, PW)]
     end.
 
@@ -242,11 +238,11 @@ pp_pair({_, Len, _, _}=Pair, Col, Ll, M, _TInd, _Ind, LD, W)
 pp_pair({{map_pair, K, V}, _Len, _, _}, Col0, Ll, M, TInd, Ind0, LD, W) ->
     I = map_value_indent(TInd),
     Ind = indent(I, Ind0),
-    {[pp(K, Col0, Ll, M, TInd, Ind0, LD, W), " =>\n",
+    {[pp(K, Col0, Ll, M, TInd, Ind0, LD, W), "=>\n",
       Ind | pp(V, Col0 + I, Ll, M, TInd, Ind, LD, 0)], Ll}. % force nl
 
-pp_record([], _Nlen, _Col, _Ll, _M, _TInd, _Ind, _LD, _W) ->
-    "";
+pp_record([]=Nil, _Nlen, _Col, _Ll, _M, _TInd, _Ind, _LD, _W) ->
+    Nil;
 pp_record({dots, _, _, _}, _Nlen, _Col, _Ll, _M, _TInd, _Ind, _LD, _W) ->
     "...";
 pp_record([F | Fs], Nlen, Col0, Ll, M, TInd, Ind0, LD, W0) ->
@@ -255,8 +251,8 @@ pp_record([F | Fs], Nlen, Col0, Ll, M, TInd, Ind0, LD, W0) ->
     {FS, FW} = pp_field(F, Col, Ll, M, TInd, Ind, last_depth(Fs, LD), W),
     [S, FS | pp_fields_tail(Fs, Col, Col + FW, Ll, M, TInd, Ind, LD, W + FW)].
 
-pp_fields_tail([], _Col0, _Col, _Ll, _M, _TInd, _Ind, _LD, _W) ->
-    "";
+pp_fields_tail([]=Nil, _Col0, _Col, _Ll, _M, _TInd, _Ind, _LD, _W) ->
+    Nil;
 pp_fields_tail({dots, _, _ ,_}, _Col0, _Col, _M, _Ll, _TInd, _Ind, _LD, _W) ->
     ",...";
 pp_fields_tail([{_, Len, _, _}=F | Fs], Col0, Col, Ll, M, TInd, Ind, LD, W) ->
@@ -265,20 +261,20 @@ pp_fields_tail([{_, Len, _, _}=F | Fs], Col0, Col, Ll, M, TInd, Ind, LD, W) ->
     if
         LD1 =:= 0, ELen + 1 < Ll - Col, W + ELen + 1 =< M, ?ATM_FLD(F);
         LD1 > 0, ELen < Ll - Col - LD1, W + ELen + LD1 =< M, ?ATM_FLD(F) ->
-            [$,, write_field(F) |
+            [[$, | write_field(F)] |
              pp_fields_tail(Fs, Col0, Col+ELen, Ll, M, TInd, Ind, LD, W+ELen)];
         true ->
             {FS, FW} = pp_field(F, Col0, Ll, M, TInd, Ind, LD1, 0),
-            [$,, $\n, Ind, FS |
+            [[$,, $\n | Ind], FS |
              pp_fields_tail(Fs, Col0, Col0 + FW, Ll, M, TInd, Ind, LD, FW)]
     end.
 
 pp_field({_, Len, _, _}=Fl, Col, Ll, M, _TInd, _Ind, LD, W)
          when Len < Ll - Col - LD, Len + W + LD =< M ->
     {write_field(Fl), if
-                          ?ATM_FLD(Fl) -> 
+                          ?ATM_FLD(Fl) ->
                               Len;
-                          true -> 
+                          true ->
                               Ll % force nl
                       end};
 pp_field({{field, Name, NameL, F},_,_, _}, Col0, Ll, M, TInd, Ind0, LD, W0) ->
@@ -314,30 +310,30 @@ pp_list([E | Es], Col0, Ll, M, TInd, Ind, LD, S, W) ->
     {ES, WE} = pp_element(E, Col0, Ll, M, TInd, Ind, last_depth(Es, LD), W),
     [ES | pp_tail(Es, Col0, Col0 + WE, Ll, M, TInd, Ind, LD, S, W + WE)].
 
-pp_tail([], _Col0, _Col, _Ll, _M, _TInd, _Ind, _LD, _S, _W) ->
-    [];
+pp_tail([]=Nil, _Col0, _Col, _Ll, _M, _TInd, _Ind, _LD, _S, _W) ->
+    Nil;
 pp_tail([{_, Len, _, _}=E | Es], Col0, Col, Ll, M, TInd, Ind, LD, S, W) ->
     LD1 = last_depth(Es, LD),
     ELen = 1 + Len,
-    if 
+    if
         LD1 =:= 0, ELen + 1 < Ll - Col, W + ELen + 1 =< M, ?ATM(E);
         LD1 > 0, ELen < Ll - Col - LD1, W + ELen + LD1 =< M, ?ATM(E) ->
-            [$,, write(E) | 
+            [[$, | write(E)] |
              pp_tail(Es, Col0, Col + ELen, Ll, M, TInd, Ind, LD, S, W+ELen)];
         true ->
             {ES, WE} = pp_element(E, Col0, Ll, M, TInd, Ind, LD1, 0),
-            [$,, $\n, Ind, ES | 
+            [$,, $\n, Ind, ES |
              pp_tail(Es, Col0, Col0 + WE, Ll, M, TInd, Ind, LD, S, WE)]
     end;
 pp_tail({dots, _, _, _}, _Col0, _Col, _Ll, _M, _TInd, _Ind, _LD, S, _W) ->
     [S | "..."];
 pp_tail({_, Len, _, _}=E, _Col0, Col, Ll, M, _TInd, _Ind, LD, S, W)
-                  when Len + 1 < Ll - Col - (LD + 1), 
-                       Len + 1 + W + (LD + 1) =< M, 
+                  when Len + 1 < Ll - Col - (LD + 1),
+                       Len + 1 + W + (LD + 1) =< M,
                        ?ATM(E) ->
     [S | write(E)];
 pp_tail(E, Col0, _Col, Ll, M, TInd, Ind, LD, S, _W) ->
-    [S, $\n, Ind | pp(E, Col0, Ll, M, TInd, Ind, LD + 1, 0)].
+    [S, [$\n | Ind] | pp(E, Col0, Ll, M, TInd, Ind, LD + 1, 0)].
 
 pp_element({_, Len, _, _}=E, Col, Ll, M, _TInd, _Ind, LD, W)
            when Len < Ll - Col - LD, Len + W + LD =< M, ?ATM(E) ->
@@ -346,36 +342,39 @@ pp_element(E, Col, Ll, M, TInd, Ind, LD, W) ->
     {pp(E, Col, Ll, M, TInd, Ind, LD, W), Ll}. % force nl
 
 %% Reuse the list created by io_lib:write_binary()...
-pp_binary([LT,LT,S,GT,GT], Col, Ll, M, Ind, LD, W) ->
+pp_binary([[LT=$<,LT|S]|[GT=$>,GT]=Tl], Col, Ll, M, Ind, LD, W) ->
     N = erlang:max(8, erlang:min(Ll - Col, M - 4 - W) - LD),
-    [LT,LT,pp_binary(S, N, N, Ind),GT,GT].
+    [[LT,LT|pp_binary(S, N, N, Ind)]|Tl];
+pp_binary([LT=$<,LT,S|[GT=$>,GT]=Tl], Col, Ll, M, Ind, LD, W) ->
+    N = erlang:max(8, erlang:min(Ll - Col, M - 4 - W) - LD),
+    [[LT,LT|pp_binary(S, N, N, Ind)]|Tl].
 
-pp_binary([BS, $, | S], N, N0, Ind) ->
+pp_binary([BS, C=$, | S], N, N0, Ind) ->
     Len = length(BS) + 1,
     case N - Len of
         N1 when N1 < 0 ->
-            [$\n, Ind, BS, $, | pp_binary(S, N0 - Len, N0, Ind)];
+            [[$\n|Ind], BS, C | pp_binary(S, N0 - Len, N0, Ind)];
         N1 ->
-            [BS, $, | pp_binary(S, N1, N0, Ind)]
+            [BS, C | pp_binary(S, N1, N0, Ind)]
     end;
-pp_binary([BS1, $:, BS2]=S, N, _N0, Ind) 
+pp_binary([BS1, $:, BS2]=S, N, _N0, Ind)
          when length(BS1) + length(BS2) + 1 > N ->
-    [$\n, Ind, S];
+    [$\n, Ind | S];
 pp_binary(S, N, _N0, Ind) ->
     case iolist_size(S) > N of
         true ->
-            [$\n, Ind, S];
+            [$\n, Ind | S];
         false ->
             S
     end.
 
 %% write the whole thing on a single line
 write({{tuple, _IsTagged, L}, _, _, _}) ->
-    [${, write_list(L, $,), $}];
+    [[${ | write_list(L, $,)], $}];
 write({{list, L}, _, _, _}) ->
-    [$[, write_list(L, $|), $]];
+    [[$[ | write_list(L, $|)], $]];
 write({{map, Pairs}, _, _, _}) ->
-    [$#,${, write_list(Pairs, $,), $}];
+    [[$#,${ | write_list(Pairs, $,)], $}];
 write({{map_pair, _K, _V}, _, _, _}=Pair) ->
     write_pair(Pair);
 write({{record, [{Name,_} | L]}, _, _, _}) ->
@@ -386,21 +385,33 @@ write({S, _, _, _}) ->
     S.
 
 write_pair({{map_pair, K, V}, _, _, _}) ->
-    [write(K), " => ", write(V)].
+    [write(K), " => " | write(V)].
 
-write_fields([]) ->
-    "";
+write_fields([]=Nil) ->
+    Nil;
 write_fields({dots, _, _, _}) ->
     "...";
 write_fields([F | Fs]) ->
     [write_field(F) | write_fields_tail(Fs)].
 
-write_fields_tail([]) ->
-    "";
+write_fields_tail([]=Nil) ->
+    Nil;
 write_fields_tail({dots, _, _, _}) ->
     ",...";
+write_fields_tail([F1,F2,F3,F4]) ->
+    [[$, | write_field(F1)], [$, | write_field(F2)], [$, | write_field(F3)], $, | write_field(F4)];
+write_fields_tail([F1,F2,F3]) ->
+    [[$, | write_field(F1)], [$, | write_field(F2)], $, | write_field(F3)];
+write_fields_tail([F1,F2]) ->
+    [[$, | write_field(F1)], $, | write_field(F2)];
+write_fields_tail([F1]) ->
+    [$, | write_field(F1)];
+write_fields_tail([F1,F2,F3,F4 | Fs]) ->
+    [[$,| write_field(F1)], [$, | write_field(F2)], [$, | write_field(F3)], [$, | write_field(F4)] | write_fields_tail(Fs)];
+write_fields_tail([F1,F2 | Fs]) ->
+    [[$, | write_field(F1)], [$, | write_field(F2)] | write_fields_tail(Fs)];
 write_fields_tail([F | Fs]) ->
-    [$,, write_field(F) | write_fields_tail(Fs)].
+    [[$, | write_field(F)] | write_fields_tail(Fs)].
 
 write_field({{field, Name, _NameL, F}, _, _, _}) ->
     [Name, " = " | write(F)].
@@ -410,10 +421,22 @@ write_list({dots, _, _, _}, _S) ->
 write_list([E | Es], S) ->
     [write(E) | write_tail(Es, S)].
 
-write_tail([], _S) ->
-    [];
+write_tail([]=Nil, _S) ->
+    Nil;
+write_tail([E1,E2,E3,E4], _S) ->
+    [[$, | write(E1)], [$, | write(E2)], [$, | write(E3)], $, | write(E4)];
+write_tail([E1,E2,E3], _S) ->
+    [[$, | write(E1)], [$, | write(E2)], $, | write(E3)];
+write_tail([E1,E2], _S) ->
+    [[$, | write(E1)], $, | write(E2)];
+write_tail([E1], _S) ->
+    [$, | write(E1)];
+write_tail([E1,E2,E3,E4 | Es], S) ->
+    [[$, | write(E1)], [$, | write(E2)], [$, | write(E3)], [$, | write(E4)] | write_tail(Es, S)];
+write_tail([E1,E2 | Es], S) ->
+    [[$, | write(E1)], [$, | write(E2)] | write_tail(Es, S)];
 write_tail([E | Es], S) ->
-    [$,, write(E) | write_tail(Es, S)];
+    [[$, | write(E)] | write_tail(Es, S)];
 write_tail({dots, _, _, _}, S) ->
     [S | "..."];
 write_tail(E, S) ->
@@ -511,8 +534,52 @@ print_length([], _D, _T, _RF, _Enc, _Str, _Ord) ->
     {"[]", 2, 0, no_more};
 print_length({}, _D, _T, _RF, _Enc, _Str, _Ord) ->
     {"{}", 2, 0, no_more};
-print_length(#{}=M, _D, _T, _RF, _Enc, _Str, _Ord) when map_size(M) =:= 0 ->
-    {"#{}", 3, 0, no_more};
+print_length(<<>>, _D, _T, _RF, _Enc, _Str, _Ord) ->
+    {"<<>>", 4, 0, no_more};
+print_length(<<_/bitstring>> = Bin, 1, _T, RF, Enc, Str, Ord) ->
+    More = fun(T1, Dd) -> ?FUNCTION_NAME(Bin, 1+Dd, T1, RF, Enc, Str, Ord) end,
+    {"<<...>>", 7, 3, More};
+print_length(<<_/bitstring>> = Bin, D, T, RF, Enc, Str, Ord) ->
+    D1 = D - 1,
+    case
+        Str andalso
+        (bit_size(Bin) rem 8) =:= 0 andalso
+        printable_bin0(Bin, D1, tsub(T, 6), Enc)
+    of
+        {true, List} when is_list(List) ->
+            S = io_lib:write_string(List, $"), %"
+            {[[$<,$<|S],$>,$>], 4 + length(S), 0, no_more};
+        {false, List} when is_list(List) ->
+            S = io_lib:write_string(List, $"), %"
+            {[[$<,$<|S]|"/utf8>>"], 9 + io_lib:chars_length(S), 0, no_more};
+        {true, true, Prefix} ->
+            S = io_lib:write_string(Prefix, $"), %"
+            More = fun(T1, Dd) ->
+                           ?FUNCTION_NAME(Bin, D+Dd, T1, RF, Enc, Str, Ord)
+                   end,
+            {[[$<,$<|S]|"...>>"], 7 + length(S), 3, More};
+        {false, true, Prefix} ->
+            S = io_lib:write_string(Prefix, $"), %"
+            More = fun(T1, Dd) ->
+                           ?FUNCTION_NAME(Bin, D+Dd, T1, RF, Enc, Str, Ord)
+                   end,
+            {[[$<,$<|S]|"/utf8...>>"], 12 + io_lib:chars_length(S), 3, More};
+        false ->
+            case io_lib:write_binary(Bin, D, T) of
+                {S, <<>>} ->
+                    {{bin, S}, iolist_size(S), 0, no_more};
+                {S, _Rest} ->
+                    More = fun(T1, Dd) ->
+                                   ?FUNCTION_NAME(Bin, D+Dd, T1, RF, Enc, Str, Ord)
+                           end,
+                    {{bin, S}, iolist_size(S), 3, More}
+            end
+    end;
+print_length(#{}=Map, D, T, RF, Enc, Str, Ord) ->
+    if
+        map_size(Map) =:= 0 -> {"#{}", 3, 0, no_more};
+        true -> print_length_map(Map, D, T, RF, Enc, Str, Ord)
+    end;
 print_length(Atom, _D, _T, _RF, Enc, _Str, _Ord) when is_atom(Atom) ->
     S = write_atom(Atom, Enc),
     {S, io_lib:chars_length(S), 0, no_more};
@@ -546,56 +613,13 @@ print_length(Fun, _D, _T, _RF, _Enc, _Str, _Ord) when is_function(Fun) ->
 print_length(R, D, T, RF, Enc, Str, Ord) when is_atom(element(1, R)),
                                               is_function(RF) ->
     case RF(element(1, R), tuple_size(R) - 1) of
-        no -> 
+        no ->
             print_length_tuple(R, D, T, RF, Enc, Str, Ord);
         RDefs ->
             print_length_record(R, D, T, RF, RDefs, Enc, Str, Ord)
     end;
 print_length(Tuple, D, T, RF, Enc, Str, Ord) when is_tuple(Tuple) ->
     print_length_tuple(Tuple, D, T, RF, Enc, Str, Ord);
-print_length(Map, D, T, RF, Enc, Str, Ord) when is_map(Map) ->
-    print_length_map(Map, D, T, RF, Enc, Str, Ord);
-print_length(<<>>, _D, _T, _RF, _Enc, _Str, _Ord) ->
-    {"<<>>", 4, 0, no_more};
-print_length(<<_/bitstring>> = Bin, 1, _T, RF, Enc, Str, Ord) ->
-    More = fun(T1, Dd) -> ?FUNCTION_NAME(Bin, 1+Dd, T1, RF, Enc, Str, Ord) end,
-    {"<<...>>", 7, 3, More};
-print_length(<<_/bitstring>> = Bin, D, T, RF, Enc, Str, Ord) ->
-    D1 = D - 1,
-    case
-        Str andalso
-        (bit_size(Bin) rem 8) =:= 0 andalso
-        printable_bin0(Bin, D1, tsub(T, 6), Enc)
-    of
-        {true, List} when is_list(List) ->
-            S = io_lib:write_string(List, $"), %"
-            {[$<,$<,S,$>,$>], 4 + length(S), 0, no_more};
-        {false, List} when is_list(List) ->
-            S = io_lib:write_string(List, $"), %"
-            {[$<,$<,S,"/utf8>>"], 9 + io_lib:chars_length(S), 0, no_more};
-        {true, true, Prefix} ->
-            S = io_lib:write_string(Prefix, $"), %"
-            More = fun(T1, Dd) ->
-                           ?FUNCTION_NAME(Bin, D+Dd, T1, RF, Enc, Str, Ord)
-                   end,
-            {[$<,$<,S|"...>>"], 7 + length(S), 3, More};
-        {false, true, Prefix} ->
-            S = io_lib:write_string(Prefix, $"), %"
-            More = fun(T1, Dd) ->
-                           ?FUNCTION_NAME(Bin, D+Dd, T1, RF, Enc, Str, Ord)
-                   end,
-            {[$<,$<,S|"/utf8...>>"], 12 + io_lib:chars_length(S), 3, More};
-        false ->
-            case io_lib:write_binary(Bin, D, T) of
-                {S, <<>>} ->
-                    {{bin, S}, iolist_size(S), 0, no_more};
-                {S, _Rest} ->
-                    More = fun(T1, Dd) ->
-                                   ?FUNCTION_NAME(Bin, D+Dd, T1, RF, Enc, Str, Ord)
-                           end,
-                    {{bin, S}, iolist_size(S), 3, More}
-            end
-    end;    
 print_length(Term, _D, _T, _RF, _Enc, _Str, _Ord) ->
     S = io_lib:write(Term),
     %% S can contain unicode, so iolist_size(S) cannot be used here
@@ -604,7 +628,7 @@ print_length(Term, _D, _T, _RF, _Enc, _Str, _Ord) ->
 print_length_map(Map, 1, _T, RF, Enc, Str, Ord) ->
     More = fun(T1, Dd) -> ?FUNCTION_NAME(Map, 1+Dd, T1, RF, Enc, Str, Ord) end,
     {"#{...}", 6, 3, More};
-print_length_map(Map, D, T, RF, Enc, Str, Ord) when is_map(Map) ->
+print_length_map(#{}=Map, D, T, RF, Enc, Str, Ord) ->
     Next = maps:next(maps:iterator(Map, Ord)),
     PairsS = print_length_map_pairs(Next, D, D - 1, tsub(T, 3), RF, Enc, Str, Ord),
     {Len, Dots} = list_length(PairsS, 3, 0),
@@ -612,16 +636,16 @@ print_length_map(Map, D, T, RF, Enc, Str, Ord) when is_map(Map) ->
 
 print_length_map_pairs(none, _D, _D0, _T, _RF, _Enc, _Str, _Ord) ->
     [];
-print_length_map_pairs(Term, D, D0, T, RF, Enc, Str, Ord) when D =:= 1; T =:= 0->
+print_length_map_pairs(Term, D, D0, T, RF, Enc, Str, Ord) when D =:= 1; T =:= 0 ->
     More = fun(T1, Dd) ->
                    ?FUNCTION_NAME(Term, D+Dd, D0, T1, RF, Enc, Str, Ord)
            end,
     {dots, 3, 3, More};
 print_length_map_pairs({K, V, Iter}, D, D0, T, RF, Enc, Str, Ord) ->
     Next = maps:next(Iter),
-    T1 = case Next =:= none of
-             false -> tsub(T, 1);
-             true -> T
+    T1 = case Next of
+             none -> T;
+             _ -> tsub(T, 1)
          end,
     Pair1 = print_length_map_pair(K, V, D0, T1, RF, Enc, Str, Ord),
     {_, Len1, _, _} = Pair1,
@@ -646,14 +670,14 @@ print_length_tuple(Tuple, D, T, RF, Enc, Str, Ord) ->
 print_length_tuple1(Tuple, I, _D, _T, _RF, _Enc, _Str, _Ord)
              when I > tuple_size(Tuple) ->
     [];
-print_length_tuple1(Tuple, I, D, T, RF, Enc, Str, Ord) when D =:= 1; T =:= 0->
+print_length_tuple1(Tuple, I, D, T, RF, Enc, Str, Ord) when D =:= 1; T =:= 0 ->
     More = fun(T1, Dd) -> ?FUNCTION_NAME(Tuple, I, D+Dd, T1, RF, Enc, Str, Ord) end,
     {dots, 3, 3, More};
 print_length_tuple1(Tuple, I, D, T, RF, Enc, Str, Ord) ->
     E = element(I, Tuple),
-    T1 = case I =:= tuple_size(Tuple) of
-             false -> tsub(T, 1);
-             true -> T
+    T1 = case tuple_size(Tuple) of
+             I -> T;
+             _ -> tsub(T, 1)
          end,
     {_, Len1, _, _} = Elem1 = print_length(E, D - 1, T1, RF, Enc, Str, Ord),
     T2 = tsub(T1, Len1),
@@ -672,20 +696,19 @@ print_length_record(Tuple, D, T, RF, RDefs, Enc, Str, Ord) ->
     {Len, Dots} = list_length(L, NameL + 2, 0),
     {{record, [{Name,NameL} | L]}, Len, Dots, no_more}.
 
-print_length_fields([], _D, _T, Tuple, I, _RF, _Enc, _Str, _Ord)
+print_length_fields([]=Nil, _D, _T, Tuple, I, _RF, _Enc, _Str, _Ord)
                 when I > tuple_size(Tuple) ->
-    [];
-print_length_fields(Term, D, T, Tuple, I, RF, Enc, Str, Ord)
-                when D =:= 1; T =:= 0 ->
+    Nil;
+print_length_fields(Term, D, T, Tuple, I, RF, Enc, Str, Ord) when D =:= 1; T =:= 0 ->
     More = fun(T1, Dd) ->
                    ?FUNCTION_NAME(Term, D+Dd, T1, Tuple, I, RF, Enc, Str, Ord)
            end,
     {dots, 3, 3, More};
 print_length_fields([Def | Defs], D, T, Tuple, I, RF, Enc, Str, Ord) ->
     E = element(I, Tuple),
-    T1 = case I =:= tuple_size(Tuple) of
-             false -> tsub(T, 1);
-             true -> T
+    T1 = case tuple_size(Tuple) of
+             I -> T;
+             _ -> tsub(T, 1)
          end,
     Field1 = print_length_field(Def, D - 1, T1, E, RF, Enc, Str, Ord),
     {_, Len1, _, _} = Field1,
@@ -705,16 +728,16 @@ print_length_list(List, D, T, RF, Enc, Str, Ord) ->
     {Len, Dots} = list_length(L, 2, 0),
     {{list, L}, Len, Dots, no_more}.
 
-print_length_list1([], _D, _T, _RF, _Enc, _Str, _Ord) ->
-    [];
+print_length_list1([]=Nil, _D, _T, _RF, _Enc, _Str, _Ord) ->
+    Nil;
 print_length_list1(Term, D, T, RF, Enc, Str, Ord) when D =:= 1; T =:= 0->
     More = fun(T1, Dd) -> ?FUNCTION_NAME(Term, D+Dd, T1, RF, Enc, Str, Ord) end,
     {dots, 3, 3, More};
 print_length_list1([E | Es], D, T, RF, Enc, Str, Ord) ->
     %% If E is the last element in list, don't account length for a comma.
-    T1 = case Es =:= [] of
-             false -> tsub(T, 1);
-             true -> T
+    T1 = case Es of
+             [] -> T;
+             _ -> tsub(T, 1)
          end,
     {_, Len1, _, _} = Elem1 = print_length(E, D - 1, T1, RF, Enc, Str, Ord),
     [Elem1 | print_length_list1(Es, D - 1, tsub(T1, Len1), RF, Enc, Str, Ord)];
@@ -749,7 +772,7 @@ printable_list(L, _D, T, latin1) when T >= 0 ->
         all ->
             true;
         0 ->
-            {L1, _} = lists:split(N, L),
+            L1 = lists:sublist(L, N),
             {true, L1};
         _NC ->
             false
@@ -775,11 +798,15 @@ printable_list(L, _D, T, _Unicode) when T >= 0 ->
             end
     catch _:_ -> false
     end;
-printable_list(L, _D, T, _Uni) when T < 0->
+printable_list(L, _D, T, _Uni) when T < 0 ->
     io_lib:printable_list(L).
 
 is_flat(_L, 0) ->
     true;
+is_flat([C1,C2,C3,C4|Cs], N) when N > 4, is_integer(C1), is_integer(C2), is_integer(C3), is_integer(C4) ->
+    is_flat(Cs, N - 4);
+is_flat([_,_,_,_|_], N) when N > 4 ->
+    false;
 is_flat([C|Cs], N) when is_integer(C) ->
     is_flat(Cs, N - 1);
 is_flat(_, _N) ->
@@ -854,26 +881,146 @@ printable_bin1(Bin, Start, Len) ->
             Len - (N - NC)
     end.
 
+-define(is_printable_latin1(X), (
+    (X =:= $\n) orelse (X =:= $\r) orelse (X =:= $\t) orelse (X =:= $\v) orelse
+    (X =:= $\b) orelse (X =:= $\f) orelse (X =:= $\e) orelse
+
+    % ----
+
+    (X =:= 32) orelse
+    (X =:= 33) orelse (X =:= 34) orelse (X =:= 35) orelse (X =:= 36) orelse
+    (X =:= 37) orelse (X =:= 38) orelse (X =:= 39) orelse (X =:= 40) orelse
+    (X =:= 41) orelse (X =:= 42) orelse (X =:= 43) orelse (X =:= 44) orelse
+    (X =:= 45) orelse (X =:= 46) orelse (X =:= 47) orelse (X =:= 48) orelse
+    (X =:= 49) orelse (X =:= 50) orelse (X =:= 51) orelse (X =:= 52) orelse
+    (X =:= 53) orelse (X =:= 54) orelse (X =:= 55) orelse (X =:= 56) orelse
+    (X =:= 57) orelse (X =:= 58) orelse (X =:= 59) orelse (X =:= 60) orelse
+    (X =:= 61) orelse (X =:= 62) orelse (X =:= 63) orelse (X =:= 64) orelse
+    (X =:= 65) orelse (X =:= 66) orelse (X =:= 67) orelse (X =:= 68) orelse
+    (X =:= 69) orelse (X =:= 70) orelse (X =:= 71) orelse (X =:= 72) orelse
+    (X =:= 73) orelse (X =:= 74) orelse (X =:= 75) orelse (X =:= 76) orelse
+    (X =:= 77) orelse (X =:= 78) orelse (X =:= 79) orelse (X =:= 80) orelse
+    (X =:= 81) orelse (X =:= 82) orelse (X =:= 83) orelse (X =:= 84) orelse
+    (X =:= 85) orelse (X =:= 86) orelse (X =:= 87) orelse (X =:= 88) orelse
+    (X =:= 89) orelse (X =:= 90) orelse (X =:= 91) orelse (X =:= 92) orelse
+    (X =:= 93) orelse (X =:= 94) orelse (X =:= 95) orelse (X =:= 96) orelse
+    (X =:= 97) orelse (X =:= 98) orelse (X =:= 99) orelse (X =:= 100) orelse
+    (X =:= 101) orelse (X =:= 102) orelse (X =:= 103) orelse (X =:= 104) orelse
+    (X =:= 105) orelse (X =:= 106) orelse (X =:= 107) orelse (X =:= 108) orelse
+    (X =:= 109) orelse (X =:= 110) orelse (X =:= 111) orelse (X =:= 112) orelse
+    (X =:= 113) orelse (X =:= 114) orelse (X =:= 115) orelse (X =:= 116) orelse
+    (X =:= 117) orelse (X =:= 118) orelse (X =:= 119) orelse (X =:= 120) orelse
+    (X =:= 121) orelse (X =:= 122) orelse (X =:= 123) orelse (X =:= 124) orelse
+    (X =:= 125) orelse (X =:= 126) orelse
+
+    % ----
+
+    (X =:= 160) orelse (X =:= 161) orelse (X =:= 162) orelse (X =:= 163) orelse
+    (X =:= 164) orelse (X =:= 165) orelse (X =:= 166) orelse (X =:= 167) orelse
+    (X =:= 168) orelse (X =:= 169) orelse (X =:= 170) orelse (X =:= 171) orelse
+    (X =:= 172) orelse (X =:= 173) orelse (X =:= 174) orelse (X =:= 175) orelse
+    (X =:= 176) orelse (X =:= 177) orelse (X =:= 178) orelse (X =:= 179) orelse
+    (X =:= 180) orelse (X =:= 181) orelse (X =:= 182) orelse (X =:= 183) orelse
+    (X =:= 184) orelse (X =:= 185) orelse (X =:= 186) orelse (X =:= 187) orelse
+    (X =:= 188) orelse (X =:= 189) orelse (X =:= 190) orelse (X =:= 191) orelse
+    (X =:= 192) orelse (X =:= 193) orelse (X =:= 194) orelse (X =:= 195) orelse
+    (X =:= 196) orelse (X =:= 197) orelse (X =:= 198) orelse (X =:= 199) orelse
+    (X =:= 200) orelse (X =:= 201) orelse (X =:= 202) orelse (X =:= 203) orelse
+    (X =:= 204) orelse (X =:= 205) orelse (X =:= 206) orelse (X =:= 207) orelse
+    (X =:= 208) orelse (X =:= 209) orelse (X =:= 210) orelse (X =:= 211) orelse
+    (X =:= 212) orelse (X =:= 213) orelse (X =:= 214) orelse (X =:= 215) orelse
+    (X =:= 216) orelse (X =:= 217) orelse (X =:= 218) orelse (X =:= 219) orelse
+    (X =:= 220) orelse (X =:= 221) orelse (X =:= 222) orelse (X =:= 223) orelse
+    (X =:= 224) orelse (X =:= 225) orelse (X =:= 226) orelse (X =:= 227) orelse
+    (X =:= 228) orelse (X =:= 229) orelse (X =:= 230) orelse (X =:= 231) orelse
+    (X =:= 232) orelse (X =:= 233) orelse (X =:= 234) orelse (X =:= 235) orelse
+    (X =:= 236) orelse (X =:= 237) orelse (X =:= 238) orelse (X =:= 239) orelse
+    (X =:= 240) orelse (X =:= 241) orelse (X =:= 242) orelse (X =:= 243) orelse
+    (X =:= 244) orelse (X =:= 245) orelse (X =:= 246) orelse (X =:= 247) orelse
+    (X =:= 248) orelse (X =:= 249) orelse (X =:= 250) orelse (X =:= 251) orelse
+    (X =:= 252) orelse (X =:= 253) orelse (X =:= 254) orelse (X =:= 255))).
+
+-define(all_printable_latin1(C1, C2, C3, C4, C5, C6, C7, C8),
+    (?is_printable_latin1(C1)), (?is_printable_latin1(C2)), (?is_printable_latin1(C3)),
+    (?is_printable_latin1(C4)), (?is_printable_latin1(C5)), (?is_printable_latin1(C6)),
+    (?is_printable_latin1(C7)), (?is_printable_latin1(C8))
+).
+
 %% -> all | integer() >=0. Adopted from io_lib.erl.
-printable_latin1_list([_ | _], 0) -> 0;
-printable_latin1_list([C | Cs], N) when is_integer(C), C >= $\s, C =< $~ ->
-    printable_latin1_list(Cs, N - 1);
-printable_latin1_list([C | Cs], N) when is_integer(C), C >= $\240, C =< $\377 ->
-    printable_latin1_list(Cs, N - 1);
-printable_latin1_list([$\n | Cs], N) -> printable_latin1_list(Cs, N - 1);
-printable_latin1_list([$\r | Cs], N) -> printable_latin1_list(Cs, N - 1);
-printable_latin1_list([$\t | Cs], N) -> printable_latin1_list(Cs, N - 1);
-printable_latin1_list([$\v | Cs], N) -> printable_latin1_list(Cs, N - 1);
-printable_latin1_list([$\b | Cs], N) -> printable_latin1_list(Cs, N - 1);
-printable_latin1_list([$\f | Cs], N) -> printable_latin1_list(Cs, N - 1);
-printable_latin1_list([$\e | Cs], N) -> printable_latin1_list(Cs, N - 1);
-printable_latin1_list([], _) -> all;
-printable_latin1_list(_, N) -> N.
+printable_latin1_list([_|_], 0) ->
+    0;
+printable_latin1_list([], _) ->
+    all;
+printable_latin1_list([C1,C2,C3,C4,C5,C6,C7,C8], N) when ?all_printable_latin1(C1,C2,C3,C4,C5,C6,C7,C8) ->
+    case N of
+        _ when N >= 8 -> all;
+        _ -> 0
+    end;
+printable_latin1_list([C1,C2,C3,C4,C5,C6,C7,C8|Cs], N) when ?all_printable_latin1(C1,C2,C3,C4,C5,C6,C7,C8) ->
+    printable_latin1_list(Cs, tsub(N,8));
+printable_latin1_list([C1], N) when
+        ?is_printable_latin1(C1) ->
+    case N of
+        _ when N >= 1 -> all;
+        _ -> 0
+    end;
+printable_latin1_list([C1,C2], N) when
+        ?is_printable_latin1(C1), ?is_printable_latin1(C2) ->
+    case N of
+        _ when N >= 2 -> all;
+        _ -> 0
+    end;
+printable_latin1_list([C1,C2,C3], N) when
+        ?is_printable_latin1(C1), ?is_printable_latin1(C2), ?is_printable_latin1(C3) ->
+    case N of
+        _ when N >= 3 -> all;
+        _ -> 0
+    end;
+printable_latin1_list([C1,C2,C3,C4], N) when
+        ?is_printable_latin1(C1), ?is_printable_latin1(C2),
+        ?is_printable_latin1(C3), ?is_printable_latin1(C4) ->
+    case N of
+        _ when N >= 4 -> all;
+        _ -> 0
+    end;
+printable_latin1_list([C1,C2,C3,C4,C5], N) when
+        ?is_printable_latin1(C1), ?is_printable_latin1(C2),
+        ?is_printable_latin1(C3), ?is_printable_latin1(C4),
+        ?is_printable_latin1(C5) ->
+    case N of
+        _ when N >= 5 -> all;
+        _ -> 0
+    end;
+printable_latin1_list([C1,C2,C3,C4,C5,C6], N) when
+        ?is_printable_latin1(C1), ?is_printable_latin1(C2),
+        ?is_printable_latin1(C3), ?is_printable_latin1(C4),
+        ?is_printable_latin1(C5), ?is_printable_latin1(C6) ->
+    case N of
+        _ when N >= 6 -> all;
+        _ -> 0
+    end;
+printable_latin1_list([C1,C2,C3,C4,C5,C6,C7], N) when
+        ?is_printable_latin1(C1), ?is_printable_latin1(C2),
+        ?is_printable_latin1(C3), ?is_printable_latin1(C4),
+        ?is_printable_latin1(C5), ?is_printable_latin1(C6),
+        ?is_printable_latin1(C7) ->
+    case N of
+        _ when N >= 7 -> all;
+        _ -> 0
+    end;
+% Cannot fast forward: Count how many printable latin1 chars occur before we reach a non-printable one
+printable_latin1_list([C|Cs], N) when ?is_printable_latin1(C) ->
+    printable_latin1_list(Cs, N-1);
+printable_latin1_list(_,N) -> N.
 
 valid_utf8(<<>>,_) ->
     true;
 valid_utf8(_,0) ->
     true;
+valid_utf8(<<_/utf8, _/utf8, _/utf8, _/utf8, _/utf8, _/utf8, _/utf8, _/utf8, R/binary>>,N) when N >= 8 ->
+    valid_utf8(R,tsub(N,8));
+valid_utf8(<<_/utf8, _/utf8, _/utf8, _/utf8, R/binary>>,N) when N >= 4 ->
+    valid_utf8(R,tsub(N,4));
 valid_utf8(<<_/utf8, R/binary>>,N) ->
     valid_utf8(R,N-1);
 valid_utf8(_,_) ->
@@ -941,13 +1088,12 @@ expand_list(Ifs, T, Dd, L0) ->
     {Len, Dots} = list_length(L, L0, 0),
     {L, Len, Dots}.
 
-expand_list([], _T, _Dd) ->
-    [];
+expand_list([]=Nil, _T, _Dd) ->
+    Nil;
+expand_list([If], T, Dd) ->
+    [expand(If, T, Dd)];
 expand_list([If | Ifs], T, Dd) ->
-    T1 = case Ifs =:= [] of
-             false -> tsub(T, 1);
-             true -> T
-         end,
+    T1 = tsub(T, 1),
     {_, Len1, _, _} = Elem1 = expand(If, T1, Dd),
     [Elem1 | expand_list(Ifs, tsub(T1, Len1), Dd)];
 expand_list({_, _, _, More}, T, Dd) ->
@@ -1084,7 +1230,7 @@ cind_rec(RInd, Col0, Ll, M, Ind, W0) ->
            end,
     Col = Col0 + DCol,
     if
-        M + Col =< Ll; Col =< Ll div 2 ->        
+        M + Col =< Ll; Col =< Ll div 2 ->
             W = case Nl of
                     true -> 0;
                     false -> W0
@@ -1105,19 +1251,19 @@ cind_tail([], _Col0, _Col, _Ll, _M, Ind, _LD, _W) ->
 cind_tail([{_, Len, _, _} = E | Es], Col0, Col, Ll, M, Ind, LD, W) ->
     LD1 = last_depth(Es, LD),
     ELen = 1 + Len,
-    if 
+    if
         LD1 =:= 0, ELen + 1 < Ll - Col, W + ELen + 1 =< M, ?ATM(E);
         LD1 > 0, ELen < Ll - Col - LD1, W + ELen + LD1 =< M, ?ATM(E) ->
             cind_tail(Es, Col0, Col + ELen, Ll, M, Ind, LD, W + ELen);
-        true -> 
+        true ->
             WE = cind_element(E, Col0, Ll, M, Ind, LD1, 0),
             cind_tail(Es, Col0, Col0 + WE, Ll, M, Ind, LD, WE)
     end;
 cind_tail({dots, _, _, _}, _Col0, _Col, _Ll, _M, Ind, _LD, _W) ->
     Ind;
 cind_tail({_, Len, _, _}=E, _Col0, Col, Ll, M, Ind, LD, W)
-                  when Len + 1 < Ll - Col - (LD + 1), 
-                       Len + 1 + W + (LD + 1) =< M, 
+                  when Len + 1 < Ll - Col - (LD + 1),
+                       Len + 1 + W + (LD + 1) =< M,
                        ?ATM(E) ->
     Ind;
 cind_tail(E, _Col0, Col, Ll, M, Ind, LD, _W) ->
@@ -1135,37 +1281,58 @@ last_depth([_ | _], _LD) ->
 last_depth(_, LD) ->
     LD + 1.
 
-while_fail([], _F, V) ->
-    V;
-while_fail([A | As], F, V) ->
-    try F(A) catch _ -> while_fail(As, F, V) end.
+try_cind(If, Col, Ll, M) ->
+    try cind(If, Col, Ll, M, -1, 0, 0) catch _ ->
+        try cind(If, Col, Ll, M, 4, 0, 0) catch _ ->
+            1
+        end
+    end.
 
-%% make a string of N spaces
-indent(N) when is_integer(N), N > 0 ->
-    chars($\s, N-1).
+%% make a string of N-1 spaces  to indent up to the given column index (indexed from 1)
+indent_to_col(N) when is_integer(N), N > 0 ->
+    spaces(N-1).
 
 %% prepend N spaces onto Ind
 indent(1, Ind) -> % Optimization of common case
     [$\s | Ind];
-indent(4, Ind) -> % Optimization of common case
-    S2 = [$\s, $\s],
-    [S2, S2 | Ind];
+indent(2, Ind) -> % Optimization of common case
+    [$\s, $\s | Ind];
 indent(N, Ind) when is_integer(N), N > 0 ->
-    [chars($\s, N) | Ind].
+    [spaces(N) | Ind].
 
-%% A deep version of string:chars/2
-chars(_C, 0) ->
+%% A deep version of string:chars/2, specialised to space chars
+spaces(0) ->
     [];
-chars(C, 2) ->
-    [C, C];
-chars(C, 3) ->
-    [C, C, C];
-chars(C, N) when (N band 1) =:= 0 ->
-    S = chars(C, N bsr 1),
+spaces(1) ->
+    [$\s];
+spaces(2) ->
+    [$\s, $\s];
+spaces(3) ->
+    [$\s, $\s, $\s];
+spaces(4) ->
+    [$\s,$\s,$\s,$\s];
+spaces(5) ->
+    [$\s,$\s,$\s,$\s,$\s];
+spaces(6) ->
+    [$\s,$\s,$\s,$\s,$\s,$\s];
+spaces(7) ->
+    [$\s,$\s,$\s,$\s,$\s,$\s,$\s];
+spaces(8) ->
+    [$\s,$\s,$\s,$\s,$\s,$\s,$\s,$\s];
+spaces(9) ->
+    [$\s,$\s,$\s,$\s,$\s,$\s,$\s,$\s,$\s];
+spaces(10) ->
+    [$\s,$\s,$\s,$\s,$\s,$\s,$\s,$\s,$\s,$\s];
+spaces(11) ->
+    [$\s,$\s,$\s,$\s,$\s,$\s,$\s,$\s,$\s,$\s,$\s];
+spaces(12) ->
+    [$\s,$\s,$\s,$\s,$\s,$\s,$\s,$\s,$\s,$\s,$\s,$\s];
+spaces(N) when (N band 1) =:= 0 ->
+    S = spaces(N bsr 1),
     [S | S];
-chars(C, N) ->
-    S = chars(C, N bsr 1),
-    [C, S | S].
+spaces(N) ->
+    S = spaces(N bsr 1),
+    [$\s, S | S].
 
 get_option(Key, TupleList, Default) ->
     case lists:keyfind(Key, 1, TupleList) of
