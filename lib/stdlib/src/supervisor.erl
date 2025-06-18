@@ -546,7 +546,7 @@ Equivalent to `start_link/3` except that the supervisor process is not
       Args :: term().
 start_link(Mod, Args) ->
     gen_server:start_link(supervisor, {self, Mod, Args}, []).
- 
+
 -doc """
 Creates a supervisor process as part of a supervision tree.
 
@@ -597,7 +597,7 @@ started.
       Args :: term().
 start_link(SupName, Mod, Args) ->
     gen_server:start_link(SupName, supervisor, {SupName, Mod, Args}, []).
- 
+
 %%% ---------------------------------------------------
 %%% Interface functions.
 %%% ---------------------------------------------------
@@ -890,9 +890,9 @@ get_callback_module(Pid) ->
     end.
 
 %%% ---------------------------------------------------
-%%% 
+%%%
 %%% Initialize the supervisor.
-%%% 
+%%%
 %%% ---------------------------------------------------
 
 -type init_sup_name() :: sup_name() | 'self'.
@@ -1007,9 +1007,9 @@ do_start_child_i(M, F, A) ->
     end.
 
 %%% ---------------------------------------------------
-%%% 
+%%%
 %%% Callback functions.
-%%% 
+%%%
 %%% ---------------------------------------------------
 -type call() :: 'which_children' | 'count_children' | {_, _}.	% XXX: refine
 -doc false.
@@ -1316,7 +1316,7 @@ update_chsp(#child{id=Id}=OldChild, NewDb) ->
             false
     end.
 
-    
+
 %%% ---------------------------------------------------
 %%% Start a new child.
 %%% ---------------------------------------------------
@@ -1533,13 +1533,13 @@ do_terminate(_Child, _SupName) ->
     ok.
 
 %%-----------------------------------------------------------------
-%% Shutdowns a child. We must check the EXIT value 
+%% Shutdowns a child. We must check the EXIT value
 %% of the child, because it might have died with another reason than
-%% the wanted. In that case we want to report the error. We put a 
-%% monitor on the child an check for the 'DOWN' message instead of 
-%% checking for the 'EXIT' message, because if we check the 'EXIT' 
-%% message a "naughty" child, who does unlink(Sup), could hang the 
-%% supervisor. 
+%% the wanted. In that case we want to report the error. We put a
+%% monitor on the child an check for the 'DOWN' message instead of
+%% checking for the 'EXIT' message, because if we check the 'EXIT'
+%% message a "naughty" child, who does unlink(Sup), could hang the
+%% supervisor.
 %% Returns: ok | {error, OtherReason}  (this should be reported)
 %%-----------------------------------------------------------------
 shutdown(#child{pid=Pid, shutdown=brutal_kill} = Child) ->
@@ -1730,11 +1730,11 @@ wait_dynamic_children(Child, Pids, Sz, TRef, EStack) ->
     end.
 
 maps_prepend(Key, Value, Map) ->
-    case maps:find(Key, Map) of
-        {ok, Values} ->
-            maps:put(Key, [Value|Values], Map);
-        error ->
-            maps:put(Key, [Value], Map)
+    case Map of
+        #{Key := Values} ->
+            Map#{Key => [Value|Values]};
+        _ ->
+            Map#{Key => [Value]}
     end.
 
 %%-----------------------------------------------------------------
@@ -1894,7 +1894,7 @@ children_map(Fun,[Id|Ids],Db,Acc) ->
         remove ->
             children_map(Fun,Ids,maps:remove(Id,Db),Acc);
         {abort,Reason} ->
-            {error,{lists:reverse(Ids)++[Id|Acc],Db},Reason}
+            {error,{lists:reverse(Ids, [Id|Acc]),Db},Reason}
     end;
 children_map(_Fun,[],Db,Acc) ->
     {ok,{Acc,Db}}.
@@ -2121,8 +2121,8 @@ validChildType(What) -> throw({invalid_child_type, What}).
 
 validId(_Id) -> true.
 
-validFunc({M, F, A}) when is_atom(M), 
-                          is_atom(F), 
+validFunc({M, F, A}) when is_atom(M),
+                          is_atom(F),
                           is_list(A) -> true;
 validFunc(Func)                      -> throw({invalid_mfa, Func}).
 
@@ -2184,7 +2184,7 @@ child_to_spec(#child{id = Id,
 
 %% shortcut: if the intensity limit is 0, no restarts are allowed;
 %% it is safe to disallow the restart flat out
-add_restart(State=#state{intensity=0}) -> 
+add_restart(State=#state{intensity=0}) ->
     {terminate, State};
 %% shortcut: if the number of restarts is below the intensity
 %% limit, it is safe to allow the restart, add the restart to
@@ -2197,7 +2197,7 @@ add_restart(State=#state{intensity=I, restarts=R, nrestarts=NR})
 %% calculate the real number of restarts within the period
 %% and remove expired restarts; based on the calculated number
 %% of restarts, allow or disallow the restart
-add_restart(State=#state{intensity=I, period=P, restarts=R}) ->  
+add_restart(State=#state{intensity=I, period=P, restarts=R}) ->
     Now = erlang:monotonic_time(second),
     Treshold = Now - P,
     case can_restart(I - 1, Treshold, R, [], 0) of
@@ -2394,18 +2394,22 @@ format_child_log_single(Child, Tag) ->
             {" ~s id=~w,pid=~w.", [Tag,Id,Pid]}
     end.
 
-p(#{single_line:=Single,depth:=Depth,encoding:=Enc}) ->
-    "~"++single(Single)++mod(Enc)++p(Depth);
-p(unlimited) ->
-    "p";
-p(_Depth) ->
-    "P".
-
-single(true) -> "0";
-single(false) -> "".
-
-mod(latin1) -> "";
-mod(_) -> "t".
+p(#{single_line:=true,depth:=unlimited,encoding:=latin1}) ->
+    "~0p";
+p(#{single_line:=true,depth:=unlimited,encoding:=_Unicode}) ->
+    "~0tp";
+p(#{single_line:=true,depth:=_Limited,encoding:=latin1}) ->
+    "~0P";
+p(#{single_line:=true,depth:=_Limited,encoding:=_Unicode}) ->
+    "~0tP";
+p(#{single_line:=false,depth:=unlimited,encoding:=latin1}) ->
+    "~p";
+p(#{single_line:=false,depth:=unlimited,encoding:=_Unicode}) ->
+    "~tp";
+p(#{single_line:=false,depth:=_Limited,encoding:=latin1}) ->
+    "~P";
+p(#{single_line:=false,depth:=_Limited,encoding:=_Unicode}) ->
+    "~tP".
 
 %%%-----------------------------------------------------------------
 %%% Dynamics database access.

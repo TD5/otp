@@ -2347,13 +2347,13 @@ check1(F, String, Result) ->
         {value, Result, Bs} when is_list(Bs) ->
             ok;
         Other1 ->
-            ct:fail({eval, Other1, Result})
+            ct:fail({eval, {evaluating, String}, {got, Other1}, {expected, Result}})
     end,
     case catch erl_eval:expr(Expr, #{}) of
         {value, Result, MapBs} when is_map(MapBs) ->
             ok;
         Other2 ->
-            ct:fail({eval, Other2, Result})
+            ct:fail({eval, {evaluating, String}, {got, Other2}, {expected, Result}})
     end.
 
 check(F, String, Result, BoundVars, LFH, EFH) ->
@@ -2452,7 +2452,14 @@ error_info_catch(String, Result) ->
             ct:fail({eval, Other, Result})
     end.
 
-check_backtrace([B1|Backtrace], [B2|BT]) ->
+check_backtrace(Backtrace, BT) ->
+    try check_backtrace_1(Backtrace, BT) of
+        R -> R
+    catch _:_:_ ->
+        ct:fail({backtrace_check_failed, Backtrace, BT})
+    end.
+
+check_backtrace_1([B1|Backtrace], [B2|BT]) ->
     case {B1, B2} of
         {M, {M,_,_,_}} ->
             ok;
@@ -2461,9 +2468,10 @@ check_backtrace([B1|Backtrace], [B2|BT]) ->
         {B, B} ->
             ok
     end,
-    check_backtrace(Backtrace, BT);
-check_backtrace([], _) ->
+    check_backtrace_1(Backtrace, BT);
+check_backtrace_1([], _) ->
     ok.
+
 
 eval_string(String) ->
     {value, Result, _} = parse_and_run(String),
