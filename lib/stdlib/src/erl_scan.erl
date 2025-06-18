@@ -565,14 +565,6 @@ string1(Cs, St, Line, Col, Toks) ->
 scan(Cs, #erl_scan{}=St, Line, Col, Toks, _) ->
     scan1(Cs, St, Line, Col, Toks).
 
-scan1([$\s|Cs], St, Line, Col, Toks) when St#erl_scan.ws ->
-    scan_spcs(Cs, St, Line, Col, Toks, 1);
-scan1([$\s|Cs], St, Line, Col, Toks) ->
-    skip_white_space(Cs, St, Line, Col, Toks, 1);
-scan1([$\n|Cs], St, Line, Col, Toks) when St#erl_scan.ws ->
-    scan_newline(Cs, St, Line, Col, Toks);
-scan1([$\n|Cs], St, Line, Col, Toks) ->
-    skip_white_space(Cs, St, Line+1, new_column(Col, 1), Toks, 0);
 %% Optimization: some very common punctuation characters:
 scan1([$,|Cs], St, Line, Col, Toks) ->
     tok2(Cs, St, Line, Col, Toks, ",", ',', 1);
@@ -592,6 +584,14 @@ scan1([$;|Cs], St, Line, Col, Toks) ->
     tok2(Cs, St, Line, Col, Toks, ";", ';', 1);
 scan1([$_=C|Cs], St, Line, Col, Toks) ->
     scan_variable(Cs, St, Line, Col, Toks, [C]);
+scan1([$\s|Cs], St, Line, Col, Toks) when St#erl_scan.ws ->
+    scan_spcs(Cs, St, Line, Col, Toks, 1);
+scan1([$\s|Cs], St, Line, Col, Toks) ->
+    skip_white_space(Cs, St, Line, Col, Toks, 1);
+scan1([$\n|Cs], St, Line, Col, Toks) when St#erl_scan.ws ->
+    scan_newline(Cs, St, Line, Col, Toks);
+scan1([$\n|Cs], St, Line, Col, Toks) ->
+    skip_white_space(Cs, St, Line+1, new_column(Col, 1), Toks, 0);
 scan1([$\%=C|Cs], St, Line, Col, Toks) when St#erl_scan.checks ->
     scan_check(Cs, St, Line, Col, Toks, [C]);
 scan1([$\%|Cs], St, Line, Col, Toks) when not St#erl_scan.comment ->
@@ -815,24 +815,24 @@ scan_variable(Cs0, St, Line, Col, Toks, Ncs0) ->
     end.
 
 
+scan_name([$_=C|Cs], Wcs) ->
+    scan_name(Cs, [C|Wcs]);
+scan_name([$@=C|Cs], Wcs) ->
+    scan_name(Cs, [C|Wcs]);
+scan_name([], Wcs) ->
+    {more,Wcs};
 scan_name([C|_]=Cs, Wcs) when not ?CHAR(C) ->
     {Wcs,Cs};
 scan_name([C|Cs], Wcs) when C >= $a, C =< $z ->
     scan_name(Cs, [C|Wcs]);
 scan_name([C|Cs], Wcs) when C >= $A, C =< $Z ->
     scan_name(Cs, [C|Wcs]);
-scan_name([$_=C|Cs], Wcs) ->
-    scan_name(Cs, [C|Wcs]);
 scan_name([C|Cs], Wcs) when ?DIGIT(C) ->
-    scan_name(Cs, [C|Wcs]);
-scan_name([$@=C|Cs], Wcs) ->
     scan_name(Cs, [C|Wcs]);
 scan_name([C|Cs], Wcs) when C >= $ß, C =< $ÿ, C =/= $÷ ->
     scan_name(Cs, [C|Wcs]);
 scan_name([C|Cs], Wcs) when C >= $À, C =< $Þ, C =/= $× ->
     scan_name(Cs, [C|Wcs]);
-scan_name([], Wcs) ->
-    {more,Wcs};
 scan_name(Cs, Wcs) ->
     {Wcs,Cs}.
 
@@ -1315,12 +1315,6 @@ scan_tqstring_finish(Cs, St, Line, Col, Toks, Tqs) ->
     case
         tqstring_finish(lists:reverse(IndentR), NcontentR, Line-1)
     of
-        Content when is_list(Content) ->
-            #tqs{ str = Str, sigil_type = SigilType } = Tqs,
-            AnnoStr = ?STR(string, St, Text, lists:reverse(Str)),
-            Tok = {string,anno(Line0, Col0, St, AnnoStr),Content},
-            scan_sigil_suffix(
-              Cs, St, Line, new_column(Col0, Col), [Tok|Toks], SigilType);
         {Tag=indentation, ErrorLine, ErrorCol} ->
             scan_error(
               Tag, ErrorLine, new_column(Col0, ErrorCol),
@@ -1328,7 +1322,13 @@ scan_tqstring_finish(Cs, St, Line, Col, Toks, Tqs) ->
         {Tag=white_space, N} ->
             scan_error(
               Tag, Line0, incr_column(Col0, Tqs#tqs.qs+N),
-              Line, new_column(Col0, Col), Cs)
+              Line, new_column(Col0, Col), Cs);
+        Content when is_list(Content) ->
+            #tqs{ str = Str, sigil_type = SigilType } = Tqs,
+            AnnoStr = ?STR(string, St, Text, lists:reverse(Str)),
+            Tok = {string,anno(Line0, Col0, St, AnnoStr),Content},
+            scan_sigil_suffix(
+              Cs, St, Line, new_column(Col0, Col), [Tok|Toks], SigilType)
     end.
 
 %% Strip newline from the last line, but not if it is the only line
@@ -2203,7 +2203,11 @@ int_column(Col) when is_integer(Col) ->
 
 %% lists:duplicate/3 (not exported)
 lists_duplicate(0, _, L) -> L;
-lists_duplicate(N, X, L) -> lists_duplicate(N-1, X, [X|L]).
+lists_duplicate(1, X, L) -> [X|L];
+lists_duplicate(2, X, L) -> [X,X|L];
+lists_duplicate(3, X, L) -> [X,X,X|L];
+lists_duplicate(4, X, L) -> [X,X,X,X|L];
+lists_duplicate(N, X, L) -> lists_duplicate(N-4, X, [X,X,X,X|L]).
 
 %% lists:foldl/3 over lists:reverse/2
 lists_foldl_reverse(Lists, Acc) ->

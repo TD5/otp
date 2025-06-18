@@ -111,7 +111,7 @@ the `m:file` module.
 %% could be changed.
 %%
 
--export([absname/1, absname/2, absname_join/2, 
+-export([absname/1, absname/2, absname_join/2,
 	 basename/1, basename/2, dirname/1,
 	 extension/1, join/1, join/2, pathtype/1,
          rootname/1, rootname/2, split/1, flatten/1, nativename/1]).
@@ -131,12 +131,12 @@ the `m:file` module.
 %% Converts a relative filename to an absolute filename
 %% or the filename itself if it already is an absolute filename
 %% Note that no attempt is made to create the most beatiful
-%% absolute name since this can give incorrect results on 
+%% absolute name since this can give incorrect results on
 %% file systems which allows links.
 %% Examples:
 %% Assume (for UNIX) current directory "/usr/local"
 %% Assume (for WIN32) current directory "D:/usr/local"
-%%  
+%%
 %% (for Unix) : absname("foo") -> "/usr/local/foo"
 %% (for WIN32): absname("foo") -> "D:/usr/local/foo"
 %% (for Unix) : absname("../x") -> "/usr/local/../x"
@@ -237,8 +237,8 @@ absname_vr([[X, $:]|Name], _, _AbsBase) ->
     end,
     absname(join(Name), Dcwd).
 
-%% Joins a relative filename to an absolute base. 
-%% This is just a join/2, but assumes that 
+%% Joins a relative filename to an absolute base.
+%% This is just a join/2, but assumes that
 %% AbsBase must be absolute and Name must be relative.
 
 -doc """
@@ -288,7 +288,7 @@ basename(Name) when is_binary(Name) ->
 	_ ->
 	    basenameb(Name,[<<"/">>])
     end;
-    
+
 basename(Name0) ->
     Name1 = flatten(Name0),
     {DirSep2, DrvSep} = separators(),
@@ -308,13 +308,12 @@ basenameb(Bin,Sep) ->
 	true ->
 	    lists:last(Parts)
     end.
-    
+
 
 
 basename1([$/], Tail0, _DirSep2) ->
     %% End of filename -- must get rid of trailing directory separator.
-    [_|Tail] = lists:reverse(Tail0),
-    lists:reverse(Tail);
+    lists:droplast(Tail0);
 basename1([$/|Rest], _Tail, DirSep2) ->
     basename1(Rest, Rest, DirSep2);
 basename1([DirSep2|Rest], Tail, DirSep2) when is_integer(DirSep2) ->
@@ -438,7 +437,7 @@ _Examples:_
 dirname(Name) when is_binary(Name) ->
     {Dsep,Drivesep} = separators(),
     SList = case Dsep of
-		Sep when is_integer(Sep) -> 
+		Sep when is_integer(Sep) ->
 		    [ <<Sep>> ];
 		_ ->
 		    []
@@ -452,7 +451,7 @@ dirname(Name) when is_binary(Name) ->
 				   {<<>>,Name}
 			   end;
 		       _ ->
-			   {<<>>,Name} 
+			   {<<>>,Name}
 		   end,
     Parts0 = binary:split(Dirs,[<<"/">>|SList],[global]),
     %% Fairly short lists of parts, OK to reverse twice...
@@ -477,21 +476,25 @@ dirname([$/|Rest], Dir, File, Seps) ->
 dirname([DirSep|Rest], Dir, File, {DirSep,_}=Seps) when is_integer(DirSep) ->
     dirname(Rest, File++Dir, [$/], Seps);
 dirname([Dl,DrvSep|Rest], [], [], {_,DrvSep}=Seps)
-  when is_integer(DrvSep), ?IS_DRIVELETTER(Dl) ->
+    when is_integer(DrvSep), ?IS_DRIVELETTER(Dl) ->
     dirname(Rest, [DrvSep,Dl], [], Seps);
 dirname([Char|Rest], Dir, File, Seps) when is_integer(Char) ->
     dirname(Rest, Dir, [Char|File], Seps);
-dirname([], [], File, _Seps) ->
-    case lists:reverse(File) of
-	[$/|_] -> [$/];
-	_ -> "."
+dirname([], [], [], _Seps) ->
+    ".";
+dirname([], [], [_|_]=File, _Seps) ->
+    case lists:last(File) of
+    $/ -> [$/];
+    _ -> "."
     end;
 dirname([], [$/|Rest], File, Seps) ->
     dirname([], Rest, File, Seps);
-dirname([], [DrvSep,Dl], File, {_,DrvSep}) ->
-    case lists:reverse(File) of
-	[$/|_] -> [Dl,DrvSep,$/];
-	_ -> [Dl,DrvSep]
+dirname([], [DrvSep,Dl], [], {_,DrvSep}) ->
+    [Dl,DrvSep];
+dirname([], [DrvSep,Dl], [_|_]=File, {_,DrvSep}) ->
+    case lists:last(File) of
+    $/ -> [Dl,DrvSep,$/];
+    _ -> [Dl,DrvSep]
     end;
 dirname([], Dir, _, _) ->
     lists:reverse(Dir).
@@ -501,7 +504,7 @@ fstrip([<<>>,X|Y]) ->
     fstrip([X|Y]);
 fstrip(A) ->
     A.
-			   
+
 
 dirjoin([<<>>|T],Acc,Sep) ->
     dirjoin1(T,<<Acc/binary,"/">>,Sep);
@@ -515,7 +518,7 @@ dirjoin1([One],Acc,_) ->
 dirjoin1([H|T],Acc,Sep) ->
     dirjoin(T,<<Acc/binary,H/binary,Sep/binary>>,Sep).
 
-    
+
 %% Given a filename string, returns the file extension,
 %% including the period.  Returns an empty list if there
 %% is no extension.
@@ -543,7 +546,7 @@ _Examples:_
 extension(Name) when is_binary(Name) ->
     {Dsep,_} = separators(),
     SList = case Dsep of
-		Sep when is_integer(Sep) -> 
+		Sep when is_integer(Sep) ->
 		    [ <<Sep>> ];
 		_ ->
 		    []
@@ -651,7 +654,7 @@ join(Name1, Name2) when is_binary(Name1), is_binary(Name2) ->
 	relative -> join1b(Name1, Name2, [], OsType);
 	_Other -> join1b(Name2, <<>>, [], OsType)
     end;
-    
+
 join(Name1, Name2) when is_atom(Name1) ->
     join(atom_to_list(Name1), Name2);
 join(Name1, Name2) when is_atom(Name2) ->
@@ -856,9 +859,9 @@ rootname(Name0) ->
     rootname(Name, [], [], major_os_type()).
 
 rootname([$/|Rest], Root, Ext, OsType) ->
-    rootname(Rest, [$/]++Ext++Root, [], OsType);
+    rootname(Rest, [$/ | Ext++Root], [], OsType);
 rootname([$\\|Rest], Root, Ext, win32) ->
-    rootname(Rest, [$/]++Ext++Root, [], win32);
+    rootname(Rest, [$/ | Ext++Root], [], win32);
 rootname([$.|Rest], [$/|_]=Root, [], OsType) ->
     rootname(Rest, [$.|Root], [], OsType);
 rootname([$.|Rest], Root, Ext, OsType) ->
@@ -916,7 +919,7 @@ rootname2([Char|Rest], Ext, Result, OsType) when is_integer(Char) ->
 
 %% Returns a list whose elements are the path components in the filename.
 %%
-%% Examples:	
+%% Examples:
 %% split("/usr/local/bin") -> ["/", "usr", "local", "bin"]
 %% split("foo/bar") -> ["foo", "bar"]
 %% split("a:\\msdev\\include") -> ["a:/", "msdev", "include"]
@@ -965,7 +968,7 @@ unix_splitb(Name) ->
 
 fix_driveletter(Letter0) ->
     if
-	Letter0 >= $A, Letter0 =< $Z ->  
+	Letter0 >= $A, Letter0 =< $Z ->
 	    Letter0+$a-$A;
 	true ->
 	    Letter0
@@ -974,7 +977,7 @@ win32_splitb(<<Letter0,$:, Slash, Rest/binary>>) when (((Slash =:= $\\) orelse (
 							 ?IS_DRIVELETTER(Letter0)) ->
     Letter = fix_driveletter(Letter0),
     L = binary:split(Rest,[<<"/">>,<<"\\">>],[global]),
-    [<<Letter,$:,$/>> | [ X || X <- L, X =/= <<>> ]]; 
+    [<<Letter,$:,$/>> | [ X || X <- L, X =/= <<>> ]];
 win32_splitb(<<Letter0,$:,Rest/binary>>) when ?IS_DRIVELETTER(Letter0) ->
     Letter = fix_driveletter(Letter0),
     L = binary:split(Rest,[<<"/">>,<<"\\">>],[global]),
@@ -988,7 +991,7 @@ win32_splitb(<<Slash,Rest/binary>>) when ((Slash =:= $\\) orelse (Slash =:= $/))
 win32_splitb(Name) ->
     L = binary:split(Name,[<<"/">>,<<"\\">>],[global]),
     [ X || X <- L, X =/= <<>> ].
-    
+
 
 unix_split(Name) ->
     split(Name, [], unix).

@@ -77,7 +77,7 @@ handle_info({'EXIT', User, _Reason},
     case PrevHandler of
 	[] ->
 	    remove_handler;
-	_ -> 
+	_ ->
 	    {swap_handler, install_prev, State,
 	     PrevHandler, go_back}
     end;
@@ -117,7 +117,7 @@ set_group_leader() ->
 	    false
     end.
 
-tag_event(Event) ->    
+tag_event(Event) ->
     {erlang:universaltime(), Event}.
 
 write_events(State, [Ev|Es]) ->
@@ -158,7 +158,11 @@ format_body(#st{modifier=M}=State, [{Format,Args}|T]) ->
 		S0
 	catch
 	    _:_ ->
-		format(State, "ERROR: ~"++M++"p - ~"++M++"p\n", [Format,Args])
+        case M of
+            "" -> format(State, "ERROR: ~p - ~p\n", [Format,Args]);
+            "t" -> format(State, "ERROR: ~tp - ~tp\n", [Format,Args]);
+            _ -> format(State, "ERROR: ~"++M++"p - ~"++M++"p\n", [Format,Args])
+        end
 	end,
     [S|format_body(State, T)];
 format_body(_State, []) ->
@@ -203,15 +207,40 @@ format_term(Term,M) when is_list(Term) ->
 	false ->
 	    format_term_list(Term,M)
     end;
+format_term(Term,"") ->
+    [{"~p\n",[Term]}];
+format_term(Term,"t") ->
+    [{"~tp\n",[Term]}];
 format_term(Term,M) ->
     [{"~"++M++"p\n",[Term]}].
 
-format_term_list([{Tag,Data}|T],M) ->
+format_term_list(L,"") ->
+    format_term_list_latin1(L);
+format_term_list(L,"t") ->
+    format_term_list_unicode(L);
+format_term_list(L,M) ->
+    format_term_list_1(L, M).
+
+format_term_list_latin1([{Tag,Data}|T]) ->
+    [{"    ~p: ~p\n",[Tag,Data]}|format_term_list_latin1(T)];
+format_term_list_latin1([Data|T]) ->
+    [{"    ~p\n",[Data]}|format_term_list_latin1(T)];
+format_term_list_latin1([]=Nil) ->
+    Nil.
+
+format_term_list_unicode([{Tag,Data}|T]) ->
+    [{"    ~tp: ~tp\n",[Tag,Data]}|format_term_list_latin1(T)];
+format_term_list_unicode([Data|T]) ->
+    [{"    ~tp\n",[Data]}|format_term_list_latin1(T)];
+format_term_list_unicode([]=Nil) ->
+    Nil.
+
+format_term_list_1([{Tag,Data}|T],M) ->
     [{"    ~"++M++"p: ~"++M++"p\n",[Tag,Data]}|format_term_list(T,M)];
-format_term_list([Data|T],M) ->
+format_term_list_1([Data|T],M) ->
     [{"    ~"++M++"p\n",[Data]}|format_term_list(T,M)];
-format_term_list([],_) ->
-    [].
+format_term_list_1([]=Nil,_) ->
+    Nil.
 
 string_p([]) ->
     false;
@@ -238,6 +267,12 @@ header(Time, Title, M) ->
             header(calendar:universal_time_to_local_time(Time), Title, "", M)
     end.
 
+header({{Y,Mo,D},{H,Mi,S}}, Title, UTC, "") ->
+    io_lib:format("~n=~s==== ~p-~s-~p::~s:~s:~s ~s===~n",
+                    [Title,D,month(Mo),Y,t(H),t(Mi),t(S),UTC]);
+header({{Y,Mo,D},{H,Mi,S}}, Title, UTC, "t") ->
+    io_lib:format("~n=~ts==== ~p-~s-~p::~s:~s:~s ~s===~n",
+                    [Title,D,month(Mo),Y,t(H),t(Mi),t(S),UTC]);
 header({{Y,Mo,D},{H,Mi,S}}, Title, UTC, M) ->
     io_lib:format("~n=~"++M++"s==== ~p-~s-~p::~s:~s:~s ~s===~n",
                  [Title,D,month(Mo),Y,t(H),t(Mi),t(S),UTC]).
