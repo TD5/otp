@@ -322,7 +322,7 @@ log_no_levels(_Config) ->
     ok = logger:set_primary_config(level,none),
     [logger:Level(#{Level=>rep}) || Level <- Levels],
     ok = check_no_log(),
-    
+
     ok = logger:set_primary_config(level,all),
     M2 = ?map_rep,
     ?LOG_NOTICE(M2),
@@ -338,15 +338,15 @@ log_no_levels(_Config) ->
     ?LOG_INFO(?map_rep),
     ?LOG_DEBUG(?map_rep),
     ok = check_no_log(),
-    
+
     ok = logger:unset_module_level(?MODULE),
     logger:notice(M3=?map_rep),
     ok = check_logged(notice,M3,#{}),
-    
+
     ok = logger:set_handler_config(h1,level,none),
     [logger:Level(#{Level=>rep}) || Level <- Levels],
     ok = check_no_log(),
-    
+
     ok.
 log_no_levels(cleanup,_Config) ->
     logger:remove_handler(h1),
@@ -501,7 +501,7 @@ format_report(_Config) ->
     {"~tp",["strin"++$g]} =
         logger:format_report("strin"++$g), %% improper list
     {"~tp",[term]} = logger:format_report(term),
-    {"~tp",[[]]} = logger:format_report([]),
+    {"[]",[]} = logger:format_report([]),
     {"    ~tp: ~tp",[key,value]} = logger:format_report([{key,value}]),
     {"    ~tp: ~tp",[key,"strin"++$g]} =
         logger:format_report([{key,"strin"++$g}]), %% improper list
@@ -522,7 +522,7 @@ format_report(_Config) ->
     {"    ~tp: ~tp\n    ~tp",[key1,value1,[]]} =
         logger:format_report([{key1,value1},[]]),
 
-    {"~tp",[[]]} = logger:format_report([[],[],[]]),
+    {"[]",[]} = logger:format_report([[],[],[]]),
 
     ok.
 

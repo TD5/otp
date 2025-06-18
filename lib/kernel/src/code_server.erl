@@ -58,7 +58,7 @@ start_link(Args) ->
     Parent = self(),
     Init = fun() -> init(Ref, Parent, Args) end,
     spawn_link(Init),
-    receive 
+    receive
 	{Ref,Res} -> Res
     end.
 
@@ -152,7 +152,7 @@ split_paths([], _S, Path, Paths) ->
 call(Req) ->
     Ref = erlang:monitor(process, ?MODULE),
     ?MODULE ! {code_call, self(), Req},
-    receive 
+    receive
 	{?MODULE, Reply} ->
             erlang:demonitor(Ref,[flush]),
 	    Reply;
@@ -164,7 +164,7 @@ reply(Pid, Res) ->
     Pid ! {?MODULE, Res}.
 
 loop(#state{supervisor=Supervisor}=State0) ->
-    receive 
+    receive
 	{code_call, Pid, Req} ->
 	    case handle_call(Req, Pid, State0) of
 		{reply, Res, State} ->
@@ -228,7 +228,7 @@ do_sys_cmd(SysState, get_status, Parent, Misc) ->
 do_sys_cmd(SysState, {debug, _What}, _Parent, Misc) ->
     {SysState,ok,Misc};
 do_sys_cmd(suspended, {change_code, Module, Vsn, Extra}, _Parent, Misc0) ->
-    {Res, Misc} = 
+    {Res, Misc} =
 	case catch ?MODULE:system_code_change(Misc0, Module, Vsn, Extra)  of
 	    {ok, _} = Ok -> Ok;
 	    Else -> {{error, Else}, Misc0}
@@ -371,7 +371,7 @@ handle_call(Other,_From, S) ->
 %% --------------------------------------------------------------
 
 %%
-%% Create the initial path. 
+%% Create the initial path.
 %%
 make_path(BundleDir, Bundles0) ->
     Bundles = choose_bundles(Bundles0),
@@ -411,7 +411,7 @@ is_vsn(Str) when is_list(Str) ->
     lists:all(fun is_numstr/1, Vsns).
 
 is_numstr(Cs) ->
-    lists:all(fun (C) when $0 =< C, C =< $9 -> true; 
+    lists:all(fun (C) when $0 =< C, C =< $9 -> true;
 		  (_)                       -> false
 	      end, Cs).
 
@@ -433,7 +433,7 @@ split2([C|S], Seps, Toks, Cs) ->
     end;
 split2([], _Seps, Toks, Cs) ->
     lists:reverse([lists:reverse(Cs)|Toks]).
-   
+
 join([H1, H2| T], S) ->
     H1 ++ S ++ join([H2| T], S);
 join([H], _) ->
@@ -473,7 +473,7 @@ make_path(BundleDir, [Bundle|Tail], Res) ->
 	    Ext = archive_extension(),
 	    Base = filename:basename(Bundle, Ext),
 	    Ebin2 = filename:join([BundleDir, Base ++ Ext, Base, "ebin"]),
-	    Ebins = 
+	    Ebins =
 		case split_base(Base) of
 		    {AppName,_} ->
 			Ebin3 = filename:join([BundleDir, Base ++ Ext,
@@ -546,7 +546,7 @@ patch_path(Path) ->
     case check_path(Path) of
 	{ok, NewPath} -> NewPath;
 	{error, _Reason} -> Path
-    end.	    
+    end.
 
 %% As the erl_prim_loader path includes the -pa and -pz
 %% directories they have to be removed first !!
@@ -573,7 +573,7 @@ strip_path([P0|Ps], Mode) ->
     end;
 strip_path(_, _) ->
     [].
-    
+
 %%
 %% Add only non-existing paths.
 %% Also delete other versions of directories,
@@ -595,7 +595,7 @@ merge_path1([P|Path],IPath,Acc) ->
 	    merge_path1(Path,IPath1,[P|Acc])
     end;
 merge_path1(_,IPath,Acc) ->
-    lists:reverse(Acc) ++ IPath.
+    lists:reverse(Acc, [IPath]).
 
 add_pa_pz(Path0, Patha, Pathz) ->
     {_,Path1,_Cache1} = add_paths(first,Patha,Path0,nocache,#{},false),
@@ -621,8 +621,8 @@ get_arg(Arg) ->
 %%
 exclude(Dir,Path) ->
     Name = get_name(Dir),
-    [D || D <- Path, 
-	  D =/= Dir, 
+    [D || D <- Path,
+	  D =/= Dir,
 	  get_name(D) =/= Name].
 
 %%
@@ -665,8 +665,8 @@ check_path(Path) ->
     PathChoice = init:code_path_choice(),
     ArchiveExt = archive_extension(),
     do_check_path(Path, PathChoice, ArchiveExt, []).
-    
-do_check_path([], _PathChoice, _ArchiveExt, Acc) -> 
+
+do_check_path([], _PathChoice, _ArchiveExt, Acc) ->
     {ok, lists:reverse(Acc)};
 do_check_path([Dir | Tail], PathChoice, ArchiveExt, Acc) ->
     case is_dir(Dir) of
@@ -687,11 +687,11 @@ do_check_path([Dir | Tail], PathChoice, ArchiveExt, Acc) ->
 			    do_check_path(Tail, PathChoice, ArchiveExt, [Dir2 | Acc]);
 			false ->
 			    {error, bad_directory}
-		    end;    
+		    end;
 		["ebin", App, OptArchive | RevTop] ->
 		    Ext = filename:extension(OptArchive),
 		    Base = filename:basename(OptArchive, Ext),
-		    Dir2 = 
+		    Dir2 =
 			if
 			    Ext =:= ArchiveExt, Base =:= App ->
 				%% .../app-vsn.ez/app-vsn/ebin
@@ -710,7 +710,7 @@ do_check_path([Dir | Tail], PathChoice, ArchiveExt, Acc) ->
 			    do_check_path(Tail, PathChoice, ArchiveExt, [Dir2 | Acc]);
 			false ->
 			    {error, bad_directory}
-		    end;    
+		    end;
 		_ ->
 		    {error, bad_directory}
 	    end
@@ -998,7 +998,7 @@ delete_name_dir(Dir, Db) ->
 	    Dir0 = del_ebin(Dir),
 	    case lookup_name(Name, Db) of
 		{ok, Dir0, _Base, _SubDirs} ->
-		    ets:delete(Db, Name), 
+		    ets:delete(Db, Name),
 		    true;
 		_ -> false
 	    end
@@ -1041,7 +1041,7 @@ do_dir(_Root,{lib_dir,Name,SubDir0},NameDb) ->
 		    %% Subdir is regular directory
 		    filename:join([Dir, SubDir])
 	    end;
-	_  -> 
+	_  ->
 	    {error, bad_name}
     end;
 do_dir(_Root,{priv_dir,Name},NameDb) ->
@@ -1060,7 +1060,7 @@ stick_dir(Dir, Stick, St) ->
 		false ->
 		    foreach(fun (M) -> ets:delete(Db, {sticky,M}) end, Mods)
 	    end;
-	Error -> 
+	Error ->
 	    Error
     end.
 

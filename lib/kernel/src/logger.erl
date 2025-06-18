@@ -675,7 +675,7 @@ format_report(Report) when is_map(Report) ->
 format_report(Report) ->
     try lists:flatten(Report) of
         [] ->
-            {"~tp",[[]]};
+            {"[]",[]};
         FlatList ->
             case string_p1(FlatList) of
                 true ->
@@ -688,11 +688,11 @@ format_report(Report) ->
     end.
 
 format_term_list([{Tag,Data}|T],Format,Args) ->
-    PorS = case string_p(Data) of
-               true -> "s";
-               false -> "p"
+    F = case string_p(Data) of
+               true -> "    ~tp: ~ts";
+               false -> "    ~tp: ~tp"
            end,
-    format_term_list(T,["    ~tp: ~t"++PorS|Format],[Data,Tag|Args]);
+    format_term_list(T,[F|Format],[Data,Tag|Args]);
 format_term_list([Data|T],Format,Args) ->
     format_term_list(T,["    ~tp"|Format],[Data|Args]);
 format_term_list([],Format,Args) ->
@@ -1465,11 +1465,11 @@ print_handlers(#{id := Id,
               "        Filters:~n",
               [FilterDefault]),
     print_filters("            ",Filters,M),
-    case maps:find(config,Config) of
-        {ok,HandlerConfig} ->
+    case Config of
+        #{config := HandlerConfig} ->
             io:format("        Handler Config:~n"),
             print_custom("            ",HandlerConfig,M);
-        error ->
+        #{} ->
             ok
     end,
     MyKeys = [filter_default, filters, formatter, level, module, id, config],

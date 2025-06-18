@@ -1,7 +1,7 @@
 %% %CopyrightBegin%
-%% 
+%%
 %% Copyright Ericsson AB 1996-2021. All Rights Reserved.
-%% 
+%%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
 %% You may obtain a copy of the License at
@@ -13,7 +13,7 @@
 %% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
-%% 
+%%
 %% %CopyrightEnd%
 %%
 -module(prim_tty).
@@ -624,9 +624,9 @@ handle_request(State = #state{ options = #{ tty := false } }, Request) ->
 handle_request(State, {redraw_prompt, Pbs, Pbs2, {LB, {Bef, Aft}, LA}}) ->
     {ClearLine, Cleared} = handle_request(State, delete_line),
     CL = lists:reverse(Bef,Aft),
-    Text = Pbs ++ lists:flatten(lists:join("\n"++Pbs2, lists:reverse(LB)++[CL|LA])),
+    Text = Pbs ++ lists:flatten(lists:join("\n"++Pbs2, lists:reverse(LB,[CL|LA]))),
     Moves = if LA /= [] ->
-                    [Last|_] = lists:reverse(LA),
+                    Last = lists:last(LA),
                     {move_combo, -logical(Last), -length(LA), logical(Bef)};
                true ->
                     {move, -logical(Aft)}
@@ -914,7 +914,7 @@ handle_request(State, Req) ->
 
 last_or_empty([]) -> [];
 last_or_empty([H]) -> H;
-last_or_empty(L) -> [H|_] = lists:reverse(L), H.
+last_or_empty(L) -> lists:last(L).
 
 %% Split the buffer after N cols
 %% Returns the number of characters deleted, and the column length (N)
@@ -1034,9 +1034,9 @@ in_view(#state{lines_after = LinesAfter, buffer_before = Bef, buffer_after = Aft
                                 _ ->
                                     []
                             end,
-            LAInView = lists:flatten(["\n"++LA||LA<-lists:reverse(LAInViewLines)]),    
+            LAInView = lists:flatten([[$\n|LA]||LA<-lists:reverse(LAInViewLines)]),
             LBInView = lists:flatten([LB++"\n"||LB<-LBAfter0]),
-            Text = LBInView ++ lists:reverse(Bef,Aft) ++ LAInView,
+            Text = LBInView ++ lists:reverse(Bef,Aft ++ LAInView),
             Movement = move_cursor(State,
                                    cols_after_cursor(State#state{lines_after = LAInViewLines++[lists:reverse(Bef, Aft)]}),
                                    cols(Bef,U)),
@@ -1235,7 +1235,7 @@ insert_buf(State, Bin, LineAcc, Acc) ->
             end;
         [Cluster | Rest] when is_list(Cluster) ->
             insert_buf(State, Rest, [Cluster | LineAcc], Acc);
-        %% We have gotten a code point that may be part of the previous grapheme cluster. 
+        %% We have gotten a code point that may be part of the previous grapheme cluster.
         [Char | Rest] when Char >= 128, LineAcc =:= [], State#state.buffer_before =/= [],
                            State#state.buffer_expand =:= undefined ->
             [PrevChar | BB] = State#state.buffer_before,
@@ -1249,7 +1249,7 @@ insert_buf(State, Bin, LineAcc, Acc) ->
                     %% it and insert it into the before_buffer
                     %% TODO: If an xnfix was done on PrevChar,
                     %%       then we should rewrite the entire grapheme cluster.
-                    {_, ToWrite} = lists:split(length(lists:flatten([PrevChar])), Cluster),
+                    {_, ToWrite} = lists:split(lists:flatlength([PrevChar]), Cluster),
                     insert_buf(State#state{ buffer_before = [Cluster | BB] },
                                ClusterRest, LineAcc,
                                [Acc, unicode:characters_to_binary(ToWrite)])
@@ -1263,7 +1263,7 @@ insert_buf(State, Bin, LineAcc, Acc) ->
                 {false, 8#177} -> %% DEL
                     insert_buf(State, Rest, ["^?" | LineAcc], Acc);
                 {false, _} ->
-                    insert_buf(State, Rest, ["^" ++ [Char bor 8#40] | LineAcc], Acc)
+                    insert_buf(State, Rest, [[$^ | [Char bor 8#40]] | LineAcc], Acc)
             end
     end.
 
@@ -1415,4 +1415,3 @@ tgoto_nif(_Ent, _Arg1, _Arg2) ->
     erlang:nif_error(undef).
 tty_read_signal(_TTY, _Ref) ->
     erlang:nif_error(undef).
-

@@ -493,9 +493,9 @@ format_msg({Format0,Args},Depth,Opts,Single) ->
 
 reformat(Format,unlimited,false) ->
     Format;
-reformat([#{control_char:=C}=M|T], Depth, true) when C =:= $p ->
+reformat([#{control_char:=$p}=M|T], Depth, true) ->
     [limit_depth(M#{width => 0}, Depth)|reformat(T, Depth, true)];
-reformat([#{control_char:=C}=M|T], Depth, true) when C =:= $P ->
+reformat([#{control_char:=$P}=M|T], Depth, true) ->
     [M#{width => 0}|reformat(T, Depth, true)];
 reformat([#{control_char:=C}=M|T], Depth, Single) when C =:= $p; C =:= $w ->
     [limit_depth(M, Depth)|reformat(T, Depth, Single)];
