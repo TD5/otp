@@ -1876,14 +1876,14 @@ enc_func(none) -> none;
 enc_func(Fun) when is_function(Fun, 1) -> Fun;
 enc_func(Term) -> erlang:error({badarg, Term}).
 
+abstract([], A, _E) -> {nil,A};
+abstract([H|T], A, none=E) ->
+    {cons,A,abstract(H, A, E),abstract(T, A, E)};
 abstract(T, A, _E) when is_integer(T) -> {integer,A,T};
 abstract(T, A, _E) when is_float(T) -> {float,A,T};
 abstract(T, A, _E) when is_atom(T) -> {atom,A,T};
-abstract([], A, _E) -> {nil,A};
 abstract(B, A, _E) when is_bitstring(B) ->
     {bin, A, [abstract_byte(Byte, A) || Byte <- bitstring_to_list(B)]};
-abstract([H|T], A, none=E) ->
-    {cons,A,abstract(H, A, E),abstract(T, A, E)};
 abstract(List, A, E) when is_list(List) ->
     abstract_list(List, [], A, E);
 abstract(Tuple, A, E) when is_tuple(Tuple) ->

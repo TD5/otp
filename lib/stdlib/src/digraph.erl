@@ -289,7 +289,7 @@ del_vertex(G, V) ->
       G :: graph(),
       Vertices :: [vertex()].
 
-del_vertices(G, Vs) -> 
+del_vertices(G, Vs) ->
     do_del_vertices(Vs, G).
 
 -doc """
@@ -620,7 +620,7 @@ rm_edges(_, _) -> true.
 rm_edge(V1, V2, G) ->
     Es = out_edges(G, V1),
     rm_edge_0(Es, V1, V2, G).
-    
+
 rm_edge_0([E|Es], V1, V2, G) ->
     case ets:lookup(G#digraph.etab, E) of
 	[{E, V1, V2, _}]  ->
@@ -630,7 +630,7 @@ rm_edge_0([E|Es], V1, V2, G) ->
 	    rm_edge_0(Es, V1, V2, G)
     end;
 rm_edge_0([], _, _, #digraph{}) -> ok.
-    
+
 %%
 %% Check that endpoints exist
 %%
@@ -779,13 +779,13 @@ prune_short_path(_Counter, _Min) ->
 one_path([W|Ws], W, Cont, Xs, Ps, Prune, G, Counter) ->
     case prune_short_path(Counter, Prune) of
 	short -> one_path(Ws, W, Cont, Xs, Ps, Prune, G, Counter);
-	ok -> lists:reverse([W|Ps])
+	ok -> lists:reverse(W,Ps)
     end;
 one_path([V|Vs], W, Cont, Xs, Ps, Prune, G, Counter) ->
     case lists:member(V, Xs) of
 	true ->  one_path(Vs, W, Cont, Xs, Ps, Prune, G, Counter);
-	false -> one_path(out_neighbours(G, V), W, 
-			  [{Vs,Ps} | Cont], [V|Xs], [V|Ps], 
+	false -> one_path(out_neighbours(G, V), W,
+			  [{Vs,Ps} | Cont], [V|Xs], [V|Ps],
 			  Prune, G, Counter+1)
     end;
 one_path([], W, [{Vs,Ps}|Cont], Xs, _, Prune, G, Counter) ->
@@ -840,12 +840,12 @@ get_short_path(G, V1, V2) ->
     L = spath(Q1, G, V2, T),
     delete(T),
     L.
-    
+
 spath(Q, G, Sink, T) ->
     case queue:out(Q) of
 	{{value, E}, Q1} ->
 	    {_E, V1, V2, _Label} = edge(G, E),
-	    if 
+	    if
 		Sink =:= V2 ->
 		    follow_path(V1, T, [V2]);
 		true ->
