@@ -4339,16 +4339,6 @@ uniq_l([X | Xs], Acc) ->
 uniq_l([], Acc) ->
     reverse(Acc).
 
-uniq_1([X | Xs], M) ->
-    case is_map_key(X, M) of
-        true ->
-            uniq_1(Xs, M);
-        false ->
-            [X | uniq_1(Xs, M#{X => true})]
-    end;
-uniq_1([], _) ->
-    [].
-
 -doc """
 Returns a list containing the elements of `List1` without the elements for which
 `Fun` returned duplicate values (preserving the order of the elements).
