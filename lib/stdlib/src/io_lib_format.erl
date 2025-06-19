@@ -748,23 +748,9 @@ control_limited($s, [L0], F, Adj, P, Pad, latin1=Enc, _Str, _Ord, CL, _I) ->
 control_limited($s, [L0], F, Adj, P, Pad, unicode=Enc, _Str, _Ord, CL, _I) ->
     L = cdata_to_chars(L0, F, CL),
     uniconv(string(L, limit_field(F, CL), Adj, P, Pad, Enc));
-control_limited($w, [A], F, Adj, P, Pad, Enc, _Str, undefined, -1, _I) ->
-    Chars = io_lib:write(A, [
-        {encoding, Enc}
-        % These are the defaults, so no need to pass them explicitly
-        % {depth, -1},
-        % {chars_limit, -1},
-        % {maps_order, undefined}
-    ]),
-    term(Chars, F, Adj, P, Pad);
 control_limited($w, [A], F, Adj, P, Pad, Enc, _Str, Ord, CL, _I) ->
-    Chars = io_lib:write(A, [
-        % {depth, -1}, % Default depth is -1
-        {encoding, Enc},
-        {chars_limit, CL},
-        {maps_order, Ord}
-    ]),
-    term(Chars, F, Adj, P, Pad);
+    Chars = io_lib:write(A, -1, Enc, Ord, CL),
+    term(Chars, F, Adj, P, Pad, Enc);
 control_limited($p, [A], F, Adj, P, Pad, Enc, Str, Ord, CL, I) ->
     print(A, -1, F, Adj, P, Pad, Enc, list, Str, Ord, CL, I);
 control_limited($W, [A,Depth], F, Adj, P, Pad, Enc, _Str, Ord, CL, _I)
@@ -828,30 +814,17 @@ control_unlimited_big($s, [L0], F, Adj, P, Pad, unicode=Enc, _Str, _Ord, _I) ->
             uniconv(string(L, F, Adj, P, Pad, Enc))
     end;
 control_unlimited_big($w, [A], F, Adj, P, Pad, Enc, _Str, undefined, _I) ->
-    Chars = io_lib:write(A, [
-        {encoding, Enc}
-        % These are the defaults, so no need to pass them explicitly
-        % {depth, -1},
-        % {maps_order, undefined}
-    ]),
-    term(Chars, F, Adj, P, Pad);
+    Chars = io_lib:write(A, -1, Enc, undefined),
+    term(Chars, F, Adj, P, Pad, Enc);
 control_unlimited_big($w, [A], F, Adj, P, Pad, Enc, _Str, Ord, _I) ->
-    Chars = io_lib:write(A, [
-        % {depth, -1}, % Default depth is -1
-        {encoding, Enc},
-        {maps_order, Ord}
-    ]),
-    term(Chars, F, Adj, P, Pad);
+    Chars = io_lib:write(A, -1, Enc, Ord),
+    term(Chars, F, Adj, P, Pad, Enc);
 control_unlimited_big($p, [A], F, Adj, P, Pad, Enc, Str, Ord, I) ->
     print_unlimited(A, -1, F, Adj, P, Pad, Enc, Str, Ord, I);
 control_unlimited_big($W, [A,Depth], F, Adj, P, Pad, Enc, _Str, Ord, _I) ->
     ?validate_arg(is_integer,Depth),
-    Chars = io_lib:write(A, [
-        {depth, Depth},
-        {encoding, Enc},
-        {maps_order, Ord}
-    ]),
-    term(Chars, F, Adj, P, Pad);
+    Chars = io_lib:write(A, Depth, Enc, Ord),
+    term(Chars, F, Adj, P, Pad, Enc);
 control_unlimited_big($P, [A,Depth], F, Adj, P, Pad, Enc, Str, Ord, I) ->
     ?validate_arg(is_integer,Depth),
     print_unlimited(A, Depth, F, Adj, P, Pad, Enc, Str, Ord, I);
@@ -955,9 +928,9 @@ term(T, none, _Adj, none, _Pad, _Enc) ->
 term(T, none, Adj, P, Pad, Enc) ->
     term(T, P, Adj, P, Pad, Enc);
 term(T, F, Adj, P0, Pad, Enc) ->
-    L = case Enc =:= latin1 of
-            true  -> io_lib:chars_length(T);
-            false -> string:length(T)
+    L = case Enc of
+            latin1  -> io_lib:chars_length(T);
+            _ -> string:length(T)
         end,
     P = erlang:min(L, case P0 of none -> F; _ -> min(P0, F) end),
     if
@@ -1498,7 +1471,7 @@ unprefixed_integer(Int, F, Adj, Base, Pad, Lowercase)
                 _ -> erlang:integer_to_list(-Int, Base)
             end,
 	    S = cond_lowercase(Num, Base, Lowercase),
-	    term([$-|S], F, Adj, none, Pad);
+	    term([$-|S], F, Adj, none, Pad, latin1);
        true ->
         Num =
             case Base of
@@ -1506,7 +1479,7 @@ unprefixed_integer(Int, F, Adj, Base, Pad, Lowercase)
                 _ -> erlang:integer_to_list(Int, Base)
             end,
 	    S = cond_lowercase(Num, Base, Lowercase),
-	    term(S, F, Adj, none, Pad)
+	    term(S, F, Adj, none, Pad, latin1)
     end.
 
 %% prefixed_integer(Int, Field, Adjust, Base, PadChar, Prefix, Lowercase)
@@ -1521,7 +1494,7 @@ prefixed_integer(Int, F, Adj, Base, Pad, Prefix, Lowercase)
                 _ -> erlang:integer_to_list(-Int, Base)
             end,
 	    S = cond_lowercase(Num, Base, Lowercase),
-	    term([$-,Prefix|S], F, Adj, none, Pad);
+	    term([$-,Prefix|S], F, Adj, none, Pad, latin1);
        true ->
         Num =
             case Base of
@@ -1529,7 +1502,7 @@ prefixed_integer(Int, F, Adj, Base, Pad, Prefix, Lowercase)
                 _ -> erlang:integer_to_list(Int, Base)
             end,
 	    S = cond_lowercase(Num, Base, Lowercase),
-	    term([Prefix|S], F, Adj, none, Pad)
+	    term([Prefix|S], F, Adj, none, Pad, latin1)
     end.
 
 %% char(Char, Field, Adjust, Precision, PadChar) -> chars().

@@ -198,10 +198,8 @@ print_bin(Term, Col, Ll, D, M0, T, RecDefFun, Enc, Str, Ord)
             {write_bin(If,<<>>), Len, -Len};
         true ->
             %% compute the indentation TInd for tagged tuples and records
-            TInd = while_fail([-1, 4],
-                              fun(I) -> cind(If, Col, Ll, M, I, 0, 0) end,
-                              1),
-            {Bin, NL, W} = pp_bin(If, Col, Ll, M, TInd, indent(Col), 0, 0, 0, 0, <<>>),
+            TInd = try_cind(If, Col, Ll, M),
+            {Bin, NL, W} = pp_bin(If, Col, Ll, M, TInd, indent_to_col(Col), 0, 0, 0, 0, <<>>),
             case NL > 0 of
                 true ->
                     {Bin, Len+Col*NL, W-1};
@@ -917,7 +915,7 @@ print_length(<<_/bitstring>> = Bin, D, T, RF, Enc, Str, Ord) ->
     case
         Str andalso
         (bit_size(Bin) rem 8) =:= 0 andalso
-        printable_bin0(Bin, D1, tsub(T, 6), Enc)
+        printable_bin0(Bin, D1, tsub(T, 6), Enc, list)
     of
         {true, List} when is_list(List) ->
             S = io_lib:write_string(List, $"), %"

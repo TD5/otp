@@ -1176,22 +1176,12 @@ length_1(Str, N) ->
         {error, Err} -> error({badarg, Err})
     end.
 
-<<<<<<< HEAD
-length_b(<<CP2, CP3, CP4, CP5, CP6, CP7, CP8, CP9, Rest/binary>>,
-         CP1, N)
-  when CP1 =/= $\r,CP2 =/= $\r,CP3 =/= $\r,CP4 =/= $\r,
-       CP5 =/= $\r,CP6 =/= $\r,CP7 =/= $\r,CP8 =/= $\r,
-       ((CP1 bor CP2 bor CP3 bor CP4 bor CP5 bor CP6 bor CP7 bor CP8 bor CP9)
-            band bnot 127) =:= 0 ->
-    length_b(Rest, CP9, N+8);
-=======
 length_b(<<CP2/utf8, CP3/utf8, CP4/utf8, CP5/utf8, CP6/utf8, CP7/utf8, CP8/utf8, Rest/binary>>, CP1, N) % Fast path for runs of ASCII characters
   when ?ASCII_LIST(CP1,CP2,CP3,CP4,CP5,CP6,CP7,CP8) ->
     length_b(Rest, CP8, N+7);
 length_b(<<CP2/utf8, CP3/utf8, CP4/utf8, Rest/binary>>, CP1, N)
   when ?ASCII_LIST(CP1,CP2,CP3,CP4) ->
     length_b(Rest, CP4, N+3);
->>>>>>> 5d7d7a34d9 (stdlib: Batch/unroll string operations)
 length_b(<<CP2/utf8, Rest/binary>>, CP1, N)
   when ?ASCII_LIST(CP1,CP2) ->
     length_b(Rest, CP2, N+1);

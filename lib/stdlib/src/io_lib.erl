@@ -598,6 +598,10 @@ _Example:_
 write(Term, DepthOrOptions) ->
     write_acc(Term, DepthOrOptions, "").
 
+-doc false.
+write(Term, Depth, Encoding, MapsOrder, CharsLimit) ->
+    write_acc(Term, Depth, Encoding, MapsOrder, CharsLimit, "").
+
 % Hook for making tweaks to general prepending logic, e.g.
 % by inspecting the length of the two strings to decide
 % whether to flatten them immediately
@@ -609,12 +613,12 @@ write_acc(Term, Options, Tl) when is_list(Options) ->
     Encoding = get_option(encoding, Options, epp:default_encoding()),
     CharsLimit = get_option(chars_limit, Options, -1),
     MapsOrder = get_option(maps_order, Options, undefined),
-    write(Term, Depth, Encoding, MapsOrder, CharsLimit);
-write(Term, Depth) ->
-    write(Term, [{depth, Depth}, {encoding, latin1}]).
+    write_acc(Term, Depth, Encoding, MapsOrder, CharsLimit, Tl);
+write_acc(Term, Depth, Tl) ->
+    write_acc(Term, Depth, latin1, undefined, -1, Tl).
 
 -doc false.
-write(Term, Depth, Encoding, MapsOrder, CharsLimit) ->
+write_acc(Term, Depth, Encoding, MapsOrder, CharsLimit, Tl) ->
     if
         Depth =:= 0; CharsLimit =:= 0 ->
             ?prepend("...",Tl);
@@ -628,9 +632,7 @@ write(Term, Depth, Encoding, MapsOrder, CharsLimit) ->
             If = io_lib_pretty:intermediate
                  (Term, Depth, CharsLimit, RecDefFun, Encoding, _Str=false, MapsOrder),
             ?prepend(io_lib_pretty:write(If),Tl)
-    end;
-write_acc(Term, Depth, Tl) ->
-    write_acc(Term, [{depth, Depth}, {encoding, latin1}], Tl).
+    end.
 
 -doc """
 Behaves as `write/2` but returns a UTF-8 encoded binary string.
